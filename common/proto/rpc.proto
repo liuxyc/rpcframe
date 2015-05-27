@@ -1,0 +1,11 @@
+message RpcInnerReq {
+    required string service_name = 1;
+    required string methond_name = 2;
+    required string request_id = 3;
+    required string data = 4;
+}
+
+message RpcInnerResp {
+    required string request_id = 1;
+    required string data = 2;
+}
