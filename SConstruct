@@ -9,8 +9,7 @@ client_test_src = Split('test/client_test.cpp')
 env.Program('client_test', client_test_src, LIBS=['rpcframe', 'pthread', 'uuid', 'protobuf'], LIBPATH='.', CPPPATH = ['./include', 'common/include', 'client/include'])
 
 server_test_src = Split('test/server_test.cpp')
-env.Program('server_test', server_test_src, LDFLAGS=[''], LIBS=['rpcframe', 'protobuf', 'pthread', 'boost_system', \
-    'boost_filesystem', 'boost_log'], LIBPATH='.', CPPPATH = ['server/include', 'common/include'])
+env.Program('server_test', server_test_src, LDFLAGS=[''], LIBS=['rpcframe', 'protobuf', 'pthread'], LIBPATH='.', CPPPATH = ['server/include', 'common/include'])
 
 env.Program('queue_test', 'test/queue_test.cpp', LIBS=['rpcframe', 'gtest_main', 'gtest', 'pthread'], \
     LIBPATH=['.', './gtest/lib'], CPPPATH=['common/include', './gtest/include'])
