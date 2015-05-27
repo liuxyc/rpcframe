@@ -52,6 +52,7 @@ uint32_t RpcServerConfig::getThreadNum()
 RpcServer::RpcServer(rpcframe::RpcServerConfig &cfg)
 : m_cfg(cfg)
 , m_seqid(0)
+, m_stop(false)
 {
     for(uint32_t i = 0; i < m_cfg.getThreadNum(); ++i) {
         RpcWorker *rw = new RpcWorker(&m_request_q, this);
@@ -59,21 +60,9 @@ RpcServer::RpcServer(rpcframe::RpcServerConfig &cfg)
         m_thread_vec.push_back(th);
         m_worker_vec.push_back(rw);
     }
-    /*
-    m_resp = new RpcResponser(&m_response_q, this);
-    m_resp_th = new std::thread(&RpcResponser::run, m_resp);
-    */
 }
 
 RpcServer::~RpcServer() {
-    for(auto rw: m_worker_vec) {
-        rw->stop();
-    }
-    for (auto th: m_thread_vec) {
-        th->join();
-    }
-    //m_resp->stop();
-    //m_resp_th->join();
 
 }
 
@@ -149,7 +138,7 @@ bool RpcServer::start() {
     ev.data.fd = m_resp_ev_fd;
     epoll_ctl(epoll_fd, EPOLL_CTL_ADD, m_resp_ev_fd, &ev);  
 
-    while(1) {
+    while(!m_stop) {
         struct epoll_event events[_MAX_SOCKFD_COUNT];  
         int nfds = epoll_wait(epoll_fd, events, _MAX_SOCKFD_COUNT, 2000);  
         for (int i = 0; i < nfds; i++)  
@@ -227,7 +216,7 @@ bool RpcServer::start() {
             }  
         }  
     }
-
+    return true;
 }
 
 bool RpcServer::hasConnection(int fd)
@@ -278,10 +267,13 @@ void RpcServer::pushResp(std::string seqid, rpcframe::response_pkg *resp_pkg)
 }
 
 void RpcServer::stop() {
-    for(uint32_t i = 0; i < m_cfg.getThreadNum(); ++i) {
-        m_thread_vec[i]->join();
+    m_stop = true;
+    for(auto rw: m_worker_vec) {
+        rw->stop();
     }
-    m_resp_th->join();
+    for (auto th: m_thread_vec) {
+        th->join();
+    }
 }
 
 };

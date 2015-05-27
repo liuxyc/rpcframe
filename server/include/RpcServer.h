@@ -65,6 +65,7 @@ private:
     std::thread *m_resp_th;
     std::mutex m_mutex;
     int m_resp_ev_fd;
+    std::atomic<bool> m_stop;
     
 };
 
