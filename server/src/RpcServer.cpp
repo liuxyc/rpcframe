@@ -84,7 +84,7 @@ rpcframe::IService *RpcServer::getService(const std::string &name)
 bool RpcServer::start() {
 
     int epoll_fd = epoll_create(_MAX_SOCKFD_COUNT);  
-    //设置非阻塞模式  
+    //set nonblock
     int opts = O_NONBLOCK;  
     if(fcntl(epoll_fd,F_SETFL,opts)<0)  
     {  
@@ -147,6 +147,7 @@ bool RpcServer::start() {
         for (int i = 0; i < nfds; i++)  
         {  
             int client_socket = events[i].data.fd;  
+            //event fd, we have data to send
             if (events[i].events & EPOLLIN)
             {  
                 if (client_socket == m_resp_ev_fd) {
@@ -157,13 +158,14 @@ bool RpcServer::start() {
                         printf("read resp event fail\n");
                         continue;
                     }
-                    printf("ev cnt %d\n", resp_cnt);
 
                     std::string seqid;
                     if (m_resp_conn_q.pop(seqid, 0)) {
                         if (m_conn_set.find(seqid) != m_conn_set.end()) {
+                            //keep push all data out
+                            RpcConnection *conn = m_conn_set[seqid];
                             while(true) {
-                                int sent_ret = m_conn_set[seqid]->sendResponse();
+                                int sent_ret = conn->sendResponse();
                                 if (sent_ret == -1 ) {
                                     removeConnection(client_socket);
                                     break;
@@ -201,15 +203,11 @@ bool RpcServer::start() {
                         m_seqid++;
                         addConnection(new_client_socket, new rpcframe::RpcConnection(new_client_socket, m_seqid));
                         //printf("new_client_socket: %d\n", new_client_socket);  
-                        printf("%d\n", m_seqid);
-                        if (m_seqid > 5) {
-                            exit(0);
-                        }
-
                     }
                     continue;
                 }
 
+                //data comein
                 pkg_ret_t pkgret = getConnection(client_socket)->getRequest();
                 if( pkgret.first < 0 )  
                 {  

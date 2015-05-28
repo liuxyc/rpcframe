@@ -113,7 +113,7 @@ int RpcConnection::readPkgData()
     }
     else {
         m_cur_left_len = m_cur_left_len - rev_size;
-        printf(" half pkg got %d need %d more\n", rev_size, m_cur_left_len);
+        //printf(" half pkg got %d need %d more\n", rev_size, m_cur_left_len);
         return -1;
     }
 }
