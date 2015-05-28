@@ -55,13 +55,14 @@ private:
     rpcframe::RpcServerConfig m_cfg;
     std::vector<std::thread *> m_thread_vec;
     std::vector<RpcWorker *> m_worker_vec;
-    rpcframe::ServiceMap m_service_map;
+    ServiceMap m_service_map;
     std::unordered_map<int, rpcframe::RpcConnection *> m_conn_map;
     std::unordered_map<std::string, rpcframe::RpcConnection *> m_conn_set;
     uint32_t m_seqid;
 
-    rpcframe::Queue<rpcframe::request_pkg *> m_request_q;
-    rpcframe::Queue<rpcframe::response_pkg *> m_response_q;
+    Queue<request_pkg *> m_request_q;
+    Queue<response_pkg *> m_response_q;
+    Queue<std::string> m_resp_conn_q;
     std::thread *m_resp_th;
     std::mutex m_mutex;
     int m_resp_ev_fd;

@@ -20,6 +20,8 @@ class request_pkg
 {
 public:
     request_pkg(uint32_t size, std::string conn_id)
+    : data(NULL)
+    , data_len(size)
     {
         connection_id = conn_id;
         data = new char[size];
@@ -30,6 +32,7 @@ public:
     };
     std::string connection_id;
     char *data;
+    uint32_t data_len;
 
 };
 

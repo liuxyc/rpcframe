@@ -130,9 +130,12 @@ bool RpcServer::start() {
     ev.data.fd = listen_socket;
     epoll_ctl(epoll_fd, EPOLL_CTL_ADD, listen_socket, &ev);  
 
-    m_resp_ev_fd = eventfd(0, 0);  
-    if (m_resp_ev_fd == -1)
+    m_resp_ev_fd = eventfd(0, EFD_SEMAPHORE);  
+    if (m_resp_ev_fd == -1) {
         printf("create event fd fail\n");  
+        return false;
+    }
+
     memset(&ev, 0, sizeof(ev));
     ev.events = EPOLLIN | EPOLLERR | EPOLLHUP;  
     ev.data.fd = m_resp_ev_fd;
@@ -148,24 +151,36 @@ bool RpcServer::start() {
             {  
                 if (client_socket == m_resp_ev_fd) {
                     ssize_t s = -1;
-                    uint64_t resp_fd = -1;
-                    s = read(m_resp_ev_fd, &resp_fd, sizeof(uint64_t));
-                    if (s != sizeof(uint64_t))
+                    uint64_t resp_cnt = -1;
+                    s = read(m_resp_ev_fd, &resp_cnt, sizeof(uint64_t));
+                    if (s != sizeof(uint64_t)) {
                         printf("read resp event fail\n");
+                        continue;
+                    }
+                    printf("ev cnt %d\n", resp_cnt);
 
-                    int sent_ret = m_conn_map[resp_fd]->sendResponse();
-                    if (sent_ret == -1 ) {
-                        removeConnection(client_socket);
-                    }
-                    else if ( sent_ret == -2 ){
-                        //printf("sent partial to %d\n", client_socket);
-                    }
-                    else {
-                        //printf("sent to %d\n", client_socket);
+                    std::string seqid;
+                    if (m_resp_conn_q.pop(seqid, 0)) {
+                        if (m_conn_set.find(seqid) != m_conn_set.end()) {
+                            while(true) {
+                                int sent_ret = m_conn_set[seqid]->sendResponse();
+                                if (sent_ret == -1 ) {
+                                    removeConnection(client_socket);
+                                    break;
+                                }
+                                else if ( sent_ret == -2 ){
+                                    //printf("sent partial to %d\n", client_socket);
+                                }
+                                else {
+                                    //printf("sent to %d\n", client_socket);
+                                    break;
+                                }
+                            }
+                        }
                     }
                     continue;
-
                 }
+
                 if (client_socket == listen_socket) {
                     //listen socket event
                     sockaddr_in remote_addr;  
@@ -186,6 +201,10 @@ bool RpcServer::start() {
                         m_seqid++;
                         addConnection(new_client_socket, new rpcframe::RpcConnection(new_client_socket, m_seqid));
                         //printf("new_client_socket: %d\n", new_client_socket);  
+                        printf("%d\n", m_seqid);
+                        if (m_seqid > 5) {
+                            exit(0);
+                        }
 
                     }
                     continue;
@@ -228,9 +247,11 @@ bool RpcServer::hasConnection(int fd)
 void RpcServer::removeConnection(int fd)
 {
     std::lock_guard<std::mutex> mlock(m_mutex);
-    m_conn_set.erase(m_conn_map[fd]->m_seqid);
-    delete m_conn_map[fd];
-    m_conn_map.erase(fd);
+    if (m_conn_map.find(fd) != m_conn_map.end()) {
+        m_conn_set.erase(m_conn_map[fd]->m_seqid);
+        delete m_conn_map[fd];
+        m_conn_map.erase(fd);
+    }
 }
 
 void RpcServer::addConnection(int fd, RpcConnection *conn)
@@ -246,20 +267,21 @@ RpcConnection *RpcServer::getConnection(int fd)
     return m_conn_map[fd];
 }
 
-void RpcServer::pushResp(std::string seqid, rpcframe::response_pkg *resp_pkg)
+void RpcServer::pushResp(std::string conn_id, rpcframe::response_pkg *resp_pkg)
 {
     std::lock_guard<std::mutex> mlock(m_mutex);
-    if (m_conn_set.find(seqid) != m_conn_set.end()) {
-        RpcConnection *conn = m_conn_set[seqid];
+    if (m_conn_set.find(conn_id) != m_conn_set.end()) {
+        RpcConnection *conn = m_conn_set[conn_id];
         conn->m_response_q.push(resp_pkg);
-        uint64_t resp_fd = conn->getFd();
+        m_resp_conn_q.push(conn_id);
+        uint64_t resp_cnt = 1;
         ssize_t s = -1;
-        s = write(m_resp_ev_fd, &(resp_fd), sizeof(uint64_t));
+        s = write(m_resp_ev_fd, &(resp_cnt), sizeof(uint64_t));
         if (s != sizeof(uint64_t))
             printf("write resp event fd fail\n");
     }
     else {
-        printf("connection %s gone, drop resp\n", seqid.c_str());
+        printf("connection %s gone, drop resp\n", conn_id.c_str());
         delete resp_pkg->data;
         delete resp_pkg;
     }

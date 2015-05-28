@@ -31,6 +31,7 @@ RpcEventLooper::RpcEventLooper(RpcClient *client)
 : m_client(client)
 , m_stop(false)
 , m_conn(NULL)
+, MAX_REQ_LIMIT_BYTE(100 * 1024 * 1024)
 {
     m_epoll_fd = epoll_create(_MAX_SOCKFD_COUNT);  
     //set noblock
@@ -79,20 +80,24 @@ void RpcEventLooper::addConnection()
     ev.events = EPOLLIN | EPOLLERR | EPOLLHUP;  
     ev.data.fd = m_fd;
     epoll_ctl(m_epoll_fd, EPOLL_CTL_ADD, m_fd, &ev);  
-
 }
 
 bool RpcEventLooper::sendReq(const std::string &service_name, const std::string &method_name, const std::string &request_data, RpcClientCallBack *cb_obj, std::string &req_id) {
+    if (request_data.length() >= MAX_REQ_LIMIT_BYTE) {
+        return false;
+    }
     std::lock_guard<std::mutex> mlock(m_mutex);
     if (NULL == m_conn) {
         if (!connect()) {
-            cb_obj->callback(RpcClientCallBack::RPC_SEND_FAIL, "");
-            delete cb_obj;
+            if (cb_obj != NULL) {
+                cb_obj->callback(RpcClientCallBack::RPC_SEND_FAIL, "");
+                delete cb_obj;
+            }
             return false;
         }
     }
     req_id = m_conn->genRequestId();
-    bool send_ret = m_conn->sendReq(service_name, method_name, request_data, req_id);
+    bool send_ret = m_conn->sendReq(service_name, method_name, request_data, req_id, (cb_obj == NULL));
     if (cb_obj != NULL) {
         if (send_ret) {
             m_cb_map.insert(std::make_pair(req_id, cb_obj));

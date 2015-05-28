@@ -42,13 +42,14 @@ void RpcWorker::run() {
         if (m_work_q->pop(pkg, 10)) {
             //must get request id from here
             RpcInnerReq req;
-            req.ParseFromString(pkg->data);
+            req.ParseFromString(std::string(pkg->data, pkg->data_len));
 
             std::string resp_data;
             IService *p_service = m_server->getService(req.service_name());
             if (NULL != p_service) {
                 IService::ServiceRET ret = p_service->runService(req.methond_name(), req.data(), resp_data);
-                if (ret == IService::ServiceRET::S_OK) {
+                if (ret == IService::ServiceRET::S_OK && 
+                    (req.type() == RpcInnerReq::TWO_WAY)) {
                     //have response to send
                     RpcInnerResp resp;
                     resp.set_request_id(req.request_id());

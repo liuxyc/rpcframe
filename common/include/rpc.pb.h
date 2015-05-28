@@ -23,6 +23,7 @@
 #include <google/protobuf/message.h>
 #include <google/protobuf/repeated_field.h>
 #include <google/protobuf/extension_set.h>
+#include <google/protobuf/generated_enum_reflection.h>
 #include <google/protobuf/unknown_field_set.h>
 // @@protoc_insertion_point(includes)
 
@@ -34,6 +35,25 @@ void protobuf_ShutdownFile_rpc_2eproto();
 class RpcInnerReq;
 class RpcInnerResp;
 
+enum RpcInnerReq_RPC_TYPE {
+  RpcInnerReq_RPC_TYPE_ONE_WAY = 0,
+  RpcInnerReq_RPC_TYPE_TWO_WAY = 1
+};
+bool RpcInnerReq_RPC_TYPE_IsValid(int value);
+const RpcInnerReq_RPC_TYPE RpcInnerReq_RPC_TYPE_RPC_TYPE_MIN = RpcInnerReq_RPC_TYPE_ONE_WAY;
+const RpcInnerReq_RPC_TYPE RpcInnerReq_RPC_TYPE_RPC_TYPE_MAX = RpcInnerReq_RPC_TYPE_TWO_WAY;
+const int RpcInnerReq_RPC_TYPE_RPC_TYPE_ARRAYSIZE = RpcInnerReq_RPC_TYPE_RPC_TYPE_MAX + 1;
+
+const ::google::protobuf::EnumDescriptor* RpcInnerReq_RPC_TYPE_descriptor();
+inline const ::std::string& RpcInnerReq_RPC_TYPE_Name(RpcInnerReq_RPC_TYPE value) {
+  return ::google::protobuf::internal::NameOfEnum(
+    RpcInnerReq_RPC_TYPE_descriptor(), value);
+}
+inline bool RpcInnerReq_RPC_TYPE_Parse(
+    const ::std::string& name, RpcInnerReq_RPC_TYPE* value) {
+  return ::google::protobuf::internal::ParseNamedEnum<RpcInnerReq_RPC_TYPE>(
+    RpcInnerReq_RPC_TYPE_descriptor(), name, value);
+}
 // ===================================================================
 
 class RpcInnerReq : public ::google::protobuf::Message {
@@ -87,6 +107,30 @@ class RpcInnerReq : public ::google::protobuf::Message {
 
   // nested types ----------------------------------------------------
 
+  typedef RpcInnerReq_RPC_TYPE RPC_TYPE;
+  static const RPC_TYPE ONE_WAY = RpcInnerReq_RPC_TYPE_ONE_WAY;
+  static const RPC_TYPE TWO_WAY = RpcInnerReq_RPC_TYPE_TWO_WAY;
+  static inline bool RPC_TYPE_IsValid(int value) {
+    return RpcInnerReq_RPC_TYPE_IsValid(value);
+  }
+  static const RPC_TYPE RPC_TYPE_MIN =
+    RpcInnerReq_RPC_TYPE_RPC_TYPE_MIN;
+  static const RPC_TYPE RPC_TYPE_MAX =
+    RpcInnerReq_RPC_TYPE_RPC_TYPE_MAX;
+  static const int RPC_TYPE_ARRAYSIZE =
+    RpcInnerReq_RPC_TYPE_RPC_TYPE_ARRAYSIZE;
+  static inline const ::google::protobuf::EnumDescriptor*
+  RPC_TYPE_descriptor() {
+    return RpcInnerReq_RPC_TYPE_descriptor();
+  }
+  static inline const ::std::string& RPC_TYPE_Name(RPC_TYPE value) {
+    return RpcInnerReq_RPC_TYPE_Name(value);
+  }
+  static inline bool RPC_TYPE_Parse(const ::std::string& name,
+      RPC_TYPE* value) {
+    return RpcInnerReq_RPC_TYPE_Parse(name, value);
+  }
+
   // accessors -------------------------------------------------------
 
   // required string service_name = 1;
@@ -125,10 +169,17 @@ class RpcInnerReq : public ::google::protobuf::Message {
   inline ::std::string* release_request_id();
   inline void set_allocated_request_id(::std::string* request_id);
 
-  // required string data = 4;
+  // required .RpcInnerReq.RPC_TYPE type = 4;
+  inline bool has_type() const;
+  inline void clear_type();
+  static const int kTypeFieldNumber = 4;
+  inline ::RpcInnerReq_RPC_TYPE type() const;
+  inline void set_type(::RpcInnerReq_RPC_TYPE value);
+
+  // required string data = 5;
   inline bool has_data() const;
   inline void clear_data();
-  static const int kDataFieldNumber = 4;
+  static const int kDataFieldNumber = 5;
   inline const ::std::string& data() const;
   inline void set_data(const ::std::string& value);
   inline void set_data(const char* value);
@@ -145,6 +196,8 @@ class RpcInnerReq : public ::google::protobuf::Message {
   inline void clear_has_methond_name();
   inline void set_has_request_id();
   inline void clear_has_request_id();
+  inline void set_has_type();
+  inline void clear_has_type();
   inline void set_has_data();
   inline void clear_has_data();
 
@@ -156,6 +209,7 @@ class RpcInnerReq : public ::google::protobuf::Message {
   ::std::string* methond_name_;
   ::std::string* request_id_;
   ::std::string* data_;
+  int type_;
   friend void  protobuf_AddDesc_rpc_2eproto();
   friend void protobuf_AssignDesc_rpc_2eproto();
   friend void protobuf_ShutdownFile_rpc_2eproto();
@@ -497,15 +551,40 @@ inline void RpcInnerReq::set_allocated_request_id(::std::string* request_id) {
   // @@protoc_insertion_point(field_set_allocated:RpcInnerReq.request_id)
 }
 
-// required string data = 4;
-inline bool RpcInnerReq::has_data() const {
+// required .RpcInnerReq.RPC_TYPE type = 4;
+inline bool RpcInnerReq::has_type() const {
   return (_has_bits_[0] & 0x00000008u) != 0;
 }
-inline void RpcInnerReq::set_has_data() {
+inline void RpcInnerReq::set_has_type() {
   _has_bits_[0] |= 0x00000008u;
 }
-inline void RpcInnerReq::clear_has_data() {
+inline void RpcInnerReq::clear_has_type() {
   _has_bits_[0] &= ~0x00000008u;
+}
+inline void RpcInnerReq::clear_type() {
+  type_ = 0;
+  clear_has_type();
+}
+inline ::RpcInnerReq_RPC_TYPE RpcInnerReq::type() const {
+  // @@protoc_insertion_point(field_get:RpcInnerReq.type)
+  return static_cast< ::RpcInnerReq_RPC_TYPE >(type_);
+}
+inline void RpcInnerReq::set_type(::RpcInnerReq_RPC_TYPE value) {
+  assert(::RpcInnerReq_RPC_TYPE_IsValid(value));
+  set_has_type();
+  type_ = value;
+  // @@protoc_insertion_point(field_set:RpcInnerReq.type)
+}
+
+// required string data = 5;
+inline bool RpcInnerReq::has_data() const {
+  return (_has_bits_[0] & 0x00000010u) != 0;
+}
+inline void RpcInnerReq::set_has_data() {
+  _has_bits_[0] |= 0x00000010u;
+}
+inline void RpcInnerReq::clear_has_data() {
+  _has_bits_[0] &= ~0x00000010u;
 }
 inline void RpcInnerReq::clear_data() {
   if (data_ != &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
@@ -736,6 +815,11 @@ inline void RpcInnerResp::set_allocated_data(::std::string* data) {
 namespace google {
 namespace protobuf {
 
+template <> struct is_proto_enum< ::RpcInnerReq_RPC_TYPE> : ::google::protobuf::internal::true_type {};
+template <>
+inline const EnumDescriptor* GetEnumDescriptor< ::RpcInnerReq_RPC_TYPE>() {
+  return ::RpcInnerReq_RPC_TYPE_descriptor();
+}
 
 }  // namespace google
 }  // namespace protobuf

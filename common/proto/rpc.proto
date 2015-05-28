@@ -2,7 +2,12 @@ message RpcInnerReq {
     required string service_name = 1;
     required string methond_name = 2;
     required string request_id = 3;
-    required string data = 4;
+    enum RPC_TYPE {
+        ONE_WAY = 0;
+        TWO_WAY = 1;
+    }
+    required RPC_TYPE type = 4;
+    required string data = 5;
 }
 
 message RpcInnerResp {

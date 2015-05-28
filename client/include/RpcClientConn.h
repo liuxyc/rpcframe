@@ -41,7 +41,7 @@ public:
 
     pkg_ret_t getResponse();
     void reset();
-    bool sendReq(const std::string &service_name, const std::string &method_name, const std::string &request_data, const std::string &reqid);
+    bool sendReq(const std::string &service_name, const std::string &method_name, const std::string &request_data, const std::string &reqid, bool is_oneway);
 
     int getFd();
 

@@ -147,7 +147,7 @@ std::string RpcClientConn::genRequestId() {
     return std::string("rpcframe::id_" + std::to_string(m_fd) + "_" + std::string(uuid_buf));
 }
 
-bool RpcClientConn::sendReq(const std::string &service_name, const std::string &method_name, const std::string &request_data, const std::string &reqid) {
+bool RpcClientConn::sendReq(const std::string &service_name, const std::string &method_name, const std::string &request_data, const std::string &reqid, bool is_oneway) {
 
     RpcInnerReq req;
     req.set_service_name(service_name);
@@ -155,6 +155,12 @@ bool RpcClientConn::sendReq(const std::string &service_name, const std::string &
 
     req.set_request_id(reqid);
     req.set_data(request_data);
+    if (is_oneway) {
+        req.set_type(RpcInnerReq::ONE_WAY);
+    }
+    else {
+        req.set_type(RpcInnerReq::TWO_WAY);
+    }
     std::string out_data;
     req.SerializeToString(&out_data);
     uint32_t pkg_len = out_data.length();

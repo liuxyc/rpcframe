@@ -31,7 +31,7 @@ public:
     rpcframe::IService::ServiceRET test_method1(const std::string &request_data, std::string &resp_data) {
         //printf("my method1 get %s\n", request_data.c_str());
         resp_data = "my feedback1";
-        std::this_thread::sleep_for(std::chrono::seconds(2));
+        //std::this_thread::sleep_for(std::chrono::seconds(2));
         return rpcframe::IService::S_OK;
     };
 

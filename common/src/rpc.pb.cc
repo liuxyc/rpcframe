@@ -21,6 +21,7 @@ namespace {
 const ::google::protobuf::Descriptor* RpcInnerReq_descriptor_ = NULL;
 const ::google::protobuf::internal::GeneratedMessageReflection*
   RpcInnerReq_reflection_ = NULL;
+const ::google::protobuf::EnumDescriptor* RpcInnerReq_RPC_TYPE_descriptor_ = NULL;
 const ::google::protobuf::Descriptor* RpcInnerResp_descriptor_ = NULL;
 const ::google::protobuf::internal::GeneratedMessageReflection*
   RpcInnerResp_reflection_ = NULL;
@@ -35,10 +36,11 @@ void protobuf_AssignDesc_rpc_2eproto() {
       "rpc.proto");
   GOOGLE_CHECK(file != NULL);
   RpcInnerReq_descriptor_ = file->message_type(0);
-  static const int RpcInnerReq_offsets_[4] = {
+  static const int RpcInnerReq_offsets_[5] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(RpcInnerReq, service_name_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(RpcInnerReq, methond_name_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(RpcInnerReq, request_id_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(RpcInnerReq, type_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(RpcInnerReq, data_),
   };
   RpcInnerReq_reflection_ =
@@ -52,6 +54,7 @@ void protobuf_AssignDesc_rpc_2eproto() {
       ::google::protobuf::DescriptorPool::generated_pool(),
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(RpcInnerReq));
+  RpcInnerReq_RPC_TYPE_descriptor_ = RpcInnerReq_descriptor_->enum_type(0);
   RpcInnerResp_descriptor_ = file->message_type(1);
   static const int RpcInnerResp_offsets_[2] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(RpcInnerResp, request_id_),
@@ -102,10 +105,12 @@ void protobuf_AddDesc_rpc_2eproto() {
   GOOGLE_PROTOBUF_VERIFY_VERSION;
 
   ::google::protobuf::DescriptorPool::InternalAddGeneratedFile(
-    "\n\trpc.proto\"[\n\013RpcInnerReq\022\024\n\014service_na"
-    "me\030\001 \002(\t\022\024\n\014methond_name\030\002 \002(\t\022\022\n\nreques"
-    "t_id\030\003 \002(\t\022\014\n\004data\030\004 \002(\t\"0\n\014RpcInnerResp"
-    "\022\022\n\nrequest_id\030\001 \002(\t\022\014\n\004data\030\002 \002(\t", 154);
+    "\n\trpc.proto\"\246\001\n\013RpcInnerReq\022\024\n\014service_n"
+    "ame\030\001 \002(\t\022\024\n\014methond_name\030\002 \002(\t\022\022\n\nreque"
+    "st_id\030\003 \002(\t\022#\n\004type\030\004 \002(\0162\025.RpcInnerReq."
+    "RPC_TYPE\022\014\n\004data\030\005 \002(\t\"$\n\010RPC_TYPE\022\013\n\007ON"
+    "E_WAY\020\000\022\013\n\007TWO_WAY\020\001\"0\n\014RpcInnerResp\022\022\n\n"
+    "request_id\030\001 \002(\t\022\014\n\004data\030\002 \002(\t", 230);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "rpc.proto", &protobuf_RegisterTypes);
   RpcInnerReq::default_instance_ = new RpcInnerReq();
@@ -124,10 +129,32 @@ struct StaticDescriptorInitializer_rpc_2eproto {
 
 // ===================================================================
 
+const ::google::protobuf::EnumDescriptor* RpcInnerReq_RPC_TYPE_descriptor() {
+  protobuf_AssignDescriptorsOnce();
+  return RpcInnerReq_RPC_TYPE_descriptor_;
+}
+bool RpcInnerReq_RPC_TYPE_IsValid(int value) {
+  switch(value) {
+    case 0:
+    case 1:
+      return true;
+    default:
+      return false;
+  }
+}
+
+#ifndef _MSC_VER
+const RpcInnerReq_RPC_TYPE RpcInnerReq::ONE_WAY;
+const RpcInnerReq_RPC_TYPE RpcInnerReq::TWO_WAY;
+const RpcInnerReq_RPC_TYPE RpcInnerReq::RPC_TYPE_MIN;
+const RpcInnerReq_RPC_TYPE RpcInnerReq::RPC_TYPE_MAX;
+const int RpcInnerReq::RPC_TYPE_ARRAYSIZE;
+#endif  // _MSC_VER
 #ifndef _MSC_VER
 const int RpcInnerReq::kServiceNameFieldNumber;
 const int RpcInnerReq::kMethondNameFieldNumber;
 const int RpcInnerReq::kRequestIdFieldNumber;
+const int RpcInnerReq::kTypeFieldNumber;
 const int RpcInnerReq::kDataFieldNumber;
 #endif  // !_MSC_VER
 
@@ -153,6 +180,7 @@ void RpcInnerReq::SharedCtor() {
   service_name_ = const_cast< ::std::string*>(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   methond_name_ = const_cast< ::std::string*>(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   request_id_ = const_cast< ::std::string*>(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  type_ = 0;
   data_ = const_cast< ::std::string*>(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
@@ -201,7 +229,7 @@ RpcInnerReq* RpcInnerReq::New() const {
 }
 
 void RpcInnerReq::Clear() {
-  if (_has_bits_[0 / 32] & 15) {
+  if (_has_bits_[0 / 32] & 31) {
     if (has_service_name()) {
       if (service_name_ != &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
         service_name_->clear();
@@ -217,6 +245,7 @@ void RpcInnerReq::Clear() {
         request_id_->clear();
       }
     }
+    type_ = 0;
     if (has_data()) {
       if (data_ != &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
         data_->clear();
@@ -283,13 +312,33 @@ bool RpcInnerReq::MergePartialFromCodedStream(
         } else {
           goto handle_unusual;
         }
-        if (input->ExpectTag(34)) goto parse_data;
+        if (input->ExpectTag(32)) goto parse_type;
         break;
       }
 
-      // required string data = 4;
+      // required .RpcInnerReq.RPC_TYPE type = 4;
       case 4: {
-        if (tag == 34) {
+        if (tag == 32) {
+         parse_type:
+          int value;
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   int, ::google::protobuf::internal::WireFormatLite::TYPE_ENUM>(
+                 input, &value)));
+          if (::RpcInnerReq_RPC_TYPE_IsValid(value)) {
+            set_type(static_cast< ::RpcInnerReq_RPC_TYPE >(value));
+          } else {
+            mutable_unknown_fields()->AddVarint(4, value);
+          }
+        } else {
+          goto handle_unusual;
+        }
+        if (input->ExpectTag(42)) goto parse_data;
+        break;
+      }
+
+      // required string data = 5;
+      case 5: {
+        if (tag == 42) {
          parse_data:
           DO_(::google::protobuf::internal::WireFormatLite::ReadString(
                 input, this->mutable_data()));
@@ -359,14 +408,20 @@ void RpcInnerReq::SerializeWithCachedSizes(
       3, this->request_id(), output);
   }
 
-  // required string data = 4;
+  // required .RpcInnerReq.RPC_TYPE type = 4;
+  if (has_type()) {
+    ::google::protobuf::internal::WireFormatLite::WriteEnum(
+      4, this->type(), output);
+  }
+
+  // required string data = 5;
   if (has_data()) {
     ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
       this->data().data(), this->data().length(),
       ::google::protobuf::internal::WireFormat::SERIALIZE,
       "data");
     ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
-      4, this->data(), output);
+      5, this->data(), output);
   }
 
   if (!unknown_fields().empty()) {
@@ -412,7 +467,13 @@ void RpcInnerReq::SerializeWithCachedSizes(
         3, this->request_id(), target);
   }
 
-  // required string data = 4;
+  // required .RpcInnerReq.RPC_TYPE type = 4;
+  if (has_type()) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteEnumToArray(
+      4, this->type(), target);
+  }
+
+  // required string data = 5;
   if (has_data()) {
     ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
       this->data().data(), this->data().length(),
@@ -420,7 +481,7 @@ void RpcInnerReq::SerializeWithCachedSizes(
       "data");
     target =
       ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
-        4, this->data(), target);
+        5, this->data(), target);
   }
 
   if (!unknown_fields().empty()) {
@@ -456,7 +517,13 @@ int RpcInnerReq::ByteSize() const {
           this->request_id());
     }
 
-    // required string data = 4;
+    // required .RpcInnerReq.RPC_TYPE type = 4;
+    if (has_type()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::EnumSize(this->type());
+    }
+
+    // required string data = 5;
     if (has_data()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::StringSize(
@@ -499,6 +566,9 @@ void RpcInnerReq::MergeFrom(const RpcInnerReq& from) {
     if (from.has_request_id()) {
       set_request_id(from.request_id());
     }
+    if (from.has_type()) {
+      set_type(from.type());
+    }
     if (from.has_data()) {
       set_data(from.data());
     }
@@ -519,7 +589,7 @@ void RpcInnerReq::CopyFrom(const RpcInnerReq& from) {
 }
 
 bool RpcInnerReq::IsInitialized() const {
-  if ((_has_bits_[0] & 0x0000000f) != 0x0000000f) return false;
+  if ((_has_bits_[0] & 0x0000001f) != 0x0000001f) return false;
 
   return true;
 }
@@ -529,6 +599,7 @@ void RpcInnerReq::Swap(RpcInnerReq* other) {
     std::swap(service_name_, other->service_name_);
     std::swap(methond_name_, other->methond_name_);
     std::swap(request_id_, other->request_id_);
+    std::swap(type_, other->type_);
     std::swap(data_, other->data_);
     std::swap(_has_bits_[0], other->_has_bits_[0]);
     _unknown_fields_.Swap(&other->_unknown_fields_);

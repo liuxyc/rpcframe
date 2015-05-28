@@ -49,6 +49,8 @@ private:
     std::unordered_map<std::string, RpcClientCallBack *> m_cb_map;
     RpcClientWorker *m_worker;
     std::thread *m_worker_th;
+
+    const uint32_t MAX_REQ_LIMIT_BYTE;
     
 };
 

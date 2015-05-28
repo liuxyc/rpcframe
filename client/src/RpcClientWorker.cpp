@@ -45,8 +45,8 @@ void RpcClientWorker::run() {
             RpcInnerResp resp;
             resp.ParseFromString(std::string(pkg->data, pkg->data_len));
             RpcClientCallBack *cb = m_ev->getCb(resp.request_id());
-            std::string cb_type = cb->getType();
             if (NULL != cb) {
+                std::string cb_type = cb->getType();
                 cb->callback(RpcClientCallBack::RPC_OK, resp.data());
                 if ( cb_type != "blocker" ) {
                     m_ev->removeCb(resp.request_id());
