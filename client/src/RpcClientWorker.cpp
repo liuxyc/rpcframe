@@ -47,13 +47,13 @@ void RpcClientWorker::run() {
             RpcClientCallBack *cb = m_ev->getCb(resp.request_id());
             if (NULL != cb) {
                 std::string cb_type = cb->getType();
-                cb->callback(RpcClientCallBack::RPC_OK, resp.data());
+                cb->callback(RpcClientCallBack::RpcCBStatus::RPC_OK, resp.data());
                 if ( cb_type != "blocker" ) {
                     m_ev->removeCb(resp.request_id());
                 }
             }
             else {
-                printf("the cb of req:%s is NULL\n", resp.request_id().c_str());
+                //printf("the cb of req:%s is NULL\n", resp.request_id().c_str());
             }
             delete pkg;
 

@@ -5,6 +5,7 @@
 */
 #include <thread>
 #include "RpcClient.h"
+#include "RpcClientBlocker.h"
 #include "RpcEventLooper.h"
 
 namespace rpcframe
@@ -60,17 +61,22 @@ RpcClient::~RpcClient() {
 
 }
 
-bool RpcClient::call(const std::string &method_name, const std::string &request_data, std::string &response_data, int timeout) {
-    RpcClientBlocker *rb = new RpcClientBlocker();
+RpcClientCallBack::RpcCBStatus RpcClient::call(const std::string &method_name, const std::string &request_data, std::string &response_data, int timeout) {
+    RpcClientBlocker *rb = new RpcClientBlocker(timeout);
     std::string req_id;
+    RpcClientCallBack::RpcCBStatus ret_st = RpcClientCallBack::RpcCBStatus::RPC_OK;
     bool ret = m_ev->sendReq(m_servicename, method_name, request_data, rb, req_id);
     if (ret) {
         std::pair<RpcClientCallBack::RpcCBStatus, std::string> ret_p = rb->wait();
         response_data = ret_p.second;
-        ret = (ret_p.first == RpcClientCallBack::RPC_OK);
+        ret_st = ret_p.first;
     }
+    else {
+        ret_st = RpcClientCallBack::RpcCBStatus::RPC_SEND_FAIL;
+    }
+    
     m_ev->removeCb(req_id);
-    return ret;
+    return ret_st;
 }
 
 bool RpcClient::async_call(const std::string &method_name, const std::string &request_data, int timeout, RpcClientCallBack *cb_obj) {

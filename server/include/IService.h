@@ -21,14 +21,14 @@ namespace rpcframe {
             return (this->*p_fun)(request_data, resp_data); \
         }  \
         else { \
-            return S_FAIL;  \
+            return ServiceRET::S_FAIL;  \
         }  \
     };
 
 class IService
 {
 public:
-    enum ServiceRET {
+    enum class ServiceRET {
         S_OK,
         S_NONE,
         S_FAIL,

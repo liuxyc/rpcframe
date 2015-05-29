@@ -64,7 +64,7 @@ void RpcEventLooper::removeConnection() {
     m_conn = NULL;
     for (auto cb = m_cb_map.begin(); cb != m_cb_map.end(); ) {
         if (cb->second != NULL) {
-            cb->second->callback(RpcClientCallBack::RPC_DISCONNECTED, std::string(""));
+            cb->second->callback(RpcClientCallBack::RpcCBStatus::RPC_DISCONNECTED, std::string(""));
             delete cb->second;
         }
         m_cb_map.erase(cb++);
@@ -90,7 +90,7 @@ bool RpcEventLooper::sendReq(const std::string &service_name, const std::string 
     if (NULL == m_conn) {
         if (!connect()) {
             if (cb_obj != NULL) {
-                cb_obj->callback(RpcClientCallBack::RPC_SEND_FAIL, "");
+                cb_obj->callback(RpcClientCallBack::RpcCBStatus::RPC_SEND_FAIL, "");
                 delete cb_obj;
             }
             return false;
@@ -103,7 +103,7 @@ bool RpcEventLooper::sendReq(const std::string &service_name, const std::string 
             m_cb_map.insert(std::make_pair(req_id, cb_obj));
         }
         else {
-            cb_obj->callback(RpcClientCallBack::RPC_SEND_FAIL, "");
+            cb_obj->callback(RpcClientCallBack::RpcCBStatus::RPC_SEND_FAIL, "");
             delete cb_obj;
         }
     }
@@ -123,8 +123,10 @@ RpcClientCallBack *RpcEventLooper::getCb(const std::string &req_id) {
 
 void RpcEventLooper::removeCb(const std::string &req_id) {
     std::lock_guard<std::mutex> mlock(m_mutex);
-    delete m_cb_map[req_id];
-    m_cb_map.erase(req_id);
+    if (m_cb_map.find(req_id) != m_cb_map.end()) {
+        delete m_cb_map[req_id];
+        m_cb_map.erase(req_id);
+    }
 }
 
 void RpcEventLooper::run() {
@@ -136,7 +138,7 @@ void RpcEventLooper::run() {
         }
 
         struct epoll_event events[_MAX_SOCKFD_COUNT];  
-        int nfds = epoll_wait(m_epoll_fd, events, _MAX_SOCKFD_COUNT, 1);  
+        int nfds = epoll_wait(m_epoll_fd, events, _MAX_SOCKFD_COUNT, 1000);  
         if (m_stop) {
             removeConnection();
             break;
