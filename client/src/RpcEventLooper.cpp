@@ -31,6 +31,7 @@ RpcEventLooper::RpcEventLooper(RpcClient *client)
 : m_client(client)
 , m_stop(false)
 , m_conn(NULL)
+, m_req_seqid(0)
 , MAX_REQ_LIMIT_BYTE(100 * 1024 * 1024)
 {
     m_epoll_fd = epoll_create(_MAX_SOCKFD_COUNT);  
@@ -69,6 +70,7 @@ void RpcEventLooper::removeConnection() {
         }
         m_cb_map.erase(cb++);
     }
+    m_cb_timer_map.clear();
 }
 
 
@@ -97,12 +99,21 @@ bool RpcEventLooper::sendReq(const std::string &service_name, const std::string 
         }
     }
     req_id = m_conn->genRequestId();
-    bool send_ret = m_conn->sendReq(service_name, method_name, request_data, req_id, (cb_obj == NULL));
+    std::string tm_id;
     if (cb_obj != NULL) {
-        if (send_ret) {
-            m_cb_map.insert(std::make_pair(req_id, cb_obj));
-        }
-        else {
+        cb_obj->setReqId(req_id);
+        tm_id = std::to_string(std::time(nullptr)) + "_" + std::to_string(m_req_seqid++);
+        m_cb_map.insert(std::make_pair(req_id, cb_obj));
+        m_cb_timer_map.insert(std::make_pair(tm_id, req_id));
+    }
+    bool send_ret = m_conn->sendReq(service_name, method_name, request_data, req_id, (cb_obj == NULL));
+    if (send_ret) {
+        //printf("send %s\n", req_id.c_str());
+    }
+    else {
+        if (cb_obj != NULL) {
+            m_cb_timer_map.erase(tm_id);
+            m_cb_map.erase(req_id);
             cb_obj->callback(RpcClientCallBack::RpcCBStatus::RPC_SEND_FAIL, "");
             delete cb_obj;
         }
@@ -129,6 +140,32 @@ void RpcEventLooper::removeCb(const std::string &req_id) {
     }
 }
 
+void RpcEventLooper::dealTimeoutCb() {
+    std::lock_guard<std::mutex> mlock(m_mutex);
+    if (!m_cb_timer_map.empty()) {
+        std::string reqid = m_cb_timer_map.begin()->second;
+        if (m_cb_map.find(reqid) != m_cb_map.end()) { 
+            RpcClientCallBack *cb = m_cb_map[reqid];
+            if(cb != NULL) {
+                std::string tm_str = m_cb_timer_map.begin()->first;
+                size_t endp = tm_str.find("_");
+                std::time_t tm = std::stoul(tm_str.substr(0, endp));
+                if((std::time(nullptr) - tm) > cb->getTimeout()) {
+                    printf("%s timeout\n", cb->getReqId().c_str());
+                    cb->callback(RpcClientCallBack::RpcCBStatus::RPC_TIMEOUT, "");
+                    m_cb_timer_map.erase(tm_str);
+                    cb->markTimeout();
+                    //delete m_cb_map[reqid];
+                    //m_cb_map.erase(reqid);
+                }
+            }
+        }
+        else {
+            m_cb_timer_map.erase(m_cb_timer_map.begin());
+        }
+    }
+}
+
 void RpcEventLooper::run() {
 
     while(1) {
@@ -143,6 +180,11 @@ void RpcEventLooper::run() {
             removeConnection();
             break;
         }
+
+        //deal async call timeout
+        //FIXME:dealTimeoutCb() may block event loop
+        dealTimeoutCb();
+
         for (int i = 0; i < nfds; i++) 
         {  
             int client_socket = events[i].data.fd;  
@@ -221,10 +263,9 @@ int RpcEventLooper::noBlockConnect(int sockfd, const char* ip, int port, int tim
         ::close(sockfd);
         return -1;
     }
-    fd_set readfds;
     fd_set writefds;
     struct timeval timeout;//connect time out
-    FD_ZERO(&readfds);
+    FD_ZERO(&writefds);
     FD_SET(sockfd, &writefds);
     timeout.tv_sec = timeoutv;
     timeout.tv_usec = 0;

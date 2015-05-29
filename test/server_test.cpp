@@ -29,6 +29,8 @@ public:
         m_mutex.lock();
         printf("cnt: %d\n", m_cnt++);
         m_mutex.unlock();
+        //make timeout
+        std::this_thread::sleep_for(std::chrono::seconds(5));
         return rpcframe::IService::ServiceRET::S_OK;
     };
 

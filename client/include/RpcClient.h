@@ -31,7 +31,12 @@ public:
         RPC_DISCONNECTED,
         RPC_TIMEOUT,
     };
-    RpcClientCallBack(){};
+    RpcClientCallBack() 
+    : m_timeout(-1)
+    , m_reqid("")
+    , m_has_timeout(false)
+    {
+    };
     virtual ~RpcClientCallBack(){};
 
     virtual void callback(const RpcCBStatus status, const std::string &response_data) = 0;
@@ -39,9 +44,30 @@ public:
     std::string getType() {
         return m_type_mark;
     }
+    void setTimeout(int timeout) {
+        m_timeout = timeout;
+    }
+    int getTimeout() {
+        return m_timeout;
+    }
+    void setReqId(const std::string reqid) {
+        m_reqid = reqid;
+    }
+    std::string getReqId() {
+        return m_reqid;
+    }
+    void markTimeout() {
+        m_has_timeout = true;
+    }
+    bool isTimeout() {
+        return m_has_timeout;
+    }
 
 protected:
     std::string m_type_mark;
+    int m_timeout;
+    std::string m_reqid;
+    bool m_has_timeout;
     
 };
 

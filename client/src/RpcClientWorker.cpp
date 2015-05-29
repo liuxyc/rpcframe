@@ -46,8 +46,14 @@ void RpcClientWorker::run() {
             resp.ParseFromString(std::string(pkg->data, pkg->data_len));
             RpcClientCallBack *cb = m_ev->getCb(resp.request_id());
             if (NULL != cb) {
+                //if marked as timeout, the callback already called by RpcClientCallBack::RpcCBStatus::RPC_TIMEOUT
+                if (!cb->isTimeout()) {
+                    cb->callback(RpcClientCallBack::RpcCBStatus::RPC_OK, resp.data());
+                }
+                else {
+                    printf("marked \n");
+                }
                 std::string cb_type = cb->getType();
-                cb->callback(RpcClientCallBack::RpcCBStatus::RPC_OK, resp.data());
                 if ( cb_type != "blocker" ) {
                     m_ev->removeCb(resp.request_id());
                 }

@@ -11,6 +11,7 @@
 #include <vector>
 #include <atomic>
 #include <thread>
+#include <chrono>
 #include "Queue.h"
 
 namespace rpcframe
@@ -32,6 +33,7 @@ public:
     bool sendReq(const std::string &service_name, const std::string &method_name, const std::string &request_data, RpcClientCallBack *cb_obj, std::string &req_id);
     RpcClientCallBack *getCb(const std::string &req_id);
     void removeCb(const std::string &req_id);
+    void dealTimeoutCb();
     Queue<server_resp_pkg *> m_response_q;
 
 private:
@@ -49,6 +51,10 @@ private:
     std::unordered_map<std::string, RpcClientCallBack *> m_cb_map;
     RpcClientWorker *m_worker;
     std::thread *m_worker_th;
+    //FIXME:the resolution of std::time_t is not enough for timeout
+    //there will be >1000 call in one second, they will have the same time_t
+    std::map<std::string, std::string> m_cb_timer_map;
+    uint32_t m_req_seqid;
 
     const uint32_t MAX_REQ_LIMIT_BYTE;
     

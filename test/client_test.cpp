@@ -14,7 +14,9 @@
 class my_CB : public rpcframe::RpcClientCallBack 
 {
 public:
-    my_CB(){};
+    my_CB()
+    : rpcframe::RpcClientCallBack()
+    {};
     virtual ~my_CB() {};
 
     virtual void callback(const rpcframe::RpcClientCallBack::RpcCBStatus status, const std::string &response_data) {
@@ -43,10 +45,10 @@ int main()
             if ( len <= 0) {
                 len = 10;
             }
-            if( false == client.async_call("test_method", std::string(len, '*'), 3, new my_CB())) {
+            if( false == client.async_call("test_method", std::string(len, '*'), 2, new my_CB())) {
                 printf("send fail\n");
             }
-            client.async_call("test_method", std::string(len, '*'), 3, NULL);
+            client.async_call("test_method", std::string(len, '*'), 4, NULL);
         }
     }
     //round 2 with sync call

@@ -86,6 +86,10 @@ bool RpcClient::async_call(const std::string &method_name, const std::string &re
         printf("[ERROR]please alloc cb_obj from heap!!!\n");
         return false;
     }
+    if( cb_obj != NULL ) {
+        cb_obj->setTimeout(timeout);
+    }
+
     return m_ev->sendReq(m_servicename, method_name, request_data, cb_obj, req_id);
 }
 
