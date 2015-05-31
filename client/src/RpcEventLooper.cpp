@@ -150,18 +150,20 @@ void RpcEventLooper::dealTimeoutCb() {
     std::lock_guard<std::mutex> mlock(m_mutex);
     if (!m_cb_timer_map.empty()) {
         //search timeout cb
-        for(auto cb_timer_it: m_cb_timer_map) {
-            std::string reqid = cb_timer_it.second;
+        for(auto cb_timer_it = m_cb_timer_map.begin(); 
+                cb_timer_it != m_cb_timer_map.end();) {
+            auto cur_it = cb_timer_it++;
+            std::string reqid = cur_it->second;
             if (m_cb_map.find(reqid) != m_cb_map.end()) { 
                 RpcClientCallBack *cb = m_cb_map[reqid];
                 if(cb != NULL) {
-                    std::string tm_str = cb_timer_it.first;
+                    std::string tm_str = cur_it->first;
                     size_t endp = tm_str.find("_");
                     std::time_t tm = std::stoul(tm_str.substr(0, endp));
                     if((std::time(nullptr) - tm) > cb->getTimeout()) {
                         printf("%s timeout\n", cb->getReqId().c_str());
                         cb->callback(RpcStatus::RPC_CB_TIMEOUT, "");
-                        m_cb_timer_map.erase(tm_str);
+                        m_cb_timer_map.erase(cur_it);
                         cb->markTimeout();
                         //delete m_cb_map[reqid];
                         //m_cb_map.erase(reqid);
@@ -173,7 +175,7 @@ void RpcEventLooper::dealTimeoutCb() {
                 }
             }
             else {
-                m_cb_timer_map.erase(m_cb_timer_map.begin());
+                m_cb_timer_map.erase(cur_it);
             }
         }
     }

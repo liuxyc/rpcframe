@@ -66,8 +66,8 @@ bool RpcConnection::readPkgLen(uint32_t &pkg_len)
         printf("connection already disconnected\n");
         return false;
     }
-    char data[4]; 
-    int rev_size = recv(m_fd, data, 4, 0);  
+    int data = 0;
+    int rev_size = recv(m_fd, (char *)&data, 4, 0);  
     if (rev_size <= 0) {
         if (rev_size != 0) {
             printf("try recv pkg len error %s\n", strerror(errno));
@@ -81,7 +81,7 @@ bool RpcConnection::readPkgLen(uint32_t &pkg_len)
         printf("recv data too small %d, close connection: %d\n", rev_size, m_fd);
         return false;
     }  
-    pkg_len = ntohl(*(int *)data);
+    pkg_len = ntohl(data);
     return true;
 }
 
