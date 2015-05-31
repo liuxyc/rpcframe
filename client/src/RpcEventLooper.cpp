@@ -65,7 +65,7 @@ void RpcEventLooper::removeConnection() {
     m_conn = NULL;
     for (auto cb = m_cb_map.begin(); cb != m_cb_map.end(); ) {
         if (cb->second != NULL) {
-            cb->second->callback(RpcClientCallBack::RpcCBStatus::RPC_DISCONNECTED, std::string(""));
+            cb->second->callback(RpcStatus::RPC_DISCONNECTED, std::string(""));
             delete cb->second;
         }
         m_cb_map.erase(cb++);
@@ -84,37 +84,43 @@ void RpcEventLooper::addConnection()
     epoll_ctl(m_epoll_fd, EPOLL_CTL_ADD, m_fd, &ev);  
 }
 
-bool RpcEventLooper::sendReq(const std::string &service_name, const std::string &method_name, const std::string &request_data, RpcClientCallBack *cb_obj, std::string &req_id) {
+RpcStatus RpcEventLooper::sendReq(const std::string &service_name, const std::string &method_name, const std::string &request_data, RpcClientCallBack *cb_obj, std::string &req_id) {
     if (request_data.length() >= MAX_REQ_LIMIT_BYTE) {
-        return false;
+        return RpcStatus::RPC_SEND_FAIL;
     }
     std::lock_guard<std::mutex> mlock(m_mutex);
     if (NULL == m_conn) {
         if (!connect()) {
             if (cb_obj != NULL) {
-                cb_obj->callback(RpcClientCallBack::RpcCBStatus::RPC_SEND_FAIL, "");
+                cb_obj->callback(RpcStatus::RPC_SEND_FAIL, "");
                 delete cb_obj;
             }
-            return false;
+            return RpcStatus::RPC_SEND_FAIL;
         }
     }
     req_id = m_conn->genRequestId();
     std::string tm_id;
+    uint32_t cb_timeout = 0;
     if (cb_obj != NULL) {
         cb_obj->setReqId(req_id);
-        tm_id = std::to_string(std::time(nullptr)) + "_" + std::to_string(m_req_seqid++);
         m_cb_map.insert(std::make_pair(req_id, cb_obj));
-        m_cb_timer_map.insert(std::make_pair(tm_id, req_id));
+        cb_timeout = cb_obj->getTimeout();
+        if( cb_timeout > 0) {
+            tm_id = std::to_string(std::time(nullptr)) + "_" + std::to_string(m_req_seqid++);
+            m_cb_timer_map.insert(std::make_pair(tm_id, req_id));
+        }
     }
-    bool send_ret = m_conn->sendReq(service_name, method_name, request_data, req_id, (cb_obj == NULL));
-    if (send_ret) {
+    RpcStatus send_ret = m_conn->sendReq(service_name, method_name, request_data, req_id, (cb_obj == NULL), cb_timeout);
+    if (send_ret == RpcStatus::RPC_SEND_OK) {
         //printf("send %s\n", req_id.c_str());
     }
     else {
         if (cb_obj != NULL) {
-            m_cb_timer_map.erase(tm_id);
+            if( cb_timeout > 0) {
+                m_cb_timer_map.erase(tm_id);
+            }
             m_cb_map.erase(req_id);
-            cb_obj->callback(RpcClientCallBack::RpcCBStatus::RPC_SEND_FAIL, "");
+            cb_obj->callback(send_ret, "");
             delete cb_obj;
         }
     }
@@ -143,25 +149,32 @@ void RpcEventLooper::removeCb(const std::string &req_id) {
 void RpcEventLooper::dealTimeoutCb() {
     std::lock_guard<std::mutex> mlock(m_mutex);
     if (!m_cb_timer_map.empty()) {
-        std::string reqid = m_cb_timer_map.begin()->second;
-        if (m_cb_map.find(reqid) != m_cb_map.end()) { 
-            RpcClientCallBack *cb = m_cb_map[reqid];
-            if(cb != NULL) {
-                std::string tm_str = m_cb_timer_map.begin()->first;
-                size_t endp = tm_str.find("_");
-                std::time_t tm = std::stoul(tm_str.substr(0, endp));
-                if((std::time(nullptr) - tm) > cb->getTimeout()) {
-                    printf("%s timeout\n", cb->getReqId().c_str());
-                    cb->callback(RpcClientCallBack::RpcCBStatus::RPC_TIMEOUT, "");
-                    m_cb_timer_map.erase(tm_str);
-                    cb->markTimeout();
-                    //delete m_cb_map[reqid];
-                    //m_cb_map.erase(reqid);
+        //search timeout cb
+        for(auto cb_timer_it: m_cb_timer_map) {
+            std::string reqid = cb_timer_it.second;
+            if (m_cb_map.find(reqid) != m_cb_map.end()) { 
+                RpcClientCallBack *cb = m_cb_map[reqid];
+                if(cb != NULL) {
+                    std::string tm_str = cb_timer_it.first;
+                    size_t endp = tm_str.find("_");
+                    std::time_t tm = std::stoul(tm_str.substr(0, endp));
+                    if((std::time(nullptr) - tm) > cb->getTimeout()) {
+                        printf("%s timeout\n", cb->getReqId().c_str());
+                        cb->callback(RpcStatus::RPC_CB_TIMEOUT, "");
+                        m_cb_timer_map.erase(tm_str);
+                        cb->markTimeout();
+                        //delete m_cb_map[reqid];
+                        //m_cb_map.erase(reqid);
+                    }
+                    else {
+                        //got item not timeout, stop search
+                        break;
+                    }
                 }
             }
-        }
-        else {
-            m_cb_timer_map.erase(m_cb_timer_map.begin());
+            else {
+                m_cb_timer_map.erase(m_cb_timer_map.begin());
+            }
         }
     }
 }

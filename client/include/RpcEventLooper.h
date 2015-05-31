@@ -13,6 +13,7 @@
 #include <thread>
 #include <chrono>
 #include "Queue.h"
+#include "RpcClientEnum.h"
 
 namespace rpcframe
 {
@@ -30,7 +31,7 @@ public:
     ~RpcEventLooper();
     void stop();
     void run();
-    bool sendReq(const std::string &service_name, const std::string &method_name, const std::string &request_data, RpcClientCallBack *cb_obj, std::string &req_id);
+    RpcStatus sendReq(const std::string &service_name, const std::string &method_name, const std::string &request_data, RpcClientCallBack *cb_obj, std::string &req_id);
     RpcClientCallBack *getCb(const std::string &req_id);
     void removeCb(const std::string &req_id);
     void dealTimeoutCb();

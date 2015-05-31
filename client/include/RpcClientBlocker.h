@@ -31,20 +31,20 @@ public:
     , m_timeout(timeout)
     { m_type_mark = "blocker"; };
     virtual ~RpcClientBlocker() {};
-    std::pair<RpcCBStatus, std::string> wait() {
+    std::pair<RpcStatus, std::string> wait() {
         std::unique_lock<std::mutex> lk(m_mutex);
         m_resp_data = "";
-        m_cb_st = RpcCBStatus::RPC_OK;
+        //m_cb_st = RpcStatus::RPC_CB_OK;
         if (!m_done) {
              std::cv_status ret = m_cv.wait_for(lk, std::chrono::seconds(m_timeout));
              if (ret == std::cv_status::timeout) {
-                return std::make_pair(RpcCBStatus::RPC_TIMEOUT, std::string(m_resp_data));
+                return std::make_pair(RpcStatus::RPC_CB_TIMEOUT, std::string(m_resp_data));
              }
         }
         return std::make_pair(m_cb_st, std::string(m_resp_data));
     }
 
-    virtual void callback(const RpcCBStatus status, const std::string &response_data) {
+    virtual void callback(const RpcStatus status, const std::string &response_data) {
         std::unique_lock<std::mutex> lk(m_mutex);
         m_resp_data = response_data;
         m_cb_st = status;
@@ -56,7 +56,7 @@ public:
         return m_resp_data;
     }
 
-    RpcCBStatus getCBstatus() {
+    RpcStatus getCBstatus() {
         return m_cb_st;
     }
 
@@ -66,7 +66,7 @@ private:
     std::atomic<bool> m_done;
     int m_timeout;
     std::string m_resp_data;
-    RpcCBStatus m_cb_st;
+    RpcStatus m_cb_st;
     
 };
 };

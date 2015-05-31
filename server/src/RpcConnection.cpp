@@ -70,7 +70,7 @@ bool RpcConnection::readPkgLen(uint32_t &pkg_len)
     int rev_size = recv(m_fd, data, 4, 0);  
     if (rev_size <= 0) {
         if (rev_size != 0) {
-            printf("recv pkg len error %s\n", strerror(errno));
+            printf("try recv pkg len error %s\n", strerror(errno));
         }
         if (errno != EAGAIN) {
             return false;
@@ -98,7 +98,7 @@ int RpcConnection::readPkgData()
     int rev_size = recv(m_fd, m_rpk->data + (m_cur_pkg_size - m_cur_left_len), m_cur_left_len, 0);  
     if (rev_size <= 0) {
         if (errno != EAGAIN) {
-            printf("recv pkg error\n");
+            printf("recv pkg error %s\n", strerror(errno));
             return -2;
         }
         else {

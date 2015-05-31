@@ -15,6 +15,7 @@
 
 #include "Queue.h"
 #include "RpcPackage.h"
+#include "RpcClientEnum.h"
 
 
 namespace rpcframe
@@ -25,29 +26,23 @@ class RpcEventLooper;
 class RpcClientCallBack 
 {
 public:
-    enum class RpcCBStatus {
-        RPC_OK,
-        RPC_SEND_FAIL,
-        RPC_DISCONNECTED,
-        RPC_TIMEOUT,
-    };
     RpcClientCallBack() 
-    : m_timeout(-1)
+    : m_timeout(0)
     , m_reqid("")
     , m_has_timeout(false)
     {
     };
     virtual ~RpcClientCallBack(){};
 
-    virtual void callback(const RpcCBStatus status, const std::string &response_data) = 0;
+    virtual void callback(const RpcStatus status, const std::string &response_data) = 0;
 
     std::string getType() {
         return m_type_mark;
     }
-    void setTimeout(int timeout) {
+    void setTimeout(uint32_t timeout) {
         m_timeout = timeout;
     }
-    int getTimeout() {
+    uint32_t getTimeout() {
         return m_timeout;
     }
     void setReqId(const std::string reqid) {
@@ -65,7 +60,7 @@ public:
 
 protected:
     std::string m_type_mark;
-    int m_timeout;
+    uint32_t m_timeout;
     std::string m_reqid;
     bool m_has_timeout;
     
@@ -92,8 +87,8 @@ class RpcClient
 public:
     RpcClient(rpcframe::RpcClientConfig &cfg, const std::string &service_name);
     ~RpcClient();
-    RpcClientCallBack::RpcCBStatus call(const std::string &method_name, const std::string &request_data, std::string &response_data, int timeout);
-    bool async_call(const std::string &method_name, const std::string &request_data, int timeout, RpcClientCallBack *cb_obj);
+    RpcStatus call(const std::string &method_name, const std::string &request_data, std::string &response_data, uint32_t timeout);
+    RpcStatus async_call(const std::string &method_name, const std::string &request_data, uint32_t timeout, RpcClientCallBack *cb_obj);
 
     rpcframe::RpcClientConfig m_cfg;
     int m_connect_timeout;

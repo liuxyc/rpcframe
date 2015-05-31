@@ -61,32 +61,31 @@ RpcClient::~RpcClient() {
 
 }
 
-RpcClientCallBack::RpcCBStatus RpcClient::call(const std::string &method_name, const std::string &request_data, std::string &response_data, int timeout) {
+RpcStatus RpcClient::call(const std::string &method_name, const std::string &request_data, std::string &response_data, uint32_t timeout) {
     RpcClientBlocker *rb = new RpcClientBlocker(timeout);
     std::string req_id;
-    RpcClientCallBack::RpcCBStatus ret_st = RpcClientCallBack::RpcCBStatus::RPC_OK;
-    bool ret = m_ev->sendReq(m_servicename, method_name, request_data, rb, req_id);
-    if (ret) {
-        std::pair<RpcClientCallBack::RpcCBStatus, std::string> ret_p = rb->wait();
+    RpcStatus ret_st = m_ev->sendReq(m_servicename, method_name, request_data, rb, req_id);
+    if (ret_st == RpcStatus::RPC_SEND_OK) {
+        std::pair<RpcStatus, std::string> ret_p = rb->wait();
         response_data = ret_p.second;
         ret_st = ret_p.first;
     }
     else {
-        ret_st = RpcClientCallBack::RpcCBStatus::RPC_SEND_FAIL;
+        ret_st = RpcStatus::RPC_SEND_FAIL;
     }
     
     m_ev->removeCb(req_id);
     return ret_st;
 }
 
-bool RpcClient::async_call(const std::string &method_name, const std::string &request_data, int timeout, RpcClientCallBack *cb_obj) {
+RpcStatus RpcClient::async_call(const std::string &method_name, const std::string &request_data, uint32_t timeout, RpcClientCallBack *cb_obj) {
     std::string req_id;
     int test_heap = 0;
     if ((long)&test_heap < (long)cb_obj) {
         printf("[ERROR]please alloc cb_obj from heap!!!\n");
-        return false;
+        return RpcStatus::RPC_SEND_FAIL;
     }
-    if( cb_obj != NULL ) {
+    if (cb_obj != NULL) {
         cb_obj->setTimeout(timeout);
     }
 

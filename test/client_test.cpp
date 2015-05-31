@@ -19,8 +19,8 @@ public:
     {};
     virtual ~my_CB() {};
 
-    virtual void callback(const rpcframe::RpcClientCallBack::RpcCBStatus status, const std::string &response_data) {
-        if (status != rpcframe::RpcClientCallBack::RpcCBStatus::RPC_OK) {
+    virtual void callback(const rpcframe::RpcStatus status, const std::string &response_data) {
+        if (status != rpcframe::RpcStatus::RPC_CB_OK) {
             printf("client cb return %d, got %s\n", status, response_data.c_str());
         }
     }
@@ -28,8 +28,8 @@ public:
 };
 int main()
 {
-    int conn_cnt = 10;
-    int pkg_cnt = 1000;
+    int conn_cnt = 1;
+    int pkg_cnt = 10;
     auto endp = std::make_pair("127.0.0.1", 8801);
     rpcframe::RpcClientConfig ccfg(endp);
 
@@ -45,12 +45,13 @@ int main()
             if ( len <= 0) {
                 len = 10;
             }
-            if( false == client.async_call("test_method", std::string(len, '*'), 2, new my_CB())) {
+            if( rpcframe::RpcStatus::RPC_SEND_OK != client.async_call("test_method", std::string(len, '*'), 2, new my_CB())) {
                 printf("send fail\n");
             }
             client.async_call("test_method", std::string(len, '*'), 4, NULL);
         }
     }
+    sleep(30);
     //round 2 with sync call
     conn_cnt = 2;
     pkg_cnt = 10;
@@ -65,15 +66,15 @@ int main()
             if ( len <= 0) {
                 len = 10;
             }
-            if( false == client2.async_call("test_method", std::string(len, '*'), 3, new my_CB())) {
+            if(rpcframe::RpcStatus::RPC_SEND_OK != client2.async_call("test_method", std::string(len, '*'), 10, new my_CB())) {
                 printf("send fail\n");
             }
             
             //set timeout to 3 seconds, server may delay in 0-5 seconds
             std::string resp_data;
-            rpcframe::RpcClientCallBack::RpcCBStatus ret_st = 
+            rpcframe::RpcStatus ret_st = 
                     client2.call("test_method1", "aaaaaaabbbbbbbbccccccc", resp_data, 3);
-            if (rpcframe::RpcClientCallBack::RpcCBStatus::RPC_OK == ret_st) {
+            if (rpcframe::RpcStatus::RPC_CB_OK == ret_st) {
                 printf("test_method1 back %s\n", resp_data.c_str());
             }
             else {

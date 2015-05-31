@@ -9,8 +9,9 @@
 #include <ctime>
 #include <set>
 
-#include "RpcPackage.h"
 #include "Queue.h"
+#include "RpcPackage.h"
+#include "RpcClientEnum.h"
 
 namespace rpcframe {
 
@@ -41,7 +42,7 @@ public:
 
     pkg_ret_t getResponse();
     void reset();
-    bool sendReq(const std::string &service_name, const std::string &method_name, const std::string &request_data, const std::string &reqid, bool is_oneway);
+    RpcStatus sendReq(const std::string &service_name, const std::string &method_name, const std::string &request_data, const std::string &reqid, bool is_oneway, uint32_t timeout);
 
     int getFd();
 

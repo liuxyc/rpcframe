@@ -147,7 +147,7 @@ std::string RpcClientConn::genRequestId() {
     return std::string("rpcframe::id_" + std::to_string(m_fd) + "_" + std::string(uuid_buf));
 }
 
-bool RpcClientConn::sendReq(const std::string &service_name, const std::string &method_name, const std::string &request_data, const std::string &reqid, bool is_oneway) {
+RpcStatus RpcClientConn::sendReq(const std::string &service_name, const std::string &method_name, const std::string &request_data, const std::string &reqid, bool is_oneway, uint32_t timeout) {
 
     RpcInnerReq req;
     req.set_service_name(service_name);
@@ -166,22 +166,64 @@ bool RpcClientConn::sendReq(const std::string &service_name, const std::string &
     uint32_t pkg_len = out_data.length();
     uint32_t nlen = htonl(pkg_len);
 
-    int s_ret = send(m_fd, (char *)&nlen, sizeof(nlen), MSG_NOSIGNAL);
-    if( s_ret <= 0)
-    {
-        printf("send error! %s\n", strerror(errno));
-        is_connected = false;
-        return false;
-    }
-    s_ret = send(m_fd, out_data.c_str(), out_data.length(), MSG_NOSIGNAL);
-    if( s_ret <= 0)
-    {
-        printf("send data error! %s\n", strerror(errno));
-        is_connected = false;
-        return false;
+    std::time_t begin_tm = std::time(nullptr);
+    uint32_t total_len = sizeof(nlen);
+    uint32_t sent_len = 0;
+    while(true) {
+        if (timeout > 0 && 
+            std::time(nullptr) - begin_tm > timeout) {
+            printf("send data len timeout!\n");
+            return RpcStatus::RPC_SEND_TIMEOUT;
+        }
+        uint32_t len = total_len - sent_len;
+        int s_ret = send(m_fd, ((char *)&nlen) + sent_len, len, MSG_NOSIGNAL | MSG_DONTWAIT);
+        if( s_ret <= 0 )
+        {
+            if( errno != EAGAIN) {
+                printf("send error! %s\n", strerror(errno));
+                is_connected = false;
+                return RpcStatus::RPC_SEND_FAIL;
+            }
+            else {
+                continue;
+            }
+        }
+        sent_len += s_ret;
+        if (sent_len == total_len) {
+            break;
+        }
+
     }
 
-    return true;
+    total_len = out_data.length();
+    sent_len = 0;
+    while(true) {
+        if (timeout > 0 &&
+            std::time(nullptr) - begin_tm > timeout) {
+            printf("send data timeout!\n");
+            return RpcStatus::RPC_SEND_TIMEOUT;
+        }
+        uint32_t len = total_len - sent_len;
+        int s_ret = send(m_fd, out_data.c_str() + sent_len, len, MSG_NOSIGNAL | MSG_DONTWAIT);
+        if( s_ret <= 0)
+        {
+            if( errno != EAGAIN) {
+                printf("send data error! %s, %u, %u, %d %u\n", strerror(errno), total_len, sent_len, s_ret, len);
+                is_connected = false;
+                return RpcStatus::RPC_SEND_FAIL;
+            }
+            else {
+                continue;
+            }
+        }
+        sent_len += s_ret;
+        if (sent_len == total_len) {
+            break;
+        }
+
+    }
+
+    return RpcStatus::RPC_SEND_OK;
 }
 
 };
