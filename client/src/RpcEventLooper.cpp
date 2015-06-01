@@ -48,6 +48,7 @@ RpcEventLooper::RpcEventLooper(RpcClient *client)
 }
 
 RpcEventLooper::~RpcEventLooper() {
+    printf("~RpcEventLooper()\n");
     m_worker->stop();
     m_worker_th->join();
     delete m_worker;

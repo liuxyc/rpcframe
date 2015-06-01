@@ -30,7 +30,7 @@ RpcClientConn::RpcClientConn(int fd)
 
 RpcClientConn::~RpcClientConn()
 {
-    printf("close fd %d\n", m_fd);
+    printf("~RpcClientConn() fd %d\n", m_fd);
     ::close(m_fd);
     if (m_rpk != NULL)
         delete m_rpk;

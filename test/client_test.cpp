@@ -21,20 +21,24 @@ public:
 
     virtual void callback(const rpcframe::RpcStatus status, const std::string &response_data) {
         if (status != rpcframe::RpcStatus::RPC_CB_OK) {
+            printf("client cb return %d\n", status);
+        }
+        else {
             printf("client cb return %d, got %s\n", status, response_data.c_str());
         }
+
     }
     
 };
 int main()
 {
     int conn_cnt = 1;
-    int pkg_cnt = 10;
+    int pkg_cnt = 1;
     auto endp = std::make_pair("127.0.0.1", 8801);
     rpcframe::RpcClientConfig ccfg(endp);
 
     rpcframe::RpcClient client(ccfg, "test_service");
-    //round 1, async call
+    //round 1, async call all callback will timeout
     for (int cnt = 0; cnt < conn_cnt; ++cnt) {
         for (int pcnt = 0; pcnt < pkg_cnt; ++pcnt) {
             std::random_device rd;
@@ -51,10 +55,10 @@ int main()
             client.async_call("test_method", std::string(len, '*'), 4, NULL);
         }
     }
-    sleep(30);
-    //round 2 with sync call
+    sleep(3);
+    //round 2 async and sync call, random callback timeout
     conn_cnt = 2;
-    pkg_cnt = 10;
+    pkg_cnt = 2;
     for (int cnt = 0; cnt < conn_cnt; ++cnt) {
         rpcframe::RpcClient client2(ccfg, "test_service");
         for (int pcnt = 0; pcnt < pkg_cnt; ++pcnt) {
@@ -84,6 +88,15 @@ int main()
             client2.async_call("test_method", std::string(len, '*'), 3, NULL);
         }
     }
+    rpcframe::RpcClient client_call_async_server(ccfg, "test_service_async");
+    std::string resp_data;
+    //request a server side async response, server will response after 5 seconds,
+    //so we set timeout = 10 seconds
+    client_call_async_server.async_call("test_method_async", std::string(23, '*'), 10, new my_CB());
+    client_call_async_server.async_call("test_method_async", std::string(20, '*'), 10, NULL);
+    client_call_async_server.call("test_method_async", std::string(10, '*'), resp_data, 10);
+    printf("async server back: %s\n", resp_data.c_str());
+    sleep(3);
     return 0;
 }
 

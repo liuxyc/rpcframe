@@ -52,6 +52,7 @@ RpcClient::RpcClient(rpcframe::RpcClientConfig &cfg, const std::string &service_
 }
 
 RpcClient::~RpcClient() {
+    printf("~RpcClient()\n");
     m_ev->stop();
     for(auto th: m_thread_vec) {
         th->join();

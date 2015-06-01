@@ -26,6 +26,7 @@ RpcServerConfig::RpcServerConfig(std::pair<const char *, int> &endpoint)
 : m_thread_num(std::thread::hardware_concurrency())
 , m_hostname(endpoint.first)
 , m_port(endpoint.second)
+, m_max_conn_num(1024 * 10)
 {
     
     
@@ -48,6 +49,10 @@ uint32_t RpcServerConfig::getThreadNum()
     return m_thread_num;
 }
 
+void RpcServerConfig::setMaxConnection(uint32_t max_conn_num)
+{
+    m_max_conn_num = max_conn_num;
+}
 
 RpcServer::RpcServer(rpcframe::RpcServerConfig &cfg)
 : m_cfg(cfg)
@@ -192,6 +197,11 @@ bool RpcServer::start() {
                         printf("accept fail %s, new_client_socket: %d\n", strerror(errno), new_client_socket);  
                     }  
                     else {
+                        if( m_conn_set.size() >= m_cfg.m_max_conn_num) {
+                            printf("conn number reach limit %d, close %d\n", m_cfg.m_max_conn_num, 
+                                    client_socket);  
+                            ::close(client_socket);
+                        }
                         //NOTICE:do not use O_NONBLOCK, because we assume the first recv of pkglen 
                         // must have 4 bytes at least
                         //fcntl(new_client_socket, F_SETFL, fcntl(new_client_socket, F_GETFL) | O_NONBLOCK);

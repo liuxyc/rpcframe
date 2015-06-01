@@ -9,6 +9,7 @@
 #include <unistd.h>
 
 #include "RpcWorker.h"
+#include "RpcRespBroker.h"
 #include "RpcConnection.h"
 #include "RpcServer.h"
 #include "rpc.pb.h"
@@ -47,22 +48,26 @@ void RpcWorker::run() {
             std::string resp_data;
             IService *p_service = m_server->getService(req.service_name());
             if (NULL != p_service) {
-                IService::ServiceRET ret = p_service->runService(req.methond_name(), req.data(), resp_data);
-                if (ret == IService::ServiceRET::S_OK && 
-                    (req.type() == RpcInnerReq::TWO_WAY)) {
-                    //have response to send
-                    RpcInnerResp resp;
-                    resp.set_request_id(req.request_id());
-                    resp.set_data(resp_data);
-                    std::string *out_data = new std::string();
-                    resp.SerializeToString(out_data);
+                RpcRespBroker *rpcbroker = new RpcRespBroker(m_server, pkg->connection_id, req.request_id(),
+                                                            (req.type() == RpcInnerReq::TWO_WAY));
+                IService::ServiceRET ret = p_service->runService(req.methond_name(), req.data(), resp_data, rpcbroker);
+                if (ret == IService::ServiceRET::S_OK) {
+                    delete rpcbroker;
+                    if(req.type() == RpcInnerReq::TWO_WAY) {
+                        //have response to send
+                        RpcInnerResp resp;
+                        resp.set_request_id(req.request_id());
+                        resp.set_data(resp_data);
+                        std::string *out_data = new std::string();
+                        resp.SerializeToString(out_data);
 
-                    rpcframe::response_pkg *resp_pkg = new rpcframe::response_pkg();
-                    resp_pkg->data = out_data;
-                    resp_pkg->data_len = out_data->length();
+                        rpcframe::response_pkg *resp_pkg = new rpcframe::response_pkg();
+                        resp_pkg->data = out_data;
+                        resp_pkg->data_len = out_data->length();
 
-                    //put response to connection queue, max worker throughput
-                    m_server->pushResp(pkg->connection_id, resp_pkg);
+                        //put response to connection queue, max worker throughput
+                        m_server->pushResp(pkg->connection_id, resp_pkg);
+                    }
                 }
             }
             //worker must delete pkg obj
