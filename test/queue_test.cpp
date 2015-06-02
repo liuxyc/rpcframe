@@ -17,6 +17,7 @@ TEST(QueueTest, full)
     }
 
     EXPECT_FALSE(q_t.pop(a, 10));
+    EXPECT_FALSE(q_t.pop(a, 10));
 }
 
 TEST(QueueTest, thread)

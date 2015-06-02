@@ -47,6 +47,7 @@ public:
     bool start();
     void stop();
 
+    void setSocketKeepAlive(int fd);
     bool hasConnection(int fd);
     void removeConnection(int fd);
     void addConnection(int fd, rpcframe::RpcConnection *conn);

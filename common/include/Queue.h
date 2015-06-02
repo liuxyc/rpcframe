@@ -20,13 +20,11 @@ public:
     bool pop(T& item, uint32_t ms_val)
     {
         std::unique_lock<std::mutex> mlock(mutex_);
-        if (queue_.empty() && ms_val > 0) {
+        while (queue_.empty() && ms_val > 0) {
             std::chrono::milliseconds ms(ms_val);
-            if (cond_.wait_for(mlock, ms) == std::cv_status::timeout)
+            if (cond_pop.wait_for(mlock, ms) == std::cv_status::timeout)
                 return false;
         }
-        if (queue_.empty())
-            return false;
         item = queue_.front();
         queue_.pop();
         return true;
@@ -34,10 +32,11 @@ public:
 
     void push(const T& item)
     {
+        //TODO: make push in block mode
         std::unique_lock<std::mutex> mlock(mutex_);
         queue_.push(item);
         mlock.unlock();
-        cond_.notify_one();
+        cond_pop.notify_one();
     }
 
     size_t size()
@@ -46,14 +45,20 @@ public:
         return queue_.size();
         
     }
-    Queue()=default;
+    Queue(uint32_t max_queue_len = 100000000)
+    : m_max_q_len(max_queue_len)
+    {
+    
+    };
     Queue(const Queue&) = delete;            // disable copying
     Queue& operator=(const Queue&) = delete; // disable assignment
 
 private:
     std::queue<T> queue_;
     std::mutex mutex_;
-    std::condition_variable cond_;
+    std::condition_variable cond_pop;
+    std::condition_variable cond_push;
+    uint32_t m_max_q_len;
 };
 
 };

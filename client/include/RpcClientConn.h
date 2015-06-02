@@ -8,6 +8,7 @@
 #include <mutex>
 #include <ctime>
 #include <set>
+#include <atomic>
 
 #include "Queue.h"
 #include "RpcPackage.h"
@@ -46,8 +47,6 @@ public:
 
     int getFd();
 
-    std::string m_seqid;
-
     std::string genRequestId();
 
 private:
@@ -59,7 +58,7 @@ private:
     uint32_t m_cur_left_len;
     uint32_t m_cur_pkg_size;
     server_resp_pkg *m_rpk;
-    bool is_connected;
+    std::atomic<bool> is_connected;
     std::mutex m_mutex;
       
 

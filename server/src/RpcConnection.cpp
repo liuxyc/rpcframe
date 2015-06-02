@@ -23,6 +23,7 @@ RpcConnection::RpcConnection(int fd, uint32_t seqid)
 , m_sent_len(0)
 , m_sent_pkg(NULL)
 {
+    //generate a connection id
     m_seqid = std::to_string(std::time(nullptr)) + "_";
     m_seqid += std::to_string(seqid) + "_";
     m_seqid += std::to_string(fd);
@@ -37,7 +38,6 @@ RpcConnection::~RpcConnection()
     while(m_response_q.size() != 0) {
         rpcframe::response_pkg *pkg = NULL;
         if (m_response_q.pop(pkg, 0)) {
-            delete pkg->data;
             delete pkg;
         }
     }
@@ -155,7 +155,6 @@ int RpcConnection::sendPkgLen()
         if (slen == 0 || errno == EPIPE) {
             printf("peer closed\n");
         }
-        delete m_sent_pkg->data;
         delete m_sent_pkg;
         m_sent_pkg = NULL;
         m_sent_len = 0;
@@ -171,7 +170,6 @@ int RpcConnection::sendData()
         if (slen == 0 || errno == EPIPE) {
             printf("peer closed\n");
         }
-        delete m_sent_pkg->data;
         delete m_sent_pkg;
         m_sent_pkg = NULL;
         m_sent_len = 0;
@@ -179,7 +177,6 @@ int RpcConnection::sendData()
     }
     m_sent_len += slen;
     if (m_sent_pkg->data_len == m_sent_len) {
-        delete m_sent_pkg->data;
         delete m_sent_pkg;
         m_sent_pkg = NULL;
         m_sent_len = 0;

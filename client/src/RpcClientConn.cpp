@@ -24,8 +24,6 @@ RpcClientConn::RpcClientConn(int fd)
 , m_rpk(NULL)
 , is_connected(true)
 {
-    m_seqid = std::to_string(std::time(nullptr)) + "_";
-    m_seqid += std::to_string(fd);
 }
 
 RpcClientConn::~RpcClientConn()

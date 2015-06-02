@@ -3,19 +3,21 @@
  * All rights reserved.
  */
 
-#include "RpcServer.h"
-#include "RpcConnection.h"
 #include <thread>
 #include <sys/epoll.h>  
 #include <sys/socket.h>  
 #include <sys/eventfd.h>
 #include <netinet/in.h>  
+#include <netinet/tcp.h>  
 #include <fcntl.h>  
 #include <arpa/inet.h>  
 #include <stdio.h>  
 #include <stdlib.h>  
 #include <string.h>  
 #include <unistd.h>
+
+#include "RpcServer.h"
+#include "RpcConnection.h"
 
 #define _MAX_SOCKFD_COUNT 65535 
 
@@ -202,6 +204,7 @@ bool RpcServer::start() {
                                     client_socket);  
                             ::close(client_socket);
                         }
+                        setSocketKeepAlive(new_client_socket);
                         //NOTICE:do not use O_NONBLOCK, because we assume the first recv of pkglen 
                         // must have 4 bytes at least
                         //fcntl(new_client_socket, F_SETFL, fcntl(new_client_socket, F_GETFL) | O_NONBLOCK);
@@ -217,7 +220,7 @@ bool RpcServer::start() {
                     continue;
                 }
 
-                //data comein
+                //data come in
                 pkg_ret_t pkgret = getConnection(client_socket)->getRequest();
                 if( pkgret.first < 0 )  
                 {  
@@ -244,6 +247,18 @@ bool RpcServer::start() {
         }  
     }
     return true;
+}
+
+void RpcServer::setSocketKeepAlive(int fd)
+{
+    int keepAlive = 1;   
+    int keepIdle = 60;   
+    int keepInterval = 5;   
+    int keepCount = 3;   
+    setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, (void*)&keepAlive, sizeof(keepAlive));  
+    setsockopt(fd, SOL_TCP, TCP_KEEPIDLE, (void*)&keepIdle, sizeof(keepIdle));  
+    setsockopt(fd, SOL_TCP, TCP_KEEPINTVL, (void*)&keepInterval, sizeof(keepInterval));  
+    setsockopt(fd, SOL_TCP, TCP_KEEPCNT, (void*)&keepCount, sizeof(keepCount));  
 }
 
 bool RpcServer::hasConnection(int fd)
@@ -285,12 +300,12 @@ void RpcServer::pushResp(std::string conn_id, rpcframe::response_pkg *resp_pkg)
         uint64_t resp_cnt = 1;
         ssize_t s = -1;
         s = write(m_resp_ev_fd, &(resp_cnt), sizeof(uint64_t));
-        if (s != sizeof(uint64_t))
+        if (s != sizeof(uint64_t)) {
             printf("write resp event fd fail\n");
+        }
     }
     else {
         printf("connection %s gone, drop resp\n", conn_id.c_str());
-        delete resp_pkg->data;
         delete resp_pkg;
     }
     return;

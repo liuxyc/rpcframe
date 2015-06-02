@@ -5,17 +5,14 @@
 
 #include <sys/epoll.h>  
 #include <sys/socket.h>  
-#include <netinet/in.h>  
+#include <netinet/tcp.h>  
 #include <fcntl.h>  
 #include <arpa/inet.h>  
 #include <stdio.h>  
 #include <stdlib.h>  
 #include <string.h>  
 #include <unistd.h>
-#include <sys/epoll.h>  
-#include <iostream>
 #include <time.h>
-#include <sys/time.h>
 
 #include "RpcEventLooper.h"
 #include "RpcClientConn.h"
@@ -242,6 +239,15 @@ bool RpcEventLooper::connect() {
         printf("socket creation failed\n");
         return false;
     }
+
+    int keepAlive = 1;   
+    int keepIdle = 60;   
+    int keepInterval = 5;   
+    int keepCount = 3;   
+    setsockopt(m_fd, SOL_SOCKET, SO_KEEPALIVE, (void*)&keepAlive, sizeof(keepAlive));  
+    setsockopt(m_fd, SOL_TCP, TCP_KEEPIDLE, (void*)&keepIdle, sizeof(keepIdle));  
+    setsockopt(m_fd, SOL_TCP, TCP_KEEPINTVL, (void*)&keepInterval, sizeof(keepInterval));  
+    setsockopt(m_fd, SOL_TCP, TCP_KEEPCNT, (void*)&keepCount, sizeof(keepCount));  
 
     if (noBlockConnect(m_fd, m_client->m_cfg.m_hostname.c_str(), m_client->m_cfg.m_port, m_client->m_connect_timeout) == -1)
     {

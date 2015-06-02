@@ -46,6 +46,7 @@ public:
     };
     ~response_pkg()
     {
+        delete data;
     };
     std::string *data;
     uint32_t data_len;
