@@ -17,9 +17,13 @@ template <typename T>
 class Queue
 {
 public:
-    bool pop(T& item, uint32_t ms_val)
+    bool pop(T& item, uint32_t ms_val = 0)
     {
         std::unique_lock<std::mutex> mlock(mutex_);
+        //timeout == 0, nonblock
+        if (ms_val == 0 && queue_.empty()) {
+            return false;
+        }
         while (queue_.empty() && ms_val > 0) {
             std::chrono::milliseconds ms(ms_val);
             if (cond_pop.wait_for(mlock, ms) == std::cv_status::timeout)
@@ -27,16 +31,27 @@ public:
         }
         item = queue_.front();
         queue_.pop();
+        mlock.unlock();
+        cond_push.notify_one();
         return true;
     }
 
-    void push(const T& item)
+    bool push(const T& item, uint32_t ms_val = 0)
     {
-        //TODO: make push in block mode
         std::unique_lock<std::mutex> mlock(mutex_);
+        //timeout == 0, nonblock
+        if (ms_val == 0 && queue_.size() >= m_max_q_len) {
+            return false;
+        }
+        while (queue_.size() >= m_max_q_len && ms_val > 0) {
+            std::chrono::milliseconds ms(ms_val);
+            if (cond_push.wait_for(mlock, ms) == std::cv_status::timeout)
+                return false;
+        }
         queue_.push(item);
         mlock.unlock();
         cond_pop.notify_one();
+        return true;
     }
 
     size_t size()

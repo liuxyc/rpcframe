@@ -43,7 +43,7 @@ void RpcWorker::run() {
         if (m_work_q->pop(pkg, 10)) {
             //must get request id from here
             RpcInnerReq req;
-            req.ParseFromString(std::string(pkg->data, pkg->data_len));
+            req.ParseFromArray(pkg->data, pkg->data_len);
 
             std::string resp_data;
             IService *p_service = m_server->getService(req.service_name());

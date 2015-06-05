@@ -5,7 +5,7 @@ The rpc interface is simple, it send and receive std::string as raw data.<br>
 RpcClient::call(const std::string &method_name, const std::string &request_data, std::string &response_data, uint32_t timeout)<br>
 RpcClient::async_call(const std::string &method_name, const std::string &request_data, uint32_t timeout, RpcClientCallBack *cb_obj);<br>
 ## Server side implement rpcframe::IServicer and write member method:<br>
-rpcframe::IService::ServiceRET test_method1(const std::string &request_data, std::string &resp_data);
+rpcframe::IService::ServiceRET test_method_async(const std::string &request_data, std::string &resp_data, rpcframe::RpcRespBroker *resp_broker);
 <br>
 #### Please check test/server_test.cpp, test/client_test.cpp for more usage details.<br>
 

@@ -163,6 +163,7 @@ void RpcEventLooper::dealTimeoutCb() {
                         cb->callback(RpcStatus::RPC_CB_TIMEOUT, "");
                         m_cb_timer_map.erase(cur_it);
                         cb->markTimeout();
+                        continue;
                         //delete m_cb_map[reqid];
                         //m_cb_map.erase(reqid);
                     }
@@ -172,9 +173,7 @@ void RpcEventLooper::dealTimeoutCb() {
                     }
                 }
             }
-            else {
-                m_cb_timer_map.erase(cur_it);
-            }
+            m_cb_timer_map.erase(cur_it);
         }
     }
 }

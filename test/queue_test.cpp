@@ -18,6 +18,23 @@ TEST(QueueTest, full)
 
     EXPECT_FALSE(q_t.pop(a, 10));
     EXPECT_FALSE(q_t.pop(a, 10));
+    EXPECT_FALSE(q_t.pop(a, 0));
+}
+
+TEST(QueueTest, block)
+{
+    rpcframe::Queue<int> q_t(3);
+    q_t.push(1);
+    q_t.push(2);
+    q_t.push(3);
+    EXPECT_FALSE(q_t.push(4, 10));
+    EXPECT_EQ((size_t)3, q_t.size());
+    EXPECT_FALSE(q_t.push(4, 10));
+    EXPECT_FALSE(q_t.push(4, 0));
+    int a = -1;
+    EXPECT_TRUE(q_t.pop(a, 10));
+    EXPECT_EQ(a, 1);
+    EXPECT_TRUE(q_t.push(4, 10));
 }
 
 TEST(QueueTest, thread)
@@ -25,12 +42,12 @@ TEST(QueueTest, thread)
     rpcframe::Queue<int> q_t;
     std::thread t1([&q_t](){
                 for(int i = 0; i < 10000; ++i) {
-                    q_t.push(1);
+                    EXPECT_TRUE(q_t.push(1));
                 }
             });
     std::thread t2([&q_t](){
                 for(int i = 0; i < 10000; ++i) {
-                    q_t.push(0);
+                    EXPECT_TRUE(q_t.push(0));
                 }
             });
 
@@ -41,13 +58,13 @@ TEST(QueueTest, thread)
     std::thread tp1([&q_t](){
                 for(int i = 0; i < 10000; ++i) {
                     int v;
-                    q_t.pop(v, 0);
+                    EXPECT_TRUE(q_t.pop(v, 0));
                 }
             });
     std::thread tp2([&q_t](){
                 for(int i = 0; i < 10000; ++i) {
                     int v;
-                    q_t.pop(v, 0);
+                    EXPECT_TRUE(q_t.pop(v, 0));
                 }
             });
 
