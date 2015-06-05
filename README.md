@@ -1,5 +1,5 @@
 # rpcframe
-rpcframe is a simple rpc framework writen in C++11. It support Client side sync/asyc timeout call and Server side async response.<br>
+rpcframe is a simple rpc framework writen in C++11. It support Client side sync/async timeout call and Server side async response.<br>
 The rpc interface is simple, it send and receive std::string as raw data.<br>
 ## Client side interface: <br>
 RpcClient(rpcframe::RpcClientConfig &cfg, const std::string &service_name);<br>
