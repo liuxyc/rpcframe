@@ -3,6 +3,7 @@ env = Environment(CCFLAGS = '-std=c++11 -g -Wall -O3')
 rpcframe_src_files = Glob('server/src/*.cpp') 
 rpcframe_src_files.append(Glob('client/src/*.cpp'))
 rpcframe_src_files.append('common/src/rpc.pb.cc')
+rpcframe_src_files.append(Glob('common/src/*.cpp'))
 env.StaticLibrary('rpcframe', rpcframe_src_files, CPPPATH = ['protobuf-261/include/', 'server/include/', 'client/include', 'common/include'], LIBS=['pthread'])
 
 client_test_src = Split('test/client_test.cpp')

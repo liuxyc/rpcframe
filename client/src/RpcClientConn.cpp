@@ -137,14 +137,6 @@ pkg_ret_t RpcClientConn::getResponse()
     }
 }
 
-std::string RpcClientConn::genRequestId() {
-    char uuid_buf[37];
-    uuid_t uid;
-    uuid_generate(uid);
-    uuid_unparse(uid, uuid_buf);
-    return std::string("rpcframe::id_" + std::to_string(m_fd) + "_" + std::string(uuid_buf));
-}
-
 RpcStatus RpcClientConn::sendReq(const std::string &service_name, const std::string &method_name, const std::string &request_data, const std::string &reqid, bool is_oneway, uint32_t timeout) {
 
     RpcInnerReq req;

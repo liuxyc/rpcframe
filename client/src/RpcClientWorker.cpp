@@ -7,6 +7,7 @@
 #include <stdlib.h>  
 #include <string.h>  
 #include <unistd.h>
+#include <memory>
 
 #include "RpcClientWorker.h"
 #include "RpcClientConn.h"
@@ -41,6 +42,7 @@ void RpcClientWorker::run() {
         }
         server_resp_pkg *pkg = NULL;
         if (m_ev->m_response_q.pop(pkg, 1000)) {
+            std::unique_ptr<server_resp_pkg> u_ptr(pkg);
 
             //must get request id from here
             RpcInnerResp resp;
@@ -52,6 +54,9 @@ void RpcClientWorker::run() {
                     cb->callback(RpcStatus::RPC_CB_OK, resp.data());
                 }
                 std::string cb_type = cb->getType();
+                //NOTE:if the callback is from blocker, we do not removeCb here, the RpcClient will 
+                //send another fake response and set the callback type to "timeout", at that time 
+                //we can call removeCb
                 if ( cb_type != "blocker" ) {
                     m_ev->removeCb(resp.request_id());
                 }
@@ -59,7 +64,6 @@ void RpcClientWorker::run() {
             else {
                 //printf("the cb of req:%s is NULL\n", resp.request_id().c_str());
             }
-            delete pkg;
 
         } 
     }

@@ -34,10 +34,10 @@ public:
     std::pair<RpcStatus, std::string> wait() {
         std::unique_lock<std::mutex> lk(m_mutex);
         m_resp_data = "";
-        //m_cb_st = RpcStatus::RPC_CB_OK;
         if (!m_done) {
              std::cv_status ret = m_cv.wait_for(lk, std::chrono::seconds(m_timeout));
              if (ret == std::cv_status::timeout) {
+                printf("blocker timeout\n");
                 return std::make_pair(RpcStatus::RPC_CB_TIMEOUT, std::string(m_resp_data));
              }
         }

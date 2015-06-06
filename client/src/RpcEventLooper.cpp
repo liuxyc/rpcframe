@@ -5,6 +5,7 @@
 
 #include <sys/epoll.h>  
 #include <sys/socket.h>  
+#include <sys/types.h>
 #include <netinet/tcp.h>  
 #include <fcntl.h>  
 #include <arpa/inet.h>  
@@ -12,12 +13,16 @@
 #include <stdlib.h>  
 #include <string.h>  
 #include <unistd.h>
+#include <sstream>
 #include <time.h>
 
 #include "RpcEventLooper.h"
 #include "RpcClientConn.h"
 #include "RpcClientWorker.h"
 #include "RpcClient.h"
+#include "util.h"
+#include "rpc.pb.h"
+
 
 namespace rpcframe
 {
@@ -84,6 +89,7 @@ void RpcEventLooper::addConnection()
 
 RpcStatus RpcEventLooper::sendReq(const std::string &service_name, const std::string &method_name, const std::string &request_data, RpcClientCallBack *cb_obj, std::string &req_id) {
     if (request_data.length() >= MAX_REQ_LIMIT_BYTE) {
+        printf("send data too large %lu\n", request_data.length());
         return RpcStatus::RPC_SEND_FAIL;
     }
     std::lock_guard<std::mutex> mlock(m_mutex);
@@ -96,7 +102,15 @@ RpcStatus RpcEventLooper::sendReq(const std::string &service_name, const std::st
             return RpcStatus::RPC_SEND_FAIL;
         }
     }
-    req_id = m_conn->genRequestId();
+    //gen readable request_id 
+    std::stringstream ssm;
+    ssm << std::to_string((int)getpid())
+        << "_" << std::this_thread::get_id() 
+        << "_" << m_conn->getFd() 
+        << "_" << std::time(nullptr)
+        << "_" << m_host_ip
+        << "_" << std::to_string(m_req_seqid);
+    req_id = ssm.str();
     std::string tm_id;
     uint32_t cb_timeout = 0;
     if (cb_obj != NULL) {
@@ -104,10 +118,11 @@ RpcStatus RpcEventLooper::sendReq(const std::string &service_name, const std::st
         m_cb_map.insert(std::make_pair(req_id, cb_obj));
         cb_timeout = cb_obj->getTimeout();
         if( cb_timeout > 0) {
-            tm_id = std::to_string(std::time(nullptr)) + "_" + std::to_string(m_req_seqid++);
+            tm_id = std::to_string(std::time(nullptr)) + "_" + std::to_string(m_req_seqid);
             m_cb_timer_map.insert(std::make_pair(tm_id, req_id));
         }
     }
+    ++m_req_seqid;
     RpcStatus send_ret = m_conn->sendReq(service_name, method_name, request_data, req_id, (cb_obj == NULL), cb_timeout);
     if (send_ret == RpcStatus::RPC_SEND_OK) {
         //printf("send %s\n", req_id.c_str());
@@ -144,6 +159,17 @@ void RpcEventLooper::removeCb(const std::string &req_id) {
     }
 }
 
+void RpcEventLooper::timeoutCb(const std::string &req_id) {
+    std::lock_guard<std::mutex> mlock(m_mutex);
+    RpcInnerResp resp;
+    resp.set_request_id(req_id);
+    resp.set_data("");
+    server_resp_pkg *timeout_resp_pkg = new server_resp_pkg(resp.ByteSize());
+    resp.SerializeToArray(timeout_resp_pkg->data, timeout_resp_pkg->data_len);
+    m_response_q.push(timeout_resp_pkg);
+    printf("send blocker fake resp\n");
+}
+
 void RpcEventLooper::dealTimeoutCb() {
     std::lock_guard<std::mutex> mlock(m_mutex);
     if (!m_cb_timer_map.empty()) {
@@ -159,18 +185,35 @@ void RpcEventLooper::dealTimeoutCb() {
                     size_t endp = tm_str.find("_");
                     std::time_t tm = std::stoul(tm_str.substr(0, endp));
                     if((std::time(nullptr) - tm) > cb->getTimeout()) {
+                        //found a timeout cb
                         printf("%s timeout\n", cb->getReqId().c_str());
                         cb->callback(RpcStatus::RPC_CB_TIMEOUT, "");
                         m_cb_timer_map.erase(cur_it);
                         cb->markTimeout();
+                        if( cb->getType() != "blocker") {
+                            //NOTE:gen a fake resp pkg, in case of:server never return the real 
+                            //package, this fake package can make sure the cb instant get released
+
+                            //RpcClient will send fake resp for "blocker" type, because it can make
+                            //sure blocker will not be used again
+                            cb->setType("timeout");
+                            RpcInnerResp resp;
+                            resp.set_request_id(cb->getReqId());
+                            resp.set_data("");
+                            server_resp_pkg *timeout_resp_pkg = new server_resp_pkg(resp.ByteSize());
+                            resp.SerializeToArray(timeout_resp_pkg->data, timeout_resp_pkg->data_len);
+                            m_response_q.push(timeout_resp_pkg);
+                            printf("send normal fake resp\n");
+                        }
                         continue;
-                        //delete m_cb_map[reqid];
-                        //m_cb_map.erase(reqid);
                     }
                     else {
                         //got item not timeout, stop search
                         break;
                     }
+                }
+                else {
+                    printf("WARNING found timeout NULL cb\n");
                 }
             }
             m_cb_timer_map.erase(cur_it);
@@ -179,7 +222,10 @@ void RpcEventLooper::dealTimeoutCb() {
 }
 
 void RpcEventLooper::run() {
-
+    if(!getHostIp(m_host_ip)) {
+        printf("[ERROR]get hostip fail!");
+        return;
+    }
     while(1) {
         if (m_stop) {
             removeConnection();

@@ -30,10 +30,11 @@ public:
     }
     
 };
+
 int main()
 {
     int conn_cnt = 10;
-    int pkg_cnt = 10000;
+    int pkg_cnt = 100;
     auto endp = std::make_pair("127.0.0.1", 8801);
     rpcframe::RpcClientConfig ccfg(endp);
 
@@ -46,21 +47,22 @@ int main()
             }
             
             /*
-            std::string resp_data;
-            rpcframe::RpcStatus ret_st = 
-                    client.call("test_method2", "aaaaaaabbbbbbbbccccccc", resp_data, 3);
-            if (rpcframe::RpcStatus::RPC_CB_OK == ret_st) {
-                printf("test_method2 back %s\n", resp_data.c_str());
-            }
-            else {
-                printf("test_method2 call fail %d\n", ret_st);
-            }
-            */
+             *std::string resp_data;
+             *rpcframe::RpcStatus ret_st = 
+             *        client.call("test_method2", "aaaaaaabbbbbbbbccccccc", resp_data, 3);
+             *if (rpcframe::RpcStatus::RPC_CB_OK == ret_st) {
+             *    //printf("test_method2 back %s\n", resp_data.c_str());
+             *}
+             *else {
+             *    printf("test_method2 call fail %d\n", ret_st);
+             *}
+             */
         }
     }
     conn_cnt = 1;
     pkg_cnt = 10;
     //round 1, async call all callback will timeout
+    printf("round 1\n");
     for (int cnt = 0; cnt < conn_cnt; ++cnt) {
         for (int pcnt = 0; pcnt < pkg_cnt; ++pcnt) {
             std::random_device rd;

@@ -39,6 +39,10 @@ public:
     std::string getType() {
         return m_type_mark;
     }
+
+    void setType(const std::string &type) {
+        m_type_mark = type;
+    }
     void setTimeout(uint32_t timeout) {
         m_timeout = timeout;
     }

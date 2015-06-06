@@ -39,8 +39,9 @@ void RpcWorker::run() {
         if (m_stop) {
             break;
         }
-        rpcframe::request_pkg *pkg = NULL;
+        request_pkg *pkg = NULL;
         if (m_work_q->pop(pkg, 10)) {
+            std::unique_ptr<request_pkg> u_ptr(pkg);
             //must get request id from here
             RpcInnerReq req;
             req.ParseFromArray(pkg->data, pkg->data_len);
@@ -70,8 +71,6 @@ void RpcWorker::run() {
                     }
                 }
             }
-            //worker must delete pkg obj
-            delete pkg;
 
         } 
         else {

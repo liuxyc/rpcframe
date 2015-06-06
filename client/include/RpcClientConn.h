@@ -47,8 +47,6 @@ public:
 
     int getFd();
 
-    std::string genRequestId();
-
 private:
     bool readPkgLen(uint32_t &pkg_len);
     int readPkgData();
@@ -60,9 +58,7 @@ private:
     server_resp_pkg *m_rpk;
     std::atomic<bool> is_connected;
     std::mutex m_mutex;
-      
 
-    
 };
 
 

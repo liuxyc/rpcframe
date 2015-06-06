@@ -70,12 +70,21 @@ RpcStatus RpcClient::call(const std::string &method_name, const std::string &req
         std::pair<RpcStatus, std::string> ret_p = rb->wait();
         response_data = ret_p.second;
         ret_st = ret_p.first;
+        if(ret_st == RpcStatus::RPC_CB_TIMEOUT) {
+            //delete rb will cause race condition if the real response back, 
+            //so, call m_ev->timeoutCb will send a fake response
+            //let Worker remove the callback instant
+            rb->setType("timeoutB");
+            m_ev->timeoutCb(req_id);
+        }
+        else {
+            m_ev->removeCb(req_id);
+        }
     }
     else {
         ret_st = RpcStatus::RPC_SEND_FAIL;
     }
     
-    m_ev->removeCb(req_id);
     return ret_st;
 }
 
