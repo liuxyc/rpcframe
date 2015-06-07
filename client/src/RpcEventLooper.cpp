@@ -36,6 +36,9 @@ RpcEventLooper::RpcEventLooper(RpcClient *client)
 , m_req_seqid(0)
 , MAX_REQ_LIMIT_BYTE(100 * 1024 * 1024)
 {
+    if(!getHostIp(m_host_ip)) {
+        printf("[ERROR]get hostip fail!");
+    }
     m_epoll_fd = epoll_create(_MAX_SOCKFD_COUNT);  
     //set noblock
     int opts = O_NONBLOCK;  
@@ -167,7 +170,7 @@ void RpcEventLooper::timeoutCb(const std::string &req_id) {
     server_resp_pkg *timeout_resp_pkg = new server_resp_pkg(resp.ByteSize());
     resp.SerializeToArray(timeout_resp_pkg->data, timeout_resp_pkg->data_len);
     m_response_q.push(timeout_resp_pkg);
-    printf("send blocker fake resp\n");
+    //printf("send fake resp for sync req %s\n", req_id.c_str());
 }
 
 void RpcEventLooper::dealTimeoutCb() {
@@ -187,12 +190,12 @@ void RpcEventLooper::dealTimeoutCb() {
                     if((std::time(nullptr) - tm) > cb->getTimeout()) {
                         //found a timeout cb
                         printf("%s timeout\n", cb->getReqId().c_str());
-                        cb->callback(RpcStatus::RPC_CB_TIMEOUT, "");
+                        //cb->callback(RpcStatus::RPC_CB_TIMEOUT, "");
                         m_cb_timer_map.erase(cur_it);
                         cb->markTimeout();
                         if( cb->getType() != "blocker") {
                             //NOTE:gen a fake resp pkg, in case of:server never return the real 
-                            //package, this fake package can make sure the cb instant get released
+                            //package, this fake package can make sure the cb instance get released
 
                             //RpcClient will send fake resp for "blocker" type, because it can make
                             //sure blocker will not be used again
@@ -203,7 +206,7 @@ void RpcEventLooper::dealTimeoutCb() {
                             server_resp_pkg *timeout_resp_pkg = new server_resp_pkg(resp.ByteSize());
                             resp.SerializeToArray(timeout_resp_pkg->data, timeout_resp_pkg->data_len);
                             m_response_q.push(timeout_resp_pkg);
-                            printf("send normal fake resp\n");
+                            //printf("send fake resp for async req %s\n", cb->getReqId().c_str());
                         }
                         continue;
                     }
@@ -222,10 +225,6 @@ void RpcEventLooper::dealTimeoutCb() {
 }
 
 void RpcEventLooper::run() {
-    if(!getHostIp(m_host_ip)) {
-        printf("[ERROR]get hostip fail!");
-        return;
-    }
     while(1) {
         if (m_stop) {
             removeConnection();

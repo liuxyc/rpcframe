@@ -38,7 +38,7 @@ uint32_t RpcClientConfig::getThreadNum()
 }
 
 
-RpcClient::RpcClient(rpcframe::RpcClientConfig &cfg, const std::string &service_name)
+RpcClient::RpcClient(RpcClientConfig &cfg, const std::string &service_name)
 : m_cfg(cfg)
 , m_connect_timeout(3)
 , m_isConnected(false)
@@ -73,7 +73,8 @@ RpcStatus RpcClient::call(const std::string &method_name, const std::string &req
         if(ret_st == RpcStatus::RPC_CB_TIMEOUT) {
             //delete rb will cause race condition if the real response back, 
             //so, call m_ev->timeoutCb will send a fake response
-            //let Worker remove the callback instant
+            //let Worker remove the callback instance
+            rb->markTimeout();
             rb->setType("timeoutB");
             m_ev->timeoutCb(req_id);
         }

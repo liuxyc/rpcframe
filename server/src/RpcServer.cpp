@@ -56,7 +56,7 @@ void RpcServerConfig::setMaxConnection(uint32_t max_conn_num)
     m_max_conn_num = max_conn_num;
 }
 
-RpcServer::RpcServer(rpcframe::RpcServerConfig &cfg)
+RpcServer::RpcServer(RpcServerConfig &cfg)
 : m_cfg(cfg)
 , m_seqid(0)
 , m_stop(false)
@@ -73,7 +73,7 @@ RpcServer::~RpcServer() {
 
 }
 
-bool RpcServer::addService(const std::string &name, rpcframe::IService *p_service)
+bool RpcServer::addService(const std::string &name, IService *p_service)
 {
     if (m_service_map.find(name) != m_service_map.end()) {
         return false;
@@ -83,7 +83,7 @@ bool RpcServer::addService(const std::string &name, rpcframe::IService *p_servic
     
 }
 
-rpcframe::IService *RpcServer::getService(const std::string &name)
+IService *RpcServer::getService(const std::string &name)
 {
     return m_service_map[name];
 }
@@ -214,7 +214,7 @@ bool RpcServer::start() {
                         ev.data.fd = new_client_socket;
                         epoll_ctl(epoll_fd, EPOLL_CTL_ADD, new_client_socket, &ev);  
                         m_seqid++;
-                        addConnection(new_client_socket, new rpcframe::RpcConnection(new_client_socket, m_seqid));
+                        addConnection(new_client_socket, new RpcConnection(new_client_socket, m_seqid));
                         //printf("new_client_socket: %d\n", new_client_socket);  
                     }
                     continue;
@@ -290,7 +290,7 @@ RpcConnection *RpcServer::getConnection(int fd)
     return m_conn_map[fd];
 }
 
-void RpcServer::pushResp(std::string conn_id, rpcframe::response_pkg *resp_pkg)
+void RpcServer::pushResp(std::string conn_id, response_pkg *resp_pkg)
 {
     std::lock_guard<std::mutex> mlock(m_mutex);
     if (m_conn_set.find(conn_id) != m_conn_set.end()) {

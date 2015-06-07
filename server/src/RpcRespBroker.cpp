@@ -28,12 +28,8 @@ bool RpcRespBroker::response(const std::string &resp_data) {
         RpcInnerResp resp;
         resp.set_request_id(m_req_id);
         resp.set_data(resp_data);
-        std::string *out_data = new std::string();
-        resp.SerializeToString(out_data);
-
-        rpcframe::response_pkg *resp_pkg = new rpcframe::response_pkg();
-        resp_pkg->data = out_data;
-        resp_pkg->data_len = out_data->length();
+        response_pkg *resp_pkg = new response_pkg(resp.ByteSize());
+        resp.SerializeToArray(resp_pkg->data, resp_pkg->data_len);
 
         //put response to connection queue
         m_server->pushResp(m_conn_id, resp_pkg);

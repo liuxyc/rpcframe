@@ -59,12 +59,8 @@ void RpcWorker::run() {
                         RpcInnerResp resp;
                         resp.set_request_id(req.request_id());
                         resp.set_data(resp_data);
-                        std::string *out_data = new std::string();
-                        resp.SerializeToString(out_data);
-
-                        rpcframe::response_pkg *resp_pkg = new rpcframe::response_pkg();
-                        resp_pkg->data = out_data;
-                        resp_pkg->data_len = out_data->length();
+                        response_pkg *resp_pkg = new response_pkg(resp.ByteSize());
+                        resp.SerializeToArray(resp_pkg->data, resp_pkg->data_len);
 
                         //put response to connection queue, max worker throughput
                         m_server->pushResp(pkg->connection_id, resp_pkg);

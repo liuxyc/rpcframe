@@ -39,23 +39,24 @@ public:
 class response_pkg
 {
 public:
-    response_pkg()
+    response_pkg(uint32_t size)
     : data(NULL)
-    , data_len(0)
+    , data_len(size)
     {
+        data = new char[size];
     };
     ~response_pkg()
     {
-        delete data;
+        delete [] data;
     };
-    std::string *data;
+    char *data;
     uint32_t data_len;
 
 
 };
 
-typedef Queue<rpcframe::request_pkg *> ReqQueue;
-typedef Queue<rpcframe::response_pkg *> RespQueue;
+typedef Queue<request_pkg *> ReqQueue;
+typedef Queue<response_pkg *> RespQueue;
 };
 
 #endif

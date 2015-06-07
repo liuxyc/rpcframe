@@ -23,7 +23,7 @@ RpcConnection::RpcConnection(int fd, uint32_t seqid)
 , m_sent_len(0)
 , m_sent_pkg(NULL)
 {
-    //generate a connection id
+    //generate a connection id, this id used for track and identify RpcConnection instance
     m_seqid = std::to_string(std::time(nullptr)) + "_";
     m_seqid += std::to_string(seqid) + "_";
     m_seqid += std::to_string(fd);
@@ -36,7 +36,7 @@ RpcConnection::~RpcConnection()
     if (m_rpk != NULL)
         delete m_rpk;
     while(m_response_q.size() != 0) {
-        rpcframe::response_pkg *pkg = NULL;
+        response_pkg *pkg = NULL;
         if (m_response_q.pop(pkg, 0)) {
             delete pkg;
         }
@@ -129,7 +129,7 @@ pkg_ret_t RpcConnection::getRequest()
             return pkg_ret_t(0, NULL);
         }
         //printf("pkg len is %d\n", m_cur_pkg_size);
-        m_rpk = new rpcframe::request_pkg(m_cur_pkg_size, m_seqid);
+        m_rpk = new request_pkg(m_cur_pkg_size, m_seqid);
         m_cur_left_len = m_cur_pkg_size;
     }
     int data_ret = readPkgData();
@@ -140,7 +140,7 @@ pkg_ret_t RpcConnection::getRequest()
         return pkg_ret_t(0, NULL);
     }
     else {
-        rpcframe::request_pkg *p_rpk = m_rpk;
+        request_pkg *p_rpk = m_rpk;
         m_rpk = NULL;
         return pkg_ret_t(0, p_rpk);
     }
@@ -165,7 +165,7 @@ int RpcConnection::sendPkgLen()
 
 int RpcConnection::sendData()
 {
-    int slen = send(m_fd, m_sent_pkg->data->data() + m_sent_len, m_sent_pkg->data_len - m_sent_len, MSG_NOSIGNAL | MSG_DONTWAIT);  
+    int slen = send(m_fd, m_sent_pkg->data + m_sent_len, m_sent_pkg->data_len - m_sent_len, MSG_NOSIGNAL | MSG_DONTWAIT);  
     if (slen <= 0) {
         if (slen == 0 || errno == EPIPE) {
             printf("peer closed\n");
@@ -197,7 +197,7 @@ int RpcConnection::sendResponse()
         return sendData();
     }
     else {
-        rpcframe::response_pkg *pkg = NULL;
+        response_pkg *pkg = NULL;
         if (m_response_q.pop(pkg, 0)) {
             m_sent_len = 0;
             m_sent_pkg = pkg;

@@ -85,16 +85,36 @@ public:
 
 class server_resp_pkg;
 
-//NOTICE: start/stop RpcClient is heavy, keep the instant as long as possiable
+//NOTICE: start/stop RpcClient is heavy, keep the instance as long as possiable
 class RpcClient
 {
 public:
     RpcClient(rpcframe::RpcClientConfig &cfg, const std::string &service_name);
     ~RpcClient();
+    /**
+     * @brief sync call, not thread safe
+     *
+     * @param method_name
+     * @param request_data
+     * @param response_data
+     * @param timeout
+     *
+     * @return 
+     */
     RpcStatus call(const std::string &method_name, const std::string &request_data, std::string &response_data, uint32_t timeout);
+    /**
+     * @brief async call, not thread safe
+     *
+     * @param method_name
+     * @param request_data
+     * @param timeout
+     * @param cb_obj
+     *
+     * @return 
+     */
     RpcStatus async_call(const std::string &method_name, const std::string &request_data, uint32_t timeout, RpcClientCallBack *cb_obj);
 
-    rpcframe::RpcClientConfig m_cfg;
+    RpcClientConfig m_cfg;
     int m_connect_timeout;
 private:
 

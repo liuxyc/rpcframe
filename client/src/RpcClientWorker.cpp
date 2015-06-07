@@ -49,11 +49,15 @@ void RpcClientWorker::run() {
             resp.ParseFromArray(pkg->data, pkg->data_len);
             RpcClientCallBack *cb = m_ev->getCb(resp.request_id());
             if (NULL != cb) {
+                std::string cb_type = cb->getType();
                 //if marked as timeout, the callback already called by RpcCBStatus::RPC_TIMEOUT
                 if (!cb->isTimeout()) {
                     cb->callback(RpcStatus::RPC_CB_OK, resp.data());
                 }
-                std::string cb_type = cb->getType();
+                else {
+                    cb->callback(RpcStatus::RPC_CB_TIMEOUT, resp.data());
+                }
+
                 //NOTE:if the callback is from blocker, we do not removeCb here, the RpcClient will 
                 //send another fake response and set the callback type to "timeout", at that time 
                 //we can call removeCb

@@ -103,7 +103,7 @@ int main(int argc, char * argv[])
     rpcframe::RpcServer rpcServer(cfg);
     MyService ms;
     MyService_async ms_async;
-    //bind service_name to service instants
+    //bind service_name to service instance
     rpcServer.addService("test_service", &ms);
     rpcServer.addService("test_service_async", &ms_async);
     rpcServer.start();

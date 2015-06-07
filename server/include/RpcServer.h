@@ -39,10 +39,10 @@ public:
 class RpcServer
 {
 public:
-    RpcServer(rpcframe::RpcServerConfig &cfg);
+    RpcServer(RpcServerConfig &cfg);
     ~RpcServer();
-    bool addService(const std::string &name, rpcframe::IService *);
-    rpcframe::IService *getService(const std::string &name);
+    bool addService(const std::string &name, IService *);
+    IService *getService(const std::string &name);
 
     bool start();
     void stop();
@@ -50,17 +50,17 @@ public:
     void setSocketKeepAlive(int fd);
     bool hasConnection(int fd);
     void removeConnection(int fd);
-    void addConnection(int fd, rpcframe::RpcConnection *conn);
+    void addConnection(int fd, RpcConnection *conn);
     RpcConnection *getConnection(int fd);
-    void pushResp(std::string seqid, rpcframe::response_pkg *resp_pkg);
+    void pushResp(std::string seqid, response_pkg *resp_pkg);
 
 private:
-    rpcframe::RpcServerConfig m_cfg;
+    RpcServerConfig m_cfg;
     std::vector<std::thread *> m_thread_vec;
     std::vector<RpcWorker *> m_worker_vec;
     ServiceMap m_service_map;
-    std::unordered_map<int, rpcframe::RpcConnection *> m_conn_map;
-    std::unordered_map<std::string, rpcframe::RpcConnection *> m_conn_set;
+    std::unordered_map<int, RpcConnection *> m_conn_map;
+    std::unordered_map<std::string, RpcConnection *> m_conn_set;
     uint32_t m_seqid;
 
     Queue<request_pkg *> m_request_q;
