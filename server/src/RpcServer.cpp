@@ -148,12 +148,36 @@ bool RpcServer::start() {
     ev.data.fd = m_resp_ev_fd;
     epoll_ctl(epoll_fd, EPOLL_CTL_ADD, m_resp_ev_fd, &ev);  
 
+    struct epoll_event events[_MAX_SOCKFD_COUNT];  
     while(!m_stop) {
-        struct epoll_event events[_MAX_SOCKFD_COUNT];  
         int nfds = epoll_wait(epoll_fd, events, _MAX_SOCKFD_COUNT, 2000);  
         for (int i = 0; i < nfds; i++)  
         {  
             int client_socket = events[i].data.fd;  
+
+            if (events[i].events & EPOLLOUT)
+            {  
+                if (m_conn_map.find(client_socket) != m_conn_map.end()) {
+                    RpcConnection *conn = m_conn_map[client_socket];
+                    int sent_ret = conn->sendResponse();
+                    if (sent_ret == -1 ) {
+                        removeConnection(client_socket, epoll_fd);
+                    }
+                    else if ( sent_ret == -2 ){
+                        //printf("OUT sent partial to %d\n", client_socket);
+                    }
+                    else {
+                        printf("OUT sent to %d\n", client_socket);
+                        //send full resp, remove EPOLLOUT flag
+                        struct epoll_event event_mod;  
+                        event_mod.data.fd = client_socket;
+                        event_mod.events = EPOLLIN | EPOLLERR | EPOLLHUP;
+                        epoll_ctl(epoll_fd, EPOLL_CTL_MOD, event_mod.data.fd, &event_mod);
+                    }
+                }
+                continue;
+            }
+
             //event fd, we have data to send
             if (events[i].events & EPOLLIN)
             {  
@@ -166,24 +190,52 @@ bool RpcServer::start() {
                         continue;
                     }
 
-                    std::string seqid;
-                    if (m_resp_conn_q.pop(seqid, 0)) {
-                        if (m_conn_set.find(seqid) != m_conn_set.end()) {
-                            //keep push all data out
-                            RpcConnection *conn = m_conn_set[seqid];
-                            while(true) {
-                                int sent_ret = conn->sendResponse();
-                                if (sent_ret == -1 ) {
-                                    removeConnection(client_socket);
-                                    break;
+                    std::string connid;
+                    //if the connection still sending data,
+                    //we put the event back, wait for next chance
+                    if (m_resp_conn_q.peak(connid)) {
+                        if (m_conn_set.find(connid) != m_conn_set.end()) {
+                            RpcConnection *conn = m_conn_set[connid];
+                            if(conn->isSending()) {
+                                //printf("still sending pkg\n");
+                                //keep eventfd filled with the count of ready connection
+                                uint64_t resp_cnt = 1;
+                                ssize_t s = -1;
+                                s = write(m_resp_ev_fd, &(resp_cnt), sizeof(uint64_t));
+                                if (s != sizeof(uint64_t)) {
+                                    printf("write resp event fd fail\n");
                                 }
-                                else if ( sent_ret == -2 ){
-                                    //printf("sent partial to %d\n", client_socket);
-                                }
-                                else {
-                                    //printf("sent to %d\n", client_socket);
-                                    break;
-                                }
+                                continue;
+                            }
+                        }
+                    }
+
+                    if (m_resp_conn_q.pop(connid, 0)) {
+                        if (m_conn_set.find(connid) != m_conn_set.end()) {
+                            //we have resp data to send
+                            RpcConnection *conn = m_conn_set[connid];
+                            printf("conn %s resp queue len %lu\n", conn->m_seqid.c_str(), conn->m_response_q.size());
+                            int sent_ret = conn->sendResponse();
+                            if (sent_ret == -1 ) {
+                                removeConnection(conn->getFd(), epoll_fd);
+                            }
+                            else if ( sent_ret == -2 ){
+                                //printf("sent partial to %d\n", conn->getFd());
+                                //send not finish, set EPOLLOUT flag on this fd, 
+                                //until this resp send finish
+                                struct epoll_event ev;  
+                                memset(&ev, 0, sizeof(ev));
+                                ev.events = EPOLLIN | EPOLLOUT | EPOLLERR | EPOLLHUP;
+                                ev.data.fd = conn->getFd();
+                                epoll_ctl(epoll_fd, EPOLL_CTL_MOD, conn->getFd(), &ev);  
+                            }
+                            else {
+                                printf("sent to %d\n", conn->getFd());
+                                //send full resp finish, try remove EPOLLOUT flag if it already set
+                                struct epoll_event event_mod;  
+                                event_mod.data.fd = conn->getFd();
+                                event_mod.events = EPOLLIN | EPOLLERR | EPOLLHUP;
+                                epoll_ctl(epoll_fd, EPOLL_CTL_MOD, event_mod.data.fd, &event_mod);
                             }
                         }
                     }
@@ -225,11 +277,7 @@ bool RpcServer::start() {
                 if( pkgret.first < 0 )  
                 {  
                     printf("rpc server socket disconnected: %d\n", client_socket);  
-                    struct epoll_event event_del;  
-                    event_del.data.fd = events[i].data.fd;  
-                    event_del.events = 0;  
-                    epoll_ctl(epoll_fd, EPOLL_CTL_DEL, event_del.data.fd, &event_del);
-                    removeConnection(client_socket);
+                    removeConnection(client_socket, epoll_fd);
                 }  
                 else 
                 {  
@@ -245,6 +293,7 @@ bool RpcServer::start() {
                 epoll_ctl(epoll_fd, EPOLL_CTL_DEL, events[i].data.fd, &events[i]);  
             }  
         }  
+        //printf("server eloop request queue len %lu\n", m_request_q.size());
     }
     return true;
 }
@@ -267,9 +316,13 @@ bool RpcServer::hasConnection(int fd)
     return (m_conn_map.find(fd) != m_conn_map.end());
 }
 
-void RpcServer::removeConnection(int fd)
+void RpcServer::removeConnection(int fd, int epoll_fd)
 {
     std::lock_guard<std::mutex> mlock(m_mutex);
+    struct epoll_event event_del;  
+    event_del.data.fd = fd;
+    event_del.events = 0;  
+    epoll_ctl(epoll_fd, EPOLL_CTL_DEL, event_del.data.fd, &event_del);
     if (m_conn_map.find(fd) != m_conn_map.end()) {
         m_conn_set.erase(m_conn_map[fd]->m_seqid);
         delete m_conn_map[fd];

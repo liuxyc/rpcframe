@@ -86,7 +86,8 @@ public:
     //method3
     rpcframe::IService::ServiceRET test_method2(const std::string &request_data, std::string &resp_data, rpcframe::RpcRespBroker *resp_broker) {
         //printf("my method1 get %s\n", request_data.c_str());
-        resp_data = "my feedback2";
+        //resp_data = std::string(1024*1024*100, 'a');
+        resp_data = std::string("my feedback3");
         return rpcframe::IService::ServiceRET::S_OK;
     };
 

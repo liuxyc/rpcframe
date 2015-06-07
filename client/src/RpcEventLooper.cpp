@@ -128,9 +128,10 @@ RpcStatus RpcEventLooper::sendReq(const std::string &service_name, const std::st
     ++m_req_seqid;
     RpcStatus send_ret = m_conn->sendReq(service_name, method_name, request_data, req_id, (cb_obj == NULL), cb_timeout);
     if (send_ret == RpcStatus::RPC_SEND_OK) {
-        //printf("send %s\n", req_id.c_str());
+        printf("send %s\n", req_id.c_str());
     }
     else {
+        printf("send fail %s\n", req_id.c_str());
         if (cb_obj != NULL) {
             if( cb_timeout > 0) {
                 m_cb_timer_map.erase(tm_id);
@@ -189,7 +190,7 @@ void RpcEventLooper::dealTimeoutCb() {
                     std::time_t tm = std::stoul(tm_str.substr(0, endp));
                     if((std::time(nullptr) - tm) > cb->getTimeout()) {
                         //found a timeout cb
-                        printf("%s timeout\n", cb->getReqId().c_str());
+                        //printf("%s timeout\n", cb->getReqId().c_str());
                         //cb->callback(RpcStatus::RPC_CB_TIMEOUT, "");
                         m_cb_timer_map.erase(cur_it);
                         cb->markTimeout();
@@ -209,6 +210,7 @@ void RpcEventLooper::dealTimeoutCb() {
                             //printf("send fake resp for async req %s\n", cb->getReqId().c_str());
                         }
                         continue;
+
                     }
                     else {
                         //got item not timeout, stop search
@@ -225,22 +227,26 @@ void RpcEventLooper::dealTimeoutCb() {
 }
 
 void RpcEventLooper::run() {
+    struct epoll_event events[_MAX_SOCKFD_COUNT];  
     while(1) {
         if (m_stop) {
+            printf("RpcEventLooper stoped\n");
             removeConnection();
             break;
         }
 
-        struct epoll_event events[_MAX_SOCKFD_COUNT];  
         int nfds = epoll_wait(m_epoll_fd, events, _MAX_SOCKFD_COUNT, 1000);  
         if (m_stop) {
+            printf("RpcEventLooper stoped\n");
             removeConnection();
             break;
         }
 
         //deal async call timeout
         //FIXME:dealTimeoutCb() may block event loop
+        //printf("before dealcb back\n");
         dealTimeoutCb();
+        //printf("after dealcb back\n");
 
         for (int i = 0; i < nfds; i++) 
         {  

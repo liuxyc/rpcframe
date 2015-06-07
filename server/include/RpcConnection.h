@@ -26,6 +26,7 @@ public:
 
     int sendResponse();
     int getFd();
+    bool isSending();
 
     Queue<response_pkg *> m_response_q;
     std::string m_seqid;

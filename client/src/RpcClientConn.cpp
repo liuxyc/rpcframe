@@ -58,21 +58,31 @@ bool RpcClientConn::readPkgLen(uint32_t &pkg_len)
         return false;
     }
     int data;
-    int rev_size = recv(m_fd, (char *)&data, 4, 0);  
-    if (rev_size <= 0) {
-        if (rev_size != 0) {
-            printf("recv pkg len error %s\n", strerror(errno));
+    char *p = (char *)(&data);
+    int recv_left = 4;
+    int recved = 0;
+    while(true) {
+        int rev_size = recv(m_fd, p + recved, recv_left, 0);  
+        if (rev_size <= 0) {
+            if (rev_size != 0) {
+                printf("recv pkg len error %s\n", strerror(errno));
+            }
+            if (errno != EAGAIN) {
+                printf("recv pkg len error %s\n", strerror(errno));
+                return false;
+            }
         }
-        if (errno != EAGAIN) {
-            return false;
+        recved += rev_size;
+        if( recved == 4 )  
+        {  
+            //printf("recv full len\n");
+            break;
         }
+        recv_left -= rev_size;
+        //printf("need more len %d\n", recv_left);
     }
-    if( rev_size < 4 )  
-    {  
-        printf("recv data too small %d, close connection: %d\n", rev_size, m_fd);
-        return false;
-    }  
     pkg_len = ntohl(data);
+    //printf("got resp len %lu\n", pkg_len);
     return true;
 }
 
@@ -97,14 +107,14 @@ int RpcClientConn::readPkgData()
         }
     }
     if ((uint32_t)rev_size == m_cur_left_len) {
-        //printf("got full pkg\n");
+        //printf("got full pkg %lu\n", rev_size);
         m_cur_left_len = 0;
         m_cur_pkg_size = 0;
         return 0;
     }
     else {
         m_cur_left_len = m_cur_left_len - rev_size;
-        printf(" half pkg got %d need %d more\n", rev_size, m_cur_left_len);
+        //printf(" half pkg got %d need %d more\n", rev_size, m_cur_left_len);
         return -1;
     }
 }

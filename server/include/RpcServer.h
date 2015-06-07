@@ -49,7 +49,7 @@ public:
 
     void setSocketKeepAlive(int fd);
     bool hasConnection(int fd);
-    void removeConnection(int fd);
+    void removeConnection(int fd, int epoll_fd);
     void addConnection(int fd, RpcConnection *conn);
     RpcConnection *getConnection(int fd);
     void pushResp(std::string seqid, response_pkg *resp_pkg);

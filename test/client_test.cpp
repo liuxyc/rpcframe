@@ -24,7 +24,8 @@ public:
             printf("client cb return %d\n", status);
         }
         else {
-            printf("client cb return %d, got %s\n", status, response_data.c_str());
+            //printf("client cb return %d, got %s\n", status, response_data.c_str());
+            printf("client cb return %d, got data len %d\n", status, response_data.length());
         }
 
     }
@@ -34,7 +35,7 @@ public:
 int main()
 {
     int conn_cnt = 10;
-    int pkg_cnt = 100;
+    int pkg_cnt = 10000;
     auto endp = std::make_pair("127.0.0.1", 8801);
     rpcframe::RpcClientConfig ccfg(endp);
 
@@ -74,7 +75,7 @@ int main()
                 len = 10;
             }
             if( rpcframe::RpcStatus::RPC_SEND_OK != client.async_call("test_method", std::string(len, '*'), 2, new my_CB())) {
-                printf("send fail\n");
+                printf("r1 send fail\n");
             }
             client.async_call("test_method", std::string(len, '*'), 4, NULL);
         }
@@ -97,7 +98,7 @@ int main()
                 len = 10;
             }
             if(rpcframe::RpcStatus::RPC_SEND_OK != client2.async_call("test_method", std::string(len, '*'), 10, new my_CB())) {
-                printf("send fail\n");
+                printf("r2 send fail\n");
             }
             
             //set timeout to 3 seconds, server may delay in 0-5 seconds

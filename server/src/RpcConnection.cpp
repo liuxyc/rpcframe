@@ -3,14 +3,15 @@
  * All rights reserved.
  */
 
-#include "RpcConnection.h"
 #include <errno.h>
 #include <sys/socket.h>  
 #include <netinet/in.h>  
 #include <fcntl.h>  
 #include <string.h>
 #include <unistd.h>
+#include <chrono>
 
+#include "RpcConnection.h"
 namespace rpcframe
 {
 
@@ -150,15 +151,40 @@ int RpcConnection::sendPkgLen()
 {
     uint32_t pkg_len = m_sent_pkg->data_len;
     uint32_t nlen = htonl(pkg_len);
-    int slen = send(m_fd, (char *)&nlen, sizeof(nlen), MSG_NOSIGNAL);  
-    if (slen <= 0) {
-        if (slen == 0 || errno == EPIPE) {
-            printf("peer closed\n");
+    std::time_t begin_tm = std::time(nullptr);
+    uint32_t total_len = sizeof(nlen);
+    uint32_t sent_len = 0;
+    //NOTE:if send resp len takes over 1 second, the network is too slow, 
+    //to avoid take too much server resource, we disconnet!
+    while(true) {
+        if ( std::time(nullptr) - begin_tm > 1) {
+            delete m_sent_pkg;
+            m_sent_pkg = NULL;
+            m_sent_len = 0;
+            printf("send data len timeout!\n");
+            return -1;
         }
-        delete m_sent_pkg;
-        m_sent_pkg = NULL;
-        m_sent_len = 0;
-        return -1;
+        uint32_t len = total_len - sent_len;
+        int s_ret = send(m_fd, ((char *)&nlen) + sent_len, len, MSG_NOSIGNAL | MSG_DONTWAIT);
+        if( s_ret <= 0 )
+        {
+            if( errno != EAGAIN) {
+                printf("send error! %s\n", strerror(errno));
+                is_connected = false;
+                delete m_sent_pkg;
+                m_sent_pkg = NULL;
+                m_sent_len = 0;
+                return -1;
+            }
+            else {
+                continue;
+            }
+        }
+        sent_len += s_ret;
+        if (sent_len == total_len) {
+            break;
+        }
+
     }
     return 0;
 }
@@ -167,22 +193,27 @@ int RpcConnection::sendData()
 {
     int slen = send(m_fd, m_sent_pkg->data + m_sent_len, m_sent_pkg->data_len - m_sent_len, MSG_NOSIGNAL | MSG_DONTWAIT);  
     if (slen <= 0) {
-        if (slen == 0 || errno == EPIPE) {
-            printf("peer closed\n");
+        if( errno != EAGAIN) {
+            if (slen == 0 || errno == EPIPE) {
+                printf("peer closed\n");
+            }
+            printf("send data error! %s\n", strerror(errno));
+            delete m_sent_pkg;
+            m_sent_pkg = NULL;
+            m_sent_len = 0;
+            return -1;
         }
-        delete m_sent_pkg;
-        m_sent_pkg = NULL;
-        m_sent_len = 0;
-        return -1;
     }
     m_sent_len += slen;
     if (m_sent_pkg->data_len == m_sent_len) {
+        //printf("full send %d\n", m_sent_len);
         delete m_sent_pkg;
         m_sent_pkg = NULL;
         m_sent_len = 0;
         return 0;
     }
     else {
+        //printf("left send %d\n", m_sent_pkg->data_len - m_sent_len);
         return -2;
     }
 }
@@ -205,10 +236,15 @@ int RpcConnection::sendResponse()
                 printf("send pkg len failed\n");
                 return -1;
             }
+            //printf("send len success\n");
             return sendData();
         }
         return -2;
     }
+}
+
+bool RpcConnection::isSending() {
+    return (m_sent_pkg != NULL);
 }
 
 };

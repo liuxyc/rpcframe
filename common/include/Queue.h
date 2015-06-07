@@ -36,6 +36,16 @@ public:
         return true;
     }
 
+    bool peak(T& item)
+    {
+        std::unique_lock<std::mutex> mlock(mutex_);
+        if (queue_.empty()) {
+            return false;
+        }
+        item = queue_.front();
+        return true;
+    }
+
     bool push(const T& item, uint32_t ms_val = 0)
     {
         std::unique_lock<std::mutex> mlock(mutex_);
