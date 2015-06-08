@@ -29,7 +29,6 @@ public:
     void run();
 private:
     ReqQueue *m_work_q;
-    RespQueue *m_resp_q;
     RpcServer *m_server;
     std::atomic<bool> m_stop;
     

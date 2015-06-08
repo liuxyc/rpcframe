@@ -59,6 +59,7 @@ void RpcServerConfig::setMaxConnection(uint32_t max_conn_num)
 RpcServer::RpcServer(RpcServerConfig &cfg)
 : m_cfg(cfg)
 , m_seqid(0)
+, m_resp_ev_fd(-1)
 , m_stop(false)
 {
     for(uint32_t i = 0; i < m_cfg.getThreadNum(); ++i) {
@@ -182,9 +183,8 @@ bool RpcServer::start() {
             if (events[i].events & EPOLLIN)
             {  
                 if (client_socket == m_resp_ev_fd) {
-                    ssize_t s = -1;
                     uint64_t resp_cnt = -1;
-                    s = read(m_resp_ev_fd, &resp_cnt, sizeof(uint64_t));
+                    ssize_t s = read(m_resp_ev_fd, &resp_cnt, sizeof(uint64_t));
                     if (s != sizeof(uint64_t)) {
                         printf("read resp event fail\n");
                         continue;
@@ -200,8 +200,7 @@ bool RpcServer::start() {
                                 //printf("still sending pkg\n");
                                 //keep eventfd filled with the count of ready connection
                                 uint64_t resp_cnt = 1;
-                                ssize_t s = -1;
-                                s = write(m_resp_ev_fd, &(resp_cnt), sizeof(uint64_t));
+                                ssize_t s = write(m_resp_ev_fd, &(resp_cnt), sizeof(uint64_t));
                                 if (s != sizeof(uint64_t)) {
                                     printf("write resp event fd fail\n");
                                 }
@@ -351,8 +350,7 @@ void RpcServer::pushResp(std::string conn_id, response_pkg *resp_pkg)
         conn->m_response_q.push(resp_pkg);
         m_resp_conn_q.push(conn_id);
         uint64_t resp_cnt = 1;
-        ssize_t s = -1;
-        s = write(m_resp_ev_fd, &(resp_cnt), sizeof(uint64_t));
+        ssize_t s = write(m_resp_ev_fd, &(resp_cnt), sizeof(uint64_t));
         if (s != sizeof(uint64_t)) {
             printf("write resp event fd fail\n");
         }

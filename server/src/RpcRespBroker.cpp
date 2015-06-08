@@ -15,7 +15,7 @@
 namespace rpcframe
 {
 
-RpcRespBroker::RpcRespBroker(RpcServer *server, const std::string conn_id, const std::string req_id, bool needResp) 
+RpcRespBroker::RpcRespBroker(RpcServer *server, const std::string &conn_id, const std::string &req_id, bool needResp) 
 : m_server(server)
 , m_conn_id(conn_id)
 , m_req_id(req_id)

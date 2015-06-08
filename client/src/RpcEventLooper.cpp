@@ -32,6 +32,7 @@ namespace rpcframe
 RpcEventLooper::RpcEventLooper(RpcClient *client)
 : m_client(client)
 , m_stop(false)
+, m_fd(-1)
 , m_conn(NULL)
 , m_req_seqid(0)
 , MAX_REQ_LIMIT_BYTE(100 * 1024 * 1024)
@@ -82,12 +83,17 @@ void RpcEventLooper::removeConnection() {
 
 void RpcEventLooper::addConnection()
 {
-    m_conn = new RpcClientConn(m_fd);
-    struct epoll_event ev;  
-    memset(&ev, 0, sizeof(ev));
-    ev.events = EPOLLIN | EPOLLERR | EPOLLHUP;  
-    ev.data.fd = m_fd;
-    epoll_ctl(m_epoll_fd, EPOLL_CTL_ADD, m_fd, &ev);  
+    if (m_fd != -1) {
+        m_conn = new RpcClientConn(m_fd);
+        struct epoll_event ev;  
+        memset(&ev, 0, sizeof(ev));
+        ev.events = EPOLLIN | EPOLLERR | EPOLLHUP;  
+        ev.data.fd = m_fd;
+        epoll_ctl(m_epoll_fd, EPOLL_CTL_ADD, m_fd, &ev);  
+    }
+    else {
+        printf("invalid fd\n");
+    }
 }
 
 RpcStatus RpcEventLooper::sendReq(const std::string &service_name, const std::string &method_name, const std::string &request_data, RpcClientCallBack *cb_obj, std::string &req_id) {

@@ -28,9 +28,12 @@ public:
     RpcClientBlocker(int timeout)
     : RpcClientCallBack()
     , m_done(false)
-    , m_timeout(timeout)
-    { m_type_mark = "blocker"; };
+    { 
+        m_type_mark = "blocker"; 
+        setTimeout(timeout);
+    };
     virtual ~RpcClientBlocker() {};
+
     std::pair<RpcStatus, std::string> wait() {
         std::unique_lock<std::mutex> lk(m_mutex);
         m_resp_data = "";
@@ -64,7 +67,6 @@ private:
     std::mutex m_mutex;
     std::condition_variable m_cv;
     std::atomic<bool> m_done;
-    int m_timeout;
     std::string m_resp_data;
     RpcStatus m_cb_st;
     

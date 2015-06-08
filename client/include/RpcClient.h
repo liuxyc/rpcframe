@@ -49,7 +49,7 @@ public:
     uint32_t getTimeout() {
         return m_timeout;
     }
-    void setReqId(const std::string reqid) {
+    void setReqId(const std::string &reqid) {
         m_reqid = reqid;
     }
     std::string getReqId() {

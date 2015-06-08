@@ -20,10 +20,10 @@ class request_pkg
 {
 public:
     request_pkg(uint32_t size, std::string conn_id)
-    : data(NULL)
+    : connection_id(conn_id)
+    , data(NULL)
     , data_len(size)
     {
-        connection_id = conn_id;
         data = new char[size];
     };
     ~request_pkg()
@@ -33,6 +33,8 @@ public:
     std::string connection_id;
     char *data;
     uint32_t data_len;
+    request_pkg(const request_pkg &) = delete;
+    request_pkg &operator=(const request_pkg &) = delete;
 
 };
 
@@ -51,6 +53,9 @@ public:
     };
     char *data;
     uint32_t data_len;
+
+    response_pkg(const response_pkg &) = delete;
+    response_pkg &operator=(const response_pkg&) = delete;
 
 
 };
