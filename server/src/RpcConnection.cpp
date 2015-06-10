@@ -56,7 +56,7 @@ void RpcConnection::reset()
     m_rpk = NULL;
 }
 
-int RpcConnection::getFd()
+int RpcConnection::getFd() const 
 {
     return m_fd;
 }
@@ -243,7 +243,7 @@ int RpcConnection::sendResponse()
     }
 }
 
-bool RpcConnection::isSending() {
+bool RpcConnection::isSending() const {
     return (m_sent_pkg != NULL);
 }
 

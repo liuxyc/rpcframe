@@ -45,7 +45,7 @@ public:
     void reset();
     RpcStatus sendReq(const std::string &service_name, const std::string &method_name, const std::string &request_data, const std::string &reqid, bool is_oneway, uint32_t timeout);
 
-    int getFd();
+    int getFd() const ;
 
 private:
     bool readPkgLen(uint32_t &pkg_len);

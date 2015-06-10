@@ -49,12 +49,13 @@ public:
 
     void setSocketKeepAlive(int fd);
     bool hasConnection(int fd);
-    void removeConnection(int fd, int epoll_fd);
+    void removeConnection(int fd);
     void addConnection(int fd, RpcConnection *conn);
     RpcConnection *getConnection(int fd);
     void pushResp(std::string seqid, response_pkg *resp_pkg);
 
 private:
+    bool startListen();
     RpcServerConfig m_cfg;
     std::vector<std::thread *> m_thread_vec;
     std::vector<RpcWorker *> m_worker_vec;
@@ -68,6 +69,8 @@ private:
     Queue<std::string> m_resp_conn_q;
     //std::thread *m_resp_th;
     std::mutex m_mutex;
+    int m_epoll_fd;
+    int m_listen_socket;
     int m_resp_ev_fd;
     std::atomic<bool> m_stop;
     

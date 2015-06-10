@@ -25,7 +25,7 @@ public:
         }
         else {
             //printf("client cb return %d, got %s\n", status, response_data.c_str());
-            printf("client cb return %d, got data len %d\n", status, response_data.length());
+            printf("client cb return %d, got data len %lu\n", status, response_data.length());
         }
 
     }

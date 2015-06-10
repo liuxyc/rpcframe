@@ -46,7 +46,7 @@ void RpcClientConn::reset()
     m_rpk = NULL;
 }
 
-int RpcClientConn::getFd()
+int RpcClientConn::getFd() const
 {
     return m_fd;
 }

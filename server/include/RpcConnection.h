@@ -25,8 +25,8 @@ public:
     void reset();
 
     int sendResponse();
-    int getFd();
-    bool isSending();
+    int getFd() const ;
+    bool isSending() const ;
 
     Queue<response_pkg *> m_response_q;
     std::string m_seqid;
