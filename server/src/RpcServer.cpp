@@ -188,7 +188,6 @@ bool RpcServer::start() {
                         epoll_ctl(m_epoll_fd, EPOLL_CTL_MOD, event_mod.data.fd, &event_mod);
                     }
                 }
-                continue;
             }
 
             //event fd, we have data to send
@@ -252,10 +251,8 @@ bool RpcServer::start() {
                             }
                         }
                     }
-                    continue;
                 }
-
-                if (client_socket == m_listen_socket) {
+                else if (client_socket == m_listen_socket) {
                     //listen socket event
                     sockaddr_in remote_addr;  
                     int len = sizeof(remote_addr);  
@@ -283,25 +280,33 @@ bool RpcServer::start() {
                         epoll_ctl(m_epoll_fd, EPOLL_CTL_ADD, new_client_socket, &ev);  
                         m_seqid++;
                         addConnection(new_client_socket, new RpcConnection(new_client_socket, m_seqid));
-                        //printf("new_client_socket: %d\n", new_client_socket);  
+                        printf("new_client_socket: %d\n", new_client_socket);  
                     }
-                    continue;
+                }
+                else {
+
+                    //data come in
+                    RpcConnection *conn = getConnection(client_socket);
+                    if (conn == NULL) {
+                        //printf("rpc server socket already disconnected: %d\n", client_socket);  
+                    }
+                    else {
+                        pkg_ret_t pkgret = conn->getRequest();
+                        if( pkgret.first < 0 )  
+                        {  
+                            printf("rpc server socket disconnected: %d\n", client_socket);  
+                            removeConnection(client_socket);
+                        }  
+                        else 
+                        {  
+                            if (pkgret.second != NULL) {
+                                //got a full request, put to worker queue
+                                m_request_q.push(pkgret.second);
+                            }
+                        }  
+                    }
                 }
 
-                //data come in
-                pkg_ret_t pkgret = getConnection(client_socket)->getRequest();
-                if( pkgret.first < 0 )  
-                {  
-                    printf("rpc server socket disconnected: %d\n", client_socket);  
-                    removeConnection(client_socket);
-                }  
-                else 
-                {  
-                    if (pkgret.second != NULL) {
-                        //got a full request, put to worker queue
-                        m_request_q.push(pkgret.second);
-                    }
-                }  
             }  
             else  
             {  
@@ -356,7 +361,10 @@ void RpcServer::addConnection(int fd, RpcConnection *conn)
 RpcConnection *RpcServer::getConnection(int fd)
 {
     std::lock_guard<std::mutex> mlock(m_mutex);
-    return m_conn_map[fd];
+    if( m_conn_map.find(fd) != m_conn_map.end()) {
+        return m_conn_map[fd];
+    }
+    return NULL;
 }
 
 void RpcServer::pushResp(std::string conn_id, response_pkg *resp_pkg)

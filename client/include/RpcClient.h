@@ -81,6 +81,7 @@ public:
     uint32_t m_thread_num;
     std::string m_hostname;
     int m_port;
+    int m_connect_timeout;
 };
 
 class server_resp_pkg;
@@ -91,6 +92,7 @@ class RpcClient
 public:
     RpcClient(rpcframe::RpcClientConfig &cfg, const std::string &service_name);
     ~RpcClient();
+
     /**
      * @brief sync call, not thread safe
      *
@@ -102,6 +104,7 @@ public:
      * @return 
      */
     RpcStatus call(const std::string &method_name, const std::string &request_data, std::string &response_data, uint32_t timeout);
+
     /**
      * @brief async call, not thread safe
      *
@@ -114,10 +117,10 @@ public:
      */
     RpcStatus async_call(const std::string &method_name, const std::string &request_data, uint32_t timeout, RpcClientCallBack *cb_obj);
 
-    RpcClientConfig m_cfg;
-    int m_connect_timeout;
-private:
+    const RpcClientConfig &getConfig();
 
+private:
+    RpcClientConfig m_cfg;
     bool m_isConnected;
     int m_fd;
     std::string m_servicename;

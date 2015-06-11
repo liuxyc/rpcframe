@@ -3,18 +3,19 @@
  * All rights reserved.
  */
 
-#include <sys/epoll.h>  
-#include <sys/socket.h>  
-#include <sys/types.h>
-#include <netinet/tcp.h>  
-#include <fcntl.h>  
 #include <arpa/inet.h>  
+#include <fcntl.h>  
+#include <netdb.h>
+#include <netinet/tcp.h>  
+#include <sstream>
 #include <stdio.h>  
 #include <stdlib.h>  
 #include <string.h>  
-#include <unistd.h>
-#include <sstream>
+#include <sys/epoll.h>  
+#include <sys/socket.h>  
+#include <sys/types.h>
 #include <time.h>
+#include <unistd.h>
 
 #include "RpcEventLooper.h"
 #include "RpcClientConn.h"
@@ -296,6 +297,13 @@ bool RpcEventLooper::connect() {
         return false;
     }
 
+    if (noBlockConnect(m_fd, m_client->getConfig().m_hostname.c_str(), 
+                       m_client->getConfig().m_port, m_client->getConfig().m_connect_timeout) == -1)
+    {
+        printf("Connect error.\n");
+        return false;
+    }
+
     int keepAlive = 1;   
     int keepIdle = 60;   
     int keepInterval = 5;   
@@ -304,12 +312,6 @@ bool RpcEventLooper::connect() {
     setsockopt(m_fd, SOL_TCP, TCP_KEEPIDLE, (void*)&keepIdle, sizeof(keepIdle));  
     setsockopt(m_fd, SOL_TCP, TCP_KEEPINTVL, (void*)&keepInterval, sizeof(keepInterval));  
     setsockopt(m_fd, SOL_TCP, TCP_KEEPCNT, (void*)&keepCount, sizeof(keepCount));  
-
-    if (noBlockConnect(m_fd, m_client->m_cfg.m_hostname.c_str(), m_client->m_cfg.m_port, m_client->m_connect_timeout) == -1)
-    {
-        //printf("Connect error.\n");
-        return false;
-    }
     addConnection();
     return true;
 }
@@ -322,12 +324,17 @@ int RpcEventLooper::setNoBlocking(int fd) {
     return old_option;
 }
 
-int RpcEventLooper::noBlockConnect(int sockfd, const char* ip, int port, int timeoutv) {
+int RpcEventLooper::noBlockConnect(int sockfd, const char* hostname, int port, int timeoutv) {
     int ret = 0;
     struct sockaddr_in address;
     bzero(&address, sizeof(address));
     address.sin_family = AF_INET;
-    inet_pton(AF_INET, ip, &address.sin_addr);
+    std::string hostip;
+    if(!getHostIpByName(hostip, hostname)) {
+        printf("gethostbyname fail\n");
+    }
+    printf("%s\n", hostip.c_str());
+    inet_pton(AF_INET, hostip.c_str(), &address.sin_addr);
     address.sin_port = htons(port);
     int fdopt = setNoBlocking(sockfd);
     ret = ::connect(sockfd, (struct sockaddr*)&address, sizeof(address));
@@ -349,7 +356,7 @@ int RpcEventLooper::noBlockConnect(int sockfd, const char* ip, int port, int tim
     timeout.tv_usec = 0;
     ret = ::select(sockfd+1, NULL, &writefds, NULL, &timeout);
     if(ret <= 0) { 
-        printf("connect time out\n");
+        printf("connect %s time out\n", hostname);
         close(sockfd);
         return -1;
     }
@@ -365,8 +372,8 @@ int RpcEventLooper::noBlockConnect(int sockfd, const char* ip, int port, int tim
         close(sockfd);
         return -1;
     }
-    if(error != 0) {
-        //printf("connect error after select %s\n", strerror(errno));
+    if(error != 0 ) {
+        printf("connect host %s error:%s\n", hostname, strerror(error));
         close(sockfd);
         return -1;
     }

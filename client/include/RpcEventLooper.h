@@ -43,7 +43,7 @@ private:
     void removeConnection();
     bool connect();
     static int setNoBlocking(int fd);
-    static int noBlockConnect(int sockfd, const char* ip,int port,int timeout);
+    static int noBlockConnect(int sockfd, const char* hostname,int port,int timeout);
     RpcClient *m_client;
     std::atomic<bool> m_stop;
     int m_epoll_fd;

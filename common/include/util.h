@@ -10,6 +10,7 @@
 namespace rpcframe {
 
 bool getHostIp(std::string &str_ip);
+bool getHostIpByName(std::string &str_ip, const char *hname);
 
 
 };

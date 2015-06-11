@@ -4,10 +4,10 @@
  */
 
 #include <errno.h>
-#include <sys/socket.h>  
-#include <netinet/in.h>  
 #include <fcntl.h>  
+#include <netinet/in.h>  
 #include <string.h>
+#include <sys/socket.h>  
 #include <unistd.h>
 #include <uuid/uuid.h>
 
@@ -32,18 +32,6 @@ RpcClientConn::~RpcClientConn()
     ::close(m_fd);
     if (m_rpk != NULL)
         delete m_rpk;
-}
-
-void RpcClientConn::reset()
-{
-    std::lock_guard<std::mutex> lck(m_mutex);
-    is_connected = false;
-    m_cur_left_len = 0;
-    m_cur_pkg_size = 0;
-    if (m_rpk != NULL) {
-        delete m_rpk;
-    }
-    m_rpk = NULL;
 }
 
 int RpcClientConn::getFd() const

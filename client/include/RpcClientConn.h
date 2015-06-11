@@ -42,7 +42,6 @@ public:
     ~RpcClientConn();
 
     pkg_ret_t getResponse();
-    void reset();
     RpcStatus sendReq(const std::string &service_name, const std::string &method_name, const std::string &request_data, const std::string &reqid, bool is_oneway, uint32_t timeout);
 
     int getFd() const ;

@@ -11,14 +11,18 @@
 namespace rpcframe {
 
 bool getHostIp(std::string &str_ip) {
-    char hname[256];
-    struct hostent *hent;
+    char hname[256] = {0};
 
     if( -1 == gethostname(hname, sizeof(hname))) {
         printf("gethostname error %s\n", strerror(errno));
         return false;
     }
 
+    return  getHostIpByName(str_ip, hname);
+}
+
+bool getHostIpByName(std::string &str_ip, const char *hname) {
+    struct hostent *hent;
     hent = gethostbyname(hname);
     if(hent == NULL) {
         printf("gethostbyname error %s\n", strerror(errno));
@@ -33,7 +37,6 @@ bool getHostIp(std::string &str_ip) {
         return true;
     }
     return false;
-
 }
 
 };

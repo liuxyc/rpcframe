@@ -4,6 +4,7 @@
 *  
 */
 #include <thread>
+
 #include "RpcClient.h"
 #include "RpcClientBlocker.h"
 #include "RpcEventLooper.h"
@@ -15,6 +16,7 @@ RpcClientConfig::RpcClientConfig(std::pair<const char *, int> &endpoint)
 : m_thread_num(std::thread::hardware_concurrency())
 , m_hostname(endpoint.first)
 , m_port(endpoint.second)
+, m_connect_timeout(3)
 {
     
     
@@ -40,7 +42,6 @@ uint32_t RpcClientConfig::getThreadNum()
 
 RpcClient::RpcClient(RpcClientConfig &cfg, const std::string &service_name)
 : m_cfg(cfg)
-, m_connect_timeout(3)
 , m_isConnected(false)
 , m_fd(-1)
 , m_servicename(service_name)
@@ -60,6 +61,10 @@ RpcClient::~RpcClient() {
     }
     delete m_ev;
 
+}
+
+const RpcClientConfig &RpcClient::getConfig() {
+    return m_cfg;
 }
 
 RpcStatus RpcClient::call(const std::string &method_name, const std::string &request_data, std::string &response_data, uint32_t timeout) {

@@ -36,7 +36,7 @@ int main()
 {
     int conn_cnt = 10;
     int pkg_cnt = 10000;
-    auto endp = std::make_pair("127.0.0.1", 8801);
+    auto endp = std::make_pair("localhost", 8801);
     rpcframe::RpcClientConfig ccfg(endp);
 
     rpcframe::RpcClient client(ccfg, "test_service");
@@ -127,6 +127,20 @@ int main()
     client_call_async_server.call("test_method_async", std::string(10, '*'), resp_data, 10);
     printf("async server back: %s\n", resp_data.c_str());
     sleep(3);
+    while(1) {
+            std::random_device rd;
+            uint32_t len = rd();
+            if ( len > 1024 * 100 ) {
+                len = len % (1024 *100);
+            }
+            if ( len <= 0) {
+                len = 10;
+            }
+            if( rpcframe::RpcStatus::RPC_SEND_OK != client.async_call("test_method", std::string(len, '*'), 2, new my_CB())) {
+                printf("r1 send fail\n");
+            }
+            client.async_call("test_method", std::string(len, '*'), 4, NULL);
+    }
     return 0;
 }
 
