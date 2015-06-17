@@ -155,11 +155,148 @@ bool RpcServer::startListen() {
     return true;
 }
 
+void RpcServer::onDataOut(const int fd) {
+    if (m_conn_map.find(fd) != m_conn_map.end()) {
+        RpcConnection *conn = m_conn_map[fd];
+        int sent_ret = conn->sendResponse();
+        if (sent_ret == -1 ) {
+            removeConnection(fd);
+        }
+        else if ( sent_ret == -2 ){
+            //printf("OUT sent partial to %d\n", fd);
+        }
+        else {
+            //printf("OUT sent to %d\n", fd);
+            //send full resp, remove EPOLLOUT flag
+            struct epoll_event event_mod;  
+            event_mod.data.fd = fd;
+            event_mod.events = EPOLLIN | EPOLLERR | EPOLLHUP;
+            epoll_ctl(m_epoll_fd, EPOLL_CTL_MOD, event_mod.data.fd, &event_mod);
+        }
+    }
+}
+
+bool RpcServer::onDataOutEvent() {
+    uint64_t resp_cnt = -1;
+    ssize_t s = read(m_resp_ev_fd, &resp_cnt, sizeof(uint64_t));
+    if (s != sizeof(uint64_t)) {
+        printf("read resp event fail\n");
+        return false;
+    }
+
+    std::string connid;
+    //if the connection still sending data,
+    //we put the event back, wait for next chance
+    if (m_resp_conn_q.peak(connid)) {
+        if (m_conn_set.find(connid) != m_conn_set.end()) {
+            RpcConnection *conn = m_conn_set[connid];
+            if(conn->isSending()) {
+                //printf("still sending pkg\n");
+                //keep eventfd filled with the count of ready connection
+                uint64_t resp_cnt = 1;
+                ssize_t s = write(m_resp_ev_fd, &(resp_cnt), sizeof(uint64_t));
+                if (s != sizeof(uint64_t)) {
+                    printf("write resp event fd fail\n");
+                }
+                return false;
+            }
+        }
+    }
+
+    if (m_resp_conn_q.pop(connid, 0)) {
+        if (m_conn_set.find(connid) != m_conn_set.end()) {
+            //we have resp data to send
+            RpcConnection *conn = m_conn_set[connid];
+            printf("conn %s resp queue len %lu\n", 
+                    conn->m_seqid.c_str(), 
+                    conn->m_response_q.size());
+            int sent_ret = conn->sendResponse();
+            if (sent_ret == -1 ) {
+                removeConnection(conn->getFd());
+            }
+            else if ( sent_ret == -2 ){
+                //printf("sent partial to %d\n", conn->getFd());
+                //send not finish, set EPOLLOUT flag on this fd, 
+                //until this resp send finish
+                struct epoll_event ev;  
+                memset(&ev, 0, sizeof(ev));
+                ev.events = EPOLLIN | EPOLLOUT | EPOLLERR | EPOLLHUP;
+                ev.data.fd = conn->getFd();
+                epoll_ctl(m_epoll_fd, EPOLL_CTL_MOD, conn->getFd(), &ev);  
+            }
+            else {
+                //printf("sent to %d\n", conn->getFd());
+                //send full resp finish, try remove EPOLLOUT flag if it already set
+                struct epoll_event event_mod;  
+                event_mod.data.fd = conn->getFd();
+                event_mod.events = EPOLLIN | EPOLLERR | EPOLLHUP;
+                epoll_ctl(m_epoll_fd, EPOLL_CTL_MOD, event_mod.data.fd, &event_mod);
+            }
+        }
+    }
+    return true;
+
+}
+
+void RpcServer::onAccept() {
+    //listen socket event
+    sockaddr_in remote_addr;  
+    int len = sizeof(remote_addr);  
+    int new_client_socket = accept(m_listen_socket, 
+            (sockaddr *)&remote_addr, 
+            (socklen_t*)&len );  
+    if ( new_client_socket < 0 ) {  
+        printf("accept fail %s, new_client_socket: %d\n", 
+                strerror(errno), new_client_socket);  
+    }  
+    else {
+        if( m_conn_set.size() >= m_cfg.m_max_conn_num) {
+            printf("conn number reach limit %d, close %d\n", m_cfg.m_max_conn_num, 
+                    new_client_socket);  
+            ::close(new_client_socket);
+        }
+        setSocketKeepAlive(new_client_socket);
+        //NOTICE:do not use O_NONBLOCK, because we assume the first recv of pkglen 
+        // must have 4 bytes at least
+        //fcntl(new_client_socket, F_SETFL, fcntl(new_client_socket, F_GETFL) | O_NONBLOCK);
+        struct epoll_event ev;  
+        memset(&ev, 0, sizeof(ev));
+        ev.events = EPOLLIN | EPOLLERR | EPOLLHUP;
+        ev.data.fd = new_client_socket;
+        epoll_ctl(m_epoll_fd, EPOLL_CTL_ADD, new_client_socket, &ev);  
+        m_seqid++;
+        addConnection(new_client_socket, new RpcConnection(new_client_socket, m_seqid));
+        printf("new_client_socket: %d\n", new_client_socket);  
+    }
+}
+
+void RpcServer::onDataIn(const int fd) {
+    //data come in
+    RpcConnection *conn = getConnection(fd);
+    if (conn == NULL) {
+        //printf("rpc server socket already disconnected: %d\n", fd);  
+    }
+    else {
+        pkg_ret_t pkgret = conn->getRequest();
+        if( pkgret.first < 0 )  
+        {  
+            printf("rpc server socket disconnected: %d\n", fd);  
+            removeConnection(fd);
+        }  
+        else 
+        {  
+            if (pkgret.second != NULL) {
+                //got a full request, put to worker queue
+                m_request_q.push(pkgret.second);
+            }
+        }  
+    }
+}
+
 bool RpcServer::start() {
     if(!startListen()) {
         printf("start listen failed\n");
     }
-
 
     struct epoll_event events[_MAX_SOCKFD_COUNT];  
     while(!m_stop) {
@@ -170,145 +307,26 @@ bool RpcServer::start() {
 
             if (events[i].events & EPOLLOUT)
             {  
-                if (m_conn_map.find(client_socket) != m_conn_map.end()) {
-                    RpcConnection *conn = m_conn_map[client_socket];
-                    int sent_ret = conn->sendResponse();
-                    if (sent_ret == -1 ) {
-                        removeConnection(client_socket);
-                    }
-                    else if ( sent_ret == -2 ){
-                        //printf("OUT sent partial to %d\n", client_socket);
-                    }
-                    else {
-                        printf("OUT sent to %d\n", client_socket);
-                        //send full resp, remove EPOLLOUT flag
-                        struct epoll_event event_mod;  
-                        event_mod.data.fd = client_socket;
-                        event_mod.events = EPOLLIN | EPOLLERR | EPOLLHUP;
-                        epoll_ctl(m_epoll_fd, EPOLL_CTL_MOD, event_mod.data.fd, &event_mod);
-                    }
-                }
+                onDataOut(client_socket);
             }
 
             //event fd, we have data to send
             if (events[i].events & EPOLLIN)
             {  
                 if (client_socket == m_resp_ev_fd) {
-                    uint64_t resp_cnt = -1;
-                    ssize_t s = read(m_resp_ev_fd, &resp_cnt, sizeof(uint64_t));
-                    if (s != sizeof(uint64_t)) {
-                        printf("read resp event fail\n");
+                    if (!onDataOutEvent()) {
                         continue;
-                    }
-
-                    std::string connid;
-                    //if the connection still sending data,
-                    //we put the event back, wait for next chance
-                    if (m_resp_conn_q.peak(connid)) {
-                        if (m_conn_set.find(connid) != m_conn_set.end()) {
-                            RpcConnection *conn = m_conn_set[connid];
-                            if(conn->isSending()) {
-                                //printf("still sending pkg\n");
-                                //keep eventfd filled with the count of ready connection
-                                uint64_t resp_cnt = 1;
-                                ssize_t s = write(m_resp_ev_fd, &(resp_cnt), sizeof(uint64_t));
-                                if (s != sizeof(uint64_t)) {
-                                    printf("write resp event fd fail\n");
-                                }
-                                continue;
-                            }
-                        }
-                    }
-
-                    if (m_resp_conn_q.pop(connid, 0)) {
-                        if (m_conn_set.find(connid) != m_conn_set.end()) {
-                            //we have resp data to send
-                            RpcConnection *conn = m_conn_set[connid];
-                            printf("conn %s resp queue len %lu\n", 
-                                        conn->m_seqid.c_str(), 
-                                        conn->m_response_q.size());
-                            int sent_ret = conn->sendResponse();
-                            if (sent_ret == -1 ) {
-                                removeConnection(conn->getFd());
-                            }
-                            else if ( sent_ret == -2 ){
-                                //printf("sent partial to %d\n", conn->getFd());
-                                //send not finish, set EPOLLOUT flag on this fd, 
-                                //until this resp send finish
-                                struct epoll_event ev;  
-                                memset(&ev, 0, sizeof(ev));
-                                ev.events = EPOLLIN | EPOLLOUT | EPOLLERR | EPOLLHUP;
-                                ev.data.fd = conn->getFd();
-                                epoll_ctl(m_epoll_fd, EPOLL_CTL_MOD, conn->getFd(), &ev);  
-                            }
-                            else {
-                                printf("sent to %d\n", conn->getFd());
-                                //send full resp finish, try remove EPOLLOUT flag if it already set
-                                struct epoll_event event_mod;  
-                                event_mod.data.fd = conn->getFd();
-                                event_mod.events = EPOLLIN | EPOLLERR | EPOLLHUP;
-                                epoll_ctl(m_epoll_fd, EPOLL_CTL_MOD, event_mod.data.fd, &event_mod);
-                            }
-                        }
                     }
                 }
                 else if (client_socket == m_listen_socket) {
-                    //listen socket event
-                    sockaddr_in remote_addr;  
-                    int len = sizeof(remote_addr);  
-                    int new_client_socket = accept(m_listen_socket, 
-                                                   (sockaddr *)&remote_addr, 
-                                                   (socklen_t*)&len );  
-                    if ( new_client_socket < 0 ) {  
-                        printf("accept fail %s, new_client_socket: %d\n", 
-                                strerror(errno), new_client_socket);  
-                    }  
-                    else {
-                        if( m_conn_set.size() >= m_cfg.m_max_conn_num) {
-                            printf("conn number reach limit %d, close %d\n", m_cfg.m_max_conn_num, 
-                                    client_socket);  
-                            ::close(client_socket);
-                        }
-                        setSocketKeepAlive(new_client_socket);
-                        //NOTICE:do not use O_NONBLOCK, because we assume the first recv of pkglen 
-                        // must have 4 bytes at least
-                        //fcntl(new_client_socket, F_SETFL, fcntl(new_client_socket, F_GETFL) | O_NONBLOCK);
-                        struct epoll_event ev;  
-                        memset(&ev, 0, sizeof(ev));
-                        ev.events = EPOLLIN | EPOLLERR | EPOLLHUP;
-                        ev.data.fd = new_client_socket;
-                        epoll_ctl(m_epoll_fd, EPOLL_CTL_ADD, new_client_socket, &ev);  
-                        m_seqid++;
-                        addConnection(new_client_socket, new RpcConnection(new_client_socket, m_seqid));
-                        printf("new_client_socket: %d\n", new_client_socket);  
-                    }
+                    onAccept();
                 }
                 else {
-
-                    //data come in
-                    RpcConnection *conn = getConnection(client_socket);
-                    if (conn == NULL) {
-                        //printf("rpc server socket already disconnected: %d\n", client_socket);  
-                    }
-                    else {
-                        pkg_ret_t pkgret = conn->getRequest();
-                        if( pkgret.first < 0 )  
-                        {  
-                            printf("rpc server socket disconnected: %d\n", client_socket);  
-                            removeConnection(client_socket);
-                        }  
-                        else 
-                        {  
-                            if (pkgret.second != NULL) {
-                                //got a full request, put to worker queue
-                                m_request_q.push(pkgret.second);
-                            }
-                        }  
-                    }
+                    onDataIn(client_socket);
                 }
-
             }  
-            else  
+
+            if (!(events[i].events & EPOLLIN) && !(events[i].events & EPOLLOUT))  
             {  
                 printf("EPOLL ERROR\n");
                 epoll_ctl(m_epoll_fd, EPOLL_CTL_DEL, events[i].data.fd, &events[i]);  

@@ -56,6 +56,11 @@ public:
 
 private:
     bool startListen();
+    void onDataOut(const int fd);
+    bool onDataOutEvent();
+    void onAccept();
+    void onDataIn(const int fd);
+
     RpcServerConfig m_cfg;
     std::vector<std::thread *> m_thread_vec;
     std::vector<RpcWorker *> m_worker_vec;

@@ -34,12 +34,23 @@ public:
 
 int main()
 {
-    int conn_cnt = 10;
-    int pkg_cnt = 10000;
+    int conn_cnt = 1;
+    int pkg_cnt = 2;
     auto endp = std::make_pair("localhost", 8801);
     rpcframe::RpcClientConfig ccfg(endp);
 
     rpcframe::RpcClient client(ccfg, "test_service");
+    //async with big resp
+    for (int cnt = 0; cnt < conn_cnt; ++cnt) {
+        for (int pcnt = 0; pcnt < pkg_cnt; ++pcnt) {
+            if(rpcframe::RpcStatus::RPC_SEND_OK != client.async_call("test_method_big_resp", std::string(1024 * 10, '*'), 10, new my_CB())) {
+                printf("send fail\n");
+            }
+        }
+    }
+    sleep(30);
+    conn_cnt = 10;
+    pkg_cnt = 10000;
     //fast async/sync call
     for (int cnt = 0; cnt < conn_cnt; ++cnt) {
         for (int pcnt = 0; pcnt < pkg_cnt; ++pcnt) {

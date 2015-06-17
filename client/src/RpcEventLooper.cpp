@@ -103,7 +103,7 @@ RpcStatus RpcEventLooper::sendReq(const std::string &service_name, const std::st
         return RpcStatus::RPC_SEND_FAIL;
     }
     std::lock_guard<std::mutex> mlock(m_mutex);
-    if (NULL == m_conn) {
+    if (m_conn == NULL) {
         if (!connect()) {
             if (cb_obj != NULL) {
                 cb_obj->callback(RpcStatus::RPC_SEND_FAIL, "");

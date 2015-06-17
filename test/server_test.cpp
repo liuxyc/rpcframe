@@ -56,6 +56,7 @@ public:
         RPC_ADD_METHOD(MyService, test_method)
         RPC_ADD_METHOD(MyService, test_method1)
         RPC_ADD_METHOD(MyService, test_method2)
+        RPC_ADD_METHOD(MyService, test_method_big_resp)
         m_cnt = 0;
     };
     virtual ~MyService(){};
@@ -86,11 +87,16 @@ public:
     //method3
     rpcframe::IService::ServiceRET test_method2(const std::string &request_data, std::string &resp_data, rpcframe::RpcRespBroker *resp_broker) {
         //printf("my method1 get %s\n", request_data.c_str());
-        //resp_data = std::string(1024*1024*100, 'a');
         resp_data = std::string("my feedback3");
         return rpcframe::IService::ServiceRET::S_OK;
     };
 
+    //method big resp
+    rpcframe::IService::ServiceRET test_method_big_resp(const std::string &request_data, std::string &resp_data, rpcframe::RpcRespBroker *resp_broker) {
+        //printf("my method1 get %s\n", request_data.c_str());
+        resp_data = std::string(1024*1024*4, 'a');
+        return rpcframe::IService::ServiceRET::S_OK;
+    };
     int m_cnt;
     std::mutex m_mutex;
 

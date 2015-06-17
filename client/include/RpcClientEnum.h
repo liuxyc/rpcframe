@@ -10,7 +10,7 @@
 namespace rpcframe
 {
     enum class RpcStatus {
-        RPC_SEND_OK,
+        RPC_SEND_OK = 0,
         RPC_SEND_FAIL,
         RPC_DISCONNECTED,
         RPC_SEND_TIMEOUT,

@@ -48,7 +48,7 @@ void RpcClientWorker::run() {
             RpcInnerResp resp;
             resp.ParseFromArray(pkg->data, pkg->data_len);
             RpcClientCallBack *cb = m_ev->getCb(resp.request_id());
-            if (NULL != cb) {
+            if (cb != NULL) {
                 std::string cb_type = cb->getType();
                 //if marked as timeout, the callback already called by RpcCBStatus::RPC_TIMEOUT
                 if (!cb->isTimeout()) {

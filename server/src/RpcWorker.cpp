@@ -48,7 +48,7 @@ void RpcWorker::run() {
 
             std::string resp_data;
             IService *p_service = m_server->getService(req.service_name());
-            if (NULL != p_service) {
+            if (p_service != NULL) {
                 RpcRespBroker *rpcbroker = new RpcRespBroker(m_server, pkg->connection_id, req.request_id(),
                                                             (req.type() == RpcInnerReq::TWO_WAY));
                 IService::ServiceRET ret = p_service->runService(req.methond_name(), req.data(), resp_data, rpcbroker);
