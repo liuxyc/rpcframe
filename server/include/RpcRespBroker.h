@@ -11,6 +11,9 @@ namespace rpcframe {
 
 class RpcServer;
 
+/**
+ * @brief RpcRespBroker help server send the response in async
+ */
 class RpcRespBroker
 {
 public:

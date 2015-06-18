@@ -18,6 +18,7 @@
 
 #include "RpcServer.h"
 #include "RpcConnection.h"
+#include "util.h"
 
 #define _MAX_SOCKFD_COUNT 65535 
 
@@ -114,7 +115,12 @@ bool RpcServer::startListen() {
     listen_addr.sin_family = AF_INET;  
     listen_addr.sin_port = htons(m_cfg.m_port);  
     listen_addr.sin_addr.s_addr = htonl(INADDR_ANY);  
-    listen_addr.sin_addr.s_addr = inet_addr(m_cfg.m_hostname.c_str());  
+    std::string hostip;
+    if(!getHostIpByName(hostip, m_cfg.m_hostname.c_str())) {
+        printf("gethostbyname fail\n");
+    }
+    printf("%s\n", hostip.c_str());
+    listen_addr.sin_addr.s_addr = inet_addr(hostip.c_str());  
     
     int ireuseadd_on = 1;
     setsockopt(m_listen_socket, SOL_SOCKET, SO_REUSEADDR, &ireuseadd_on, sizeof(ireuseadd_on) );  

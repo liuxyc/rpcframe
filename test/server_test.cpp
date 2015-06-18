@@ -37,7 +37,7 @@ public:
            Return rpcframe::IService::ServiceRET::S_NONE, means you don't want RpcServer send response
            ,you can send the response by resp_broker later or not send never(just delete resp_broker)
 
-           Not sending response will cause client side timeout or halt on "no timeout call", but this is 
+           Not send response will cause client side timeout or hang on a "no timeout call", but this is 
            reasonable if client didn't set callback(ONE_WAY call)
            */
         return rpcframe::IService::ServiceRET::S_NONE;
@@ -94,9 +94,10 @@ public:
     //method big resp
     rpcframe::IService::ServiceRET test_method_big_resp(const std::string &request_data, std::string &resp_data, rpcframe::RpcRespBroker *resp_broker) {
         //printf("my method1 get %s\n", request_data.c_str());
-        resp_data = std::string(1024*1024*4, 'a');
+        resp_data = std::string(1024*1024*40, 'a');
         return rpcframe::IService::ServiceRET::S_OK;
     };
+
     int m_cnt;
     std::mutex m_mutex;
 

@@ -52,11 +52,15 @@ bool RpcClientConn::readPkgLen(uint32_t &pkg_len)
     while(true) {
         int rev_size = recv(m_fd, p + recved, recv_left, 0);  
         if (rev_size <= 0) {
-            if (rev_size != 0) {
-                printf("recv pkg len error %s\n", strerror(errno));
+            if (rev_size == 0) {
+                printf("recv pkg peer close %s\n", strerror(errno));
+                return false;
             }
-            if (errno != EAGAIN) {
-                printf("recv pkg len error %s\n", strerror(errno));
+            if( errno == EAGAIN || errno == EINTR) {
+                //printf("recv pkg interupt %s\n", strerror(errno));
+            }
+            else {
+                printf("recv pkg error %s\n", strerror(errno));
                 return false;
             }
         }
@@ -86,12 +90,17 @@ int RpcClientConn::readPkgData()
     }
     int rev_size = recv(m_fd, m_rpk->data + (m_cur_pkg_size - m_cur_left_len), m_cur_left_len, 0);  
     if (rev_size <= 0) {
-        if (errno != EAGAIN) {
-            printf("recv pkg error\n");
+        if (rev_size == 0) {
+            printf("recv pkg peer close %s\n", strerror(errno));
             return -2;
         }
-        else {
+        if( errno == EAGAIN || errno == EINTR) {
+            //printf("recv pkg interupt %s\n", strerror(errno));
             return -1;
+        }
+        else {
+            printf("recv pkg error %s\n", strerror(errno));
+            return -2;
         }
     }
     if ((uint32_t)rev_size == m_cur_left_len) {
@@ -167,13 +176,13 @@ RpcStatus RpcClientConn::sendReq(const std::string &service_name, const std::str
         int s_ret = send(m_fd, ((char *)&nlen) + sent_len, len, MSG_NOSIGNAL | MSG_DONTWAIT);
         if( s_ret <= 0 )
         {
-            if( errno != EAGAIN) {
+            if( errno == EAGAIN || errno == EINTR) {
+                continue;
+            }
+            else {
                 printf("send error! %s\n", strerror(errno));
                 is_connected = false;
                 return RpcStatus::RPC_SEND_FAIL;
-            }
-            else {
-                continue;
             }
         }
         sent_len += s_ret;
@@ -192,16 +201,17 @@ RpcStatus RpcClientConn::sendReq(const std::string &service_name, const std::str
             return RpcStatus::RPC_SEND_TIMEOUT;
         }
         uint32_t len = total_len - sent_len;
+        errno = 0;
         int s_ret = send(m_fd, out_data.c_str() + sent_len, len, MSG_NOSIGNAL | MSG_DONTWAIT);
         if( s_ret <= 0)
         {
-            if( errno != EAGAIN) {
+            if( errno == EAGAIN || errno == EINTR) {
+                continue;
+            }
+            else {
                 printf("send data error! %s, %u, %u, %d %u\n", strerror(errno), total_len, sent_len, s_ret, len);
                 is_connected = false;
                 return RpcStatus::RPC_SEND_FAIL;
-            }
-            else {
-                continue;
             }
         }
         sent_len += s_ret;

@@ -48,7 +48,7 @@ int main()
             }
         }
     }
-    sleep(30);
+    sleep(3);
     conn_cnt = 10;
     pkg_cnt = 10000;
     //fast async/sync call

@@ -68,12 +68,15 @@ bool RpcConnection::readPkgLen(uint32_t &pkg_len)
         return false;
     }
     int data = 0;
+    errno = 0;
     int rev_size = recv(m_fd, (char *)&data, 4, 0);  
     if (rev_size <= 0) {
         if (rev_size != 0) {
             printf("try recv pkg len error %s\n", strerror(errno));
         }
-        if (errno != EAGAIN) {
+        if( errno == EAGAIN || errno == EINTR) {
+        }
+        else {
             return false;
         }
     }
@@ -96,14 +99,15 @@ int RpcConnection::readPkgData()
         printf("connection already disconnected\n");
         return -2;
     }
+    errno = 0;
     int rev_size = recv(m_fd, m_rpk->data + (m_cur_pkg_size - m_cur_left_len), m_cur_left_len, 0);  
     if (rev_size <= 0) {
-        if (errno != EAGAIN) {
-            printf("recv pkg error %s\n", strerror(errno));
-            return -2;
+        if( errno == EAGAIN || errno == EINTR) {
+            return -1;
         }
         else {
-            return -1;
+            printf("recv pkg error %s\n", strerror(errno));
+            return -2;
         }
     }
     if ((uint32_t)rev_size == m_cur_left_len) {
@@ -165,19 +169,20 @@ int RpcConnection::sendPkgLen()
             return -1;
         }
         uint32_t len = total_len - sent_len;
+        errno = 0;
         int s_ret = send(m_fd, ((char *)&nlen) + sent_len, len, MSG_NOSIGNAL | MSG_DONTWAIT);
         if( s_ret <= 0 )
         {
-            if( errno != EAGAIN) {
+            if( errno == EAGAIN || errno == EINTR) {
+                continue;
+            }
+            else {
                 printf("send error! %s\n", strerror(errno));
                 is_connected = false;
                 delete m_sent_pkg;
                 m_sent_pkg = NULL;
                 m_sent_len = 0;
                 return -1;
-            }
-            else {
-                continue;
             }
         }
         sent_len += s_ret;
@@ -193,10 +198,11 @@ int RpcConnection::sendData()
 {
     int slen = send(m_fd, m_sent_pkg->data + m_sent_len, m_sent_pkg->data_len - m_sent_len, MSG_NOSIGNAL | MSG_DONTWAIT);  
     if (slen <= 0) {
-        if( errno != EAGAIN) {
-            if (slen == 0 || errno == EPIPE) {
-                printf("peer closed\n");
-            }
+        if (slen == 0 || errno == EPIPE) {
+            printf("peer closed\n");
+            return -1;
+        }
+        if( errno != EAGAIN && errno != EINTR) {
             printf("send data error! %s\n", strerror(errno));
             delete m_sent_pkg;
             m_sent_pkg = NULL;
