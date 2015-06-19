@@ -15,7 +15,7 @@
 #include "Queue.h"
 #include "IService.h"
 #include "RpcPackage.h"
-#include "RpcConnection.h"
+#include "RpcServerConn.h"
 #include "RpcWorker.h"
 
 namespace rpcframe
@@ -48,10 +48,9 @@ public:
     void stop();
 
     void setSocketKeepAlive(int fd);
-    bool hasConnection(int fd);
     void removeConnection(int fd);
-    void addConnection(int fd, RpcConnection *conn);
-    RpcConnection *getConnection(int fd);
+    void addConnection(int fd, RpcServerConn *conn);
+    RpcServerConn *getConnection(int fd);
     void pushResp(std::string seqid, response_pkg *resp_pkg);
 
 private:
@@ -65,8 +64,8 @@ private:
     std::vector<std::thread *> m_thread_vec;
     std::vector<RpcWorker *> m_worker_vec;
     ServiceMap m_service_map;
-    std::unordered_map<int, RpcConnection *> m_conn_map;
-    std::unordered_map<std::string, RpcConnection *> m_conn_set;
+    std::unordered_map<int, RpcServerConn *> m_conn_map;
+    std::unordered_map<std::string, RpcServerConn *> m_conn_set;
     uint32_t m_seqid;
 
     Queue<request_pkg *> m_request_q;

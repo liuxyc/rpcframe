@@ -144,11 +144,16 @@ pkg_ret_t RpcClientConn::getResponse()
     }
 }
 
-RpcStatus RpcClientConn::sendReq(const std::string &service_name, const std::string &method_name, const std::string &request_data, const std::string &reqid, bool is_oneway, uint32_t timeout) {
+RpcStatus RpcClientConn::sendReq(
+        const std::string &service_name, 
+        const std::string &method_name, 
+        const std::string &request_data, 
+        const std::string &reqid, 
+        bool is_oneway, uint32_t timeout) {
 
     RpcInnerReq req;
     req.set_service_name(service_name);
-    req.set_methond_name(method_name);
+    req.set_method_name(method_name);
 
     req.set_request_id(reqid);
     req.set_data(request_data);
@@ -209,7 +214,8 @@ RpcStatus RpcClientConn::sendReq(const std::string &service_name, const std::str
                 continue;
             }
             else {
-                printf("send data error! %s, %u, %u, %d %u\n", strerror(errno), total_len, sent_len, s_ret, len);
+                printf("send data error! %s, %u, %u, %d %u\n", 
+                        strerror(errno), total_len, sent_len, s_ret, len);
                 is_connected = false;
                 return RpcStatus::RPC_SEND_FAIL;
             }

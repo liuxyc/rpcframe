@@ -19,6 +19,7 @@ class RpcRespBroker
 public:
     RpcRespBroker(RpcServer *server, const std::string &conn_id, const std::string &req_id, bool needResp);
     bool response(const std::string &resp_data);
+    bool isNeedResp();
 private:
     RpcServer *m_server;
     std::string m_conn_id;

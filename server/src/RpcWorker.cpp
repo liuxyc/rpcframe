@@ -10,7 +10,7 @@
 
 #include "RpcWorker.h"
 #include "RpcRespBroker.h"
-#include "RpcConnection.h"
+#include "RpcServerConn.h"
 #include "RpcServer.h"
 #include "rpc.pb.h"
 
@@ -51,7 +51,11 @@ void RpcWorker::run() {
             if (p_service != NULL) {
                 RpcRespBroker *rpcbroker = new RpcRespBroker(m_server, pkg->connection_id, req.request_id(),
                                                             (req.type() == RpcInnerReq::TWO_WAY));
-                IService::ServiceRET ret = p_service->runService(req.methond_name(), req.data(), resp_data, rpcbroker);
+
+                IService::ServiceRET ret = p_service->runService(req.method_name(), 
+                                                                 req.data(), 
+                                                                 resp_data, 
+                                                                 rpcbroker);
                 if (ret == IService::ServiceRET::S_OK) {
                     delete rpcbroker;
                     if(req.type() == RpcInnerReq::TWO_WAY) {
@@ -68,6 +72,12 @@ void RpcWorker::run() {
                         m_server->pushResp(pkg->connection_id, resp_pkg);
                     }
                 }
+                else if ( ret == IService::ServiceRET::S_NOTFOUND) {
+                    printf("[WARNING]Unknow method request #%s#\n", req.method_name().c_str());
+                }
+            }
+            else {
+                printf("[WARNING]Unknow service request #%s#\n", req.service_name().c_str());
             }
 
         } 

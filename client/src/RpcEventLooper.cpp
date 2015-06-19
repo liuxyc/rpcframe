@@ -97,7 +97,13 @@ void RpcEventLooper::addConnection()
     }
 }
 
-RpcStatus RpcEventLooper::sendReq(const std::string &service_name, const std::string &method_name, const std::string &request_data, RpcClientCallBack *cb_obj, std::string &req_id) {
+RpcStatus RpcEventLooper::sendReq(
+        const std::string &service_name, 
+        const std::string &method_name, 
+        const std::string &request_data, 
+        RpcClientCallBack *cb_obj, 
+        std::string &req_id) {
+
     if (request_data.length() >= MAX_REQ_LIMIT_BYTE) {
         printf("send data too large %lu\n", request_data.length());
         return RpcStatus::RPC_SEND_FAIL;

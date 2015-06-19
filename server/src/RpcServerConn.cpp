@@ -11,11 +11,11 @@
 #include <unistd.h>
 #include <chrono>
 
-#include "RpcConnection.h"
+#include "RpcServerConn.h"
 namespace rpcframe
 {
 
-RpcConnection::RpcConnection(int fd, uint32_t seqid)
+RpcServerConn::RpcServerConn(int fd, uint32_t seqid)
 : m_fd(fd)
 , m_cur_left_len(0)
 , m_cur_pkg_size(0)
@@ -24,13 +24,13 @@ RpcConnection::RpcConnection(int fd, uint32_t seqid)
 , m_sent_len(0)
 , m_sent_pkg(NULL)
 {
-    //generate a connection id, this id used for track and identify RpcConnection instance
+    //generate a connection id, this id used for track and identify RpcServerConn instance
     m_seqid = std::to_string(std::time(nullptr)) + "_";
     m_seqid += std::to_string(seqid) + "_";
     m_seqid += std::to_string(fd);
 }
 
-RpcConnection::~RpcConnection()
+RpcServerConn::~RpcServerConn()
 {
     printf("close fd %d\n", m_fd);
     close(m_fd);
@@ -44,7 +44,7 @@ RpcConnection::~RpcConnection()
     }
 }
 
-void RpcConnection::reset()
+void RpcServerConn::reset()
 {
     std::lock_guard<std::mutex> lck(m_mutex);
     is_connected = false;
@@ -56,12 +56,12 @@ void RpcConnection::reset()
     m_rpk = NULL;
 }
 
-int RpcConnection::getFd() const 
+int RpcServerConn::getFd() const 
 {
     return m_fd;
 }
 
-bool RpcConnection::readPkgLen(uint32_t &pkg_len)
+bool RpcServerConn::readPkgLen(uint32_t &pkg_len)
 {
     if (!is_connected) {
         printf("connection already disconnected\n");
@@ -89,7 +89,7 @@ bool RpcConnection::readPkgLen(uint32_t &pkg_len)
     return true;
 }
 
-int RpcConnection::readPkgData()
+int RpcServerConn::readPkgData()
 {
     if (m_rpk == NULL) {
         printf("rpk is NULL\n");
@@ -123,7 +123,7 @@ int RpcConnection::readPkgData()
     }
 }
 
-pkg_ret_t RpcConnection::getRequest()
+pkg_ret_t RpcServerConn::getRequest()
 {
     if (m_cur_pkg_size == 0) {
         //new pkg
@@ -151,7 +151,7 @@ pkg_ret_t RpcConnection::getRequest()
     }
 }
 
-int RpcConnection::sendPkgLen()
+int RpcServerConn::sendPkgLen()
 {
     uint32_t pkg_len = m_sent_pkg->data_len;
     uint32_t nlen = htonl(pkg_len);
@@ -194,9 +194,12 @@ int RpcConnection::sendPkgLen()
     return 0;
 }
 
-int RpcConnection::sendData()
+int RpcServerConn::sendData()
 {
-    int slen = send(m_fd, m_sent_pkg->data + m_sent_len, m_sent_pkg->data_len - m_sent_len, MSG_NOSIGNAL | MSG_DONTWAIT);  
+    int slen = send(m_fd, 
+                    m_sent_pkg->data + m_sent_len, 
+                    m_sent_pkg->data_len - m_sent_len, 
+                    MSG_NOSIGNAL | MSG_DONTWAIT);  
     if (slen <= 0) {
         if (slen == 0 || errno == EPIPE) {
             printf("peer closed\n");
@@ -224,7 +227,7 @@ int RpcConnection::sendData()
     }
 }
 
-int RpcConnection::sendResponse()
+int RpcServerConn::sendResponse()
 {
     if (!is_connected) {
         printf("send connection already disconnected\n");
@@ -249,7 +252,7 @@ int RpcConnection::sendResponse()
     }
 }
 
-bool RpcConnection::isSending() const {
+bool RpcServerConn::isSending() const {
     return (m_sent_pkg != NULL);
 }
 

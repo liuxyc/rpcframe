@@ -17,7 +17,7 @@
 #include <unistd.h>
 
 #include "RpcServer.h"
-#include "RpcConnection.h"
+#include "RpcServerConn.h"
 #include "util.h"
 
 #define _MAX_SOCKFD_COUNT 65535 
@@ -60,20 +60,11 @@ void RpcServerConfig::setMaxConnection(uint32_t max_conn_num)
 RpcServer::RpcServer(RpcServerConfig &cfg)
 : m_cfg(cfg)
 , m_seqid(0)
+, m_epoll_fd(-1)
 , m_listen_socket(-1)
 , m_resp_ev_fd(-1)
 , m_stop(false)
 {
-    m_epoll_fd = epoll_create(_MAX_SOCKFD_COUNT);  
-    if( -1 == m_epoll_fd ) {
-        printf("epoll_create fail %s\n", strerror(errno));
-    }
-    //set nonblock
-    int opts = O_NONBLOCK;  
-    if(fcntl(m_epoll_fd,F_SETFL,opts)<0)  
-    {  
-        printf("set epool fd nonblock fail\n");  
-    }  
     for(uint32_t i = 0; i < m_cfg.getThreadNum(); ++i) {
         RpcWorker *rw = new RpcWorker(&m_request_q, this);
         std::thread *th = new std::thread(&RpcWorker::run, rw);
@@ -98,11 +89,29 @@ bool RpcServer::addService(const std::string &name, IService *p_service)
 
 IService *RpcServer::getService(const std::string &name)
 {
-    return m_service_map[name];
+    if (m_service_map.find(name) != m_service_map.end()) {
+        return m_service_map[name];
+    }
+    else {
+        return NULL;
+    }
 }
 
 
 bool RpcServer::startListen() {
+
+    m_epoll_fd = epoll_create(_MAX_SOCKFD_COUNT);  
+    if( m_epoll_fd == -1) {
+        printf("epoll_create fail %s\n", strerror(errno));
+        return false;
+    }
+    //set nonblock
+    int opts = O_NONBLOCK;  
+    if(fcntl(m_epoll_fd, F_SETFL, opts) < 0)  
+    {  
+        printf("set epool fd nonblock fail\n");  
+        return false;
+    }  
 
     m_listen_socket = socket(AF_INET,SOCK_STREAM,0);  
     if ( 0 > m_listen_socket )  
@@ -163,7 +172,7 @@ bool RpcServer::startListen() {
 
 void RpcServer::onDataOut(const int fd) {
     if (m_conn_map.find(fd) != m_conn_map.end()) {
-        RpcConnection *conn = m_conn_map[fd];
+        RpcServerConn *conn = m_conn_map[fd];
         int sent_ret = conn->sendResponse();
         if (sent_ret == -1 ) {
             removeConnection(fd);
@@ -175,6 +184,7 @@ void RpcServer::onDataOut(const int fd) {
             //printf("OUT sent to %d\n", fd);
             //send full resp, remove EPOLLOUT flag
             struct epoll_event event_mod;  
+            memset(&event_mod, 0, sizeof(event_mod));
             event_mod.data.fd = fd;
             event_mod.events = EPOLLIN | EPOLLERR | EPOLLHUP;
             epoll_ctl(m_epoll_fd, EPOLL_CTL_MOD, event_mod.data.fd, &event_mod);
@@ -195,7 +205,7 @@ bool RpcServer::onDataOutEvent() {
     //we put the event back, wait for next chance
     if (m_resp_conn_q.peak(connid)) {
         if (m_conn_set.find(connid) != m_conn_set.end()) {
-            RpcConnection *conn = m_conn_set[connid];
+            RpcServerConn *conn = m_conn_set[connid];
             if(conn->isSending()) {
                 //printf("still sending pkg\n");
                 //keep eventfd filled with the count of ready connection
@@ -212,7 +222,7 @@ bool RpcServer::onDataOutEvent() {
     if (m_resp_conn_q.pop(connid, 0)) {
         if (m_conn_set.find(connid) != m_conn_set.end()) {
             //we have resp data to send
-            RpcConnection *conn = m_conn_set[connid];
+            RpcServerConn *conn = m_conn_set[connid];
             printf("conn %s resp queue len %lu\n", 
                     conn->m_seqid.c_str(), 
                     conn->m_response_q.size());
@@ -234,6 +244,7 @@ bool RpcServer::onDataOutEvent() {
                 //printf("sent to %d\n", conn->getFd());
                 //send full resp finish, try remove EPOLLOUT flag if it already set
                 struct epoll_event event_mod;  
+                memset(&event_mod, 0, sizeof(event_mod));
                 event_mod.data.fd = conn->getFd();
                 event_mod.events = EPOLLIN | EPOLLERR | EPOLLHUP;
                 epoll_ctl(m_epoll_fd, EPOLL_CTL_MOD, event_mod.data.fd, &event_mod);
@@ -271,14 +282,14 @@ void RpcServer::onAccept() {
         ev.data.fd = new_client_socket;
         epoll_ctl(m_epoll_fd, EPOLL_CTL_ADD, new_client_socket, &ev);  
         m_seqid++;
-        addConnection(new_client_socket, new RpcConnection(new_client_socket, m_seqid));
+        addConnection(new_client_socket, new RpcServerConn(new_client_socket, m_seqid));
         printf("new_client_socket: %d\n", new_client_socket);  
     }
 }
 
 void RpcServer::onDataIn(const int fd) {
     //data come in
-    RpcConnection *conn = getConnection(fd);
+    RpcServerConn *conn = getConnection(fd);
     if (conn == NULL) {
         //printf("rpc server socket already disconnected: %d\n", fd);  
     }
@@ -355,12 +366,6 @@ void RpcServer::setSocketKeepAlive(int fd)
     setsockopt(fd, SOL_TCP, TCP_KEEPCNT, (void*)&keepCount, sizeof(keepCount));  
 }
 
-bool RpcServer::hasConnection(int fd)
-{
-    std::lock_guard<std::mutex> mlock(m_mutex);
-    return (m_conn_map.find(fd) != m_conn_map.end());
-}
-
 void RpcServer::removeConnection(int fd)
 {
     std::lock_guard<std::mutex> mlock(m_mutex);
@@ -375,14 +380,14 @@ void RpcServer::removeConnection(int fd)
     }
 }
 
-void RpcServer::addConnection(int fd, RpcConnection *conn)
+void RpcServer::addConnection(int fd, RpcServerConn *conn)
 {
     std::lock_guard<std::mutex> mlock(m_mutex);
     m_conn_set.emplace(conn->m_seqid, conn);
     m_conn_map.emplace(fd, conn);
 }
 
-RpcConnection *RpcServer::getConnection(int fd)
+RpcServerConn *RpcServer::getConnection(int fd)
 {
     std::lock_guard<std::mutex> mlock(m_mutex);
     if( m_conn_map.find(fd) != m_conn_map.end()) {
@@ -395,7 +400,7 @@ void RpcServer::pushResp(std::string conn_id, response_pkg *resp_pkg)
 {
     std::lock_guard<std::mutex> mlock(m_mutex);
     if (m_conn_set.find(conn_id) != m_conn_set.end()) {
-        RpcConnection *conn = m_conn_set[conn_id];
+        RpcServerConn *conn = m_conn_set[conn_id];
         conn->m_response_q.push(resp_pkg);
         m_resp_conn_q.push(conn_id);
         uint64_t resp_cnt = 1;

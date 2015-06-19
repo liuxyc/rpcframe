@@ -3,8 +3,8 @@
  * All rights reserved.
  */
 
-#ifndef RPCFRAME_RPCCONNECTION
-#define RPCFRAME_RPCCONNECTION
+#ifndef RPCFRAME_RPCSERVERCONN
+#define RPCFRAME_RPCSERVERCONN
 #include <mutex>
 #include <ctime>
 #include <set>
@@ -16,11 +16,11 @@ namespace rpcframe {
 
 typedef std::pair<int, request_pkg *> pkg_ret_t;
 
-class RpcConnection
+class RpcServerConn
 {
 public:
-    RpcConnection(int fd, uint32_t seqid);
-    ~RpcConnection();
+    RpcServerConn(int fd, uint32_t seqid);
+    ~RpcServerConn();
 
     pkg_ret_t getRequest();
     void reset();

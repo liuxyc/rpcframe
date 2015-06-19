@@ -1,6 +1,6 @@
 message RpcInnerReq {
     required string service_name = 1;
-    required string methond_name = 2;
+    required string method_name = 2;
     required string request_id = 3;
     enum RPC_TYPE {
         ONE_WAY = 0;

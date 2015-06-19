@@ -38,7 +38,7 @@ void protobuf_AssignDesc_rpc_2eproto() {
   RpcInnerReq_descriptor_ = file->message_type(0);
   static const int RpcInnerReq_offsets_[5] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(RpcInnerReq, service_name_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(RpcInnerReq, methond_name_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(RpcInnerReq, method_name_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(RpcInnerReq, request_id_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(RpcInnerReq, type_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(RpcInnerReq, data_),
@@ -105,12 +105,12 @@ void protobuf_AddDesc_rpc_2eproto() {
   GOOGLE_PROTOBUF_VERIFY_VERSION;
 
   ::google::protobuf::DescriptorPool::InternalAddGeneratedFile(
-    "\n\trpc.proto\"\246\001\n\013RpcInnerReq\022\024\n\014service_n"
-    "ame\030\001 \002(\t\022\024\n\014methond_name\030\002 \002(\t\022\022\n\nreque"
-    "st_id\030\003 \002(\t\022#\n\004type\030\004 \002(\0162\025.RpcInnerReq."
-    "RPC_TYPE\022\014\n\004data\030\005 \002(\t\"$\n\010RPC_TYPE\022\013\n\007ON"
-    "E_WAY\020\000\022\013\n\007TWO_WAY\020\001\"0\n\014RpcInnerResp\022\022\n\n"
-    "request_id\030\001 \002(\t\022\014\n\004data\030\002 \002(\t", 230);
+    "\n\trpc.proto\"\245\001\n\013RpcInnerReq\022\024\n\014service_n"
+    "ame\030\001 \002(\t\022\023\n\013method_name\030\002 \002(\t\022\022\n\nreques"
+    "t_id\030\003 \002(\t\022#\n\004type\030\004 \002(\0162\025.RpcInnerReq.R"
+    "PC_TYPE\022\014\n\004data\030\005 \002(\t\"$\n\010RPC_TYPE\022\013\n\007ONE"
+    "_WAY\020\000\022\013\n\007TWO_WAY\020\001\"0\n\014RpcInnerResp\022\022\n\nr"
+    "equest_id\030\001 \002(\t\022\014\n\004data\030\002 \002(\t", 229);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "rpc.proto", &protobuf_RegisterTypes);
   RpcInnerReq::default_instance_ = new RpcInnerReq();
@@ -152,7 +152,7 @@ const int RpcInnerReq::RPC_TYPE_ARRAYSIZE;
 #endif  // _MSC_VER
 #ifndef _MSC_VER
 const int RpcInnerReq::kServiceNameFieldNumber;
-const int RpcInnerReq::kMethondNameFieldNumber;
+const int RpcInnerReq::kMethodNameFieldNumber;
 const int RpcInnerReq::kRequestIdFieldNumber;
 const int RpcInnerReq::kTypeFieldNumber;
 const int RpcInnerReq::kDataFieldNumber;
@@ -178,7 +178,7 @@ void RpcInnerReq::SharedCtor() {
   ::google::protobuf::internal::GetEmptyString();
   _cached_size_ = 0;
   service_name_ = const_cast< ::std::string*>(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  methond_name_ = const_cast< ::std::string*>(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  method_name_ = const_cast< ::std::string*>(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   request_id_ = const_cast< ::std::string*>(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   type_ = 0;
   data_ = const_cast< ::std::string*>(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
@@ -194,8 +194,8 @@ void RpcInnerReq::SharedDtor() {
   if (service_name_ != &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
     delete service_name_;
   }
-  if (methond_name_ != &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
-    delete methond_name_;
+  if (method_name_ != &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
+    delete method_name_;
   }
   if (request_id_ != &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
     delete request_id_;
@@ -235,9 +235,9 @@ void RpcInnerReq::Clear() {
         service_name_->clear();
       }
     }
-    if (has_methond_name()) {
-      if (methond_name_ != &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
-        methond_name_->clear();
+    if (has_method_name()) {
+      if (method_name_ != &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
+        method_name_->clear();
       }
     }
     if (has_request_id()) {
@@ -278,20 +278,20 @@ bool RpcInnerReq::MergePartialFromCodedStream(
         } else {
           goto handle_unusual;
         }
-        if (input->ExpectTag(18)) goto parse_methond_name;
+        if (input->ExpectTag(18)) goto parse_method_name;
         break;
       }
 
-      // required string methond_name = 2;
+      // required string method_name = 2;
       case 2: {
         if (tag == 18) {
-         parse_methond_name:
+         parse_method_name:
           DO_(::google::protobuf::internal::WireFormatLite::ReadString(
-                input, this->mutable_methond_name()));
+                input, this->mutable_method_name()));
           ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
-            this->methond_name().data(), this->methond_name().length(),
+            this->method_name().data(), this->method_name().length(),
             ::google::protobuf::internal::WireFormat::PARSE,
-            "methond_name");
+            "method_name");
         } else {
           goto handle_unusual;
         }
@@ -388,14 +388,14 @@ void RpcInnerReq::SerializeWithCachedSizes(
       1, this->service_name(), output);
   }
 
-  // required string methond_name = 2;
-  if (has_methond_name()) {
+  // required string method_name = 2;
+  if (has_method_name()) {
     ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
-      this->methond_name().data(), this->methond_name().length(),
+      this->method_name().data(), this->method_name().length(),
       ::google::protobuf::internal::WireFormat::SERIALIZE,
-      "methond_name");
+      "method_name");
     ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
-      2, this->methond_name(), output);
+      2, this->method_name(), output);
   }
 
   // required string request_id = 3;
@@ -445,15 +445,15 @@ void RpcInnerReq::SerializeWithCachedSizes(
         1, this->service_name(), target);
   }
 
-  // required string methond_name = 2;
-  if (has_methond_name()) {
+  // required string method_name = 2;
+  if (has_method_name()) {
     ::google::protobuf::internal::WireFormat::VerifyUTF8StringNamedField(
-      this->methond_name().data(), this->methond_name().length(),
+      this->method_name().data(), this->method_name().length(),
       ::google::protobuf::internal::WireFormat::SERIALIZE,
-      "methond_name");
+      "method_name");
     target =
       ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
-        2, this->methond_name(), target);
+        2, this->method_name(), target);
   }
 
   // required string request_id = 3;
@@ -503,11 +503,11 @@ int RpcInnerReq::ByteSize() const {
           this->service_name());
     }
 
-    // required string methond_name = 2;
-    if (has_methond_name()) {
+    // required string method_name = 2;
+    if (has_method_name()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::StringSize(
-          this->methond_name());
+          this->method_name());
     }
 
     // required string request_id = 3;
@@ -560,8 +560,8 @@ void RpcInnerReq::MergeFrom(const RpcInnerReq& from) {
     if (from.has_service_name()) {
       set_service_name(from.service_name());
     }
-    if (from.has_methond_name()) {
-      set_methond_name(from.methond_name());
+    if (from.has_method_name()) {
+      set_method_name(from.method_name());
     }
     if (from.has_request_id()) {
       set_request_id(from.request_id());
@@ -597,7 +597,7 @@ bool RpcInnerReq::IsInitialized() const {
 void RpcInnerReq::Swap(RpcInnerReq* other) {
   if (other != this) {
     std::swap(service_name_, other->service_name_);
-    std::swap(methond_name_, other->methond_name_);
+    std::swap(method_name_, other->method_name_);
     std::swap(request_id_, other->request_id_);
     std::swap(type_, other->type_);
     std::swap(data_, other->data_);

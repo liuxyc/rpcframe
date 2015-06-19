@@ -15,7 +15,6 @@ class my_CB : public rpcframe::RpcClientCallBack
 {
 public:
     my_CB()
-    : rpcframe::RpcClientCallBack()
     {};
     virtual ~my_CB() {};
 
@@ -43,18 +42,27 @@ int main()
     //async with big resp
     for (int cnt = 0; cnt < conn_cnt; ++cnt) {
         for (int pcnt = 0; pcnt < pkg_cnt; ++pcnt) {
-            if(rpcframe::RpcStatus::RPC_SEND_OK != client.async_call("test_method_big_resp", std::string(1024 * 10, '*'), 10, new my_CB())) {
+            if(rpcframe::RpcStatus::RPC_SEND_OK != client.async_call("test_method_big_resp", 
+                                                                     std::string(1024 * 10, '*'), 
+                                                                     10, 
+                                                                     new my_CB())) 
+            {
                 printf("send fail\n");
             }
         }
     }
+    client.async_call("test_method_big_resp_unknow", "unknow", 2, new my_CB());
     sleep(3);
     conn_cnt = 10;
     pkg_cnt = 10000;
     //fast async/sync call
     for (int cnt = 0; cnt < conn_cnt; ++cnt) {
         for (int pcnt = 0; pcnt < pkg_cnt; ++pcnt) {
-            if(rpcframe::RpcStatus::RPC_SEND_OK != client.async_call("test_method2", std::string(1024 * 10, '*'), 10, new my_CB())) {
+            if(rpcframe::RpcStatus::RPC_SEND_OK != client.async_call("test_method2", 
+                                                                std::string(1024 * 10, '*'), 
+                                                                10, 
+                                                                new my_CB())) 
+            {
                 printf("send fail\n");
             }
             
@@ -85,7 +93,11 @@ int main()
             if ( len <= 0) {
                 len = 10;
             }
-            if( rpcframe::RpcStatus::RPC_SEND_OK != client.async_call("test_method", std::string(len, '*'), 2, new my_CB())) {
+            if( rpcframe::RpcStatus::RPC_SEND_OK != client.async_call("test_method", 
+                                                                      std::string(len, '*'), 
+                                                                      2, 
+                                                                      new my_CB())) 
+            {
                 printf("r1 send fail\n");
             }
             client.async_call("test_method", std::string(len, '*'), 4, NULL);
@@ -108,7 +120,11 @@ int main()
             if ( len <= 0) {
                 len = 10;
             }
-            if(rpcframe::RpcStatus::RPC_SEND_OK != client2.async_call("test_method", std::string(len, '*'), 10, new my_CB())) {
+            if(rpcframe::RpcStatus::RPC_SEND_OK != client2.async_call("test_method", 
+                                                                      std::string(len, '*'), 
+                                                                      10, 
+                                                                      new my_CB())) 
+            {
                 printf("r2 send fail\n");
             }
             
@@ -138,20 +154,25 @@ int main()
     client_call_async_server.call("test_method_async", std::string(10, '*'), resp_data, 10);
     printf("async server back: %s\n", resp_data.c_str());
     sleep(3);
-    while(1) {
-            std::random_device rd;
-            uint32_t len = rd();
-            if ( len > 1024 * 100 ) {
-                len = len % (1024 *100);
-            }
-            if ( len <= 0) {
-                len = 10;
-            }
-            if( rpcframe::RpcStatus::RPC_SEND_OK != client.async_call("test_method", std::string(len, '*'), 2, new my_CB())) {
-                printf("r1 send fail\n");
-            }
-            client.async_call("test_method", std::string(len, '*'), 4, NULL);
+    for(uint32_t i = 0; i < 100000; ++i) {
+        std::random_device rd;
+        uint32_t len = rd();
+        if ( len > 1024 * 100 ) {
+            len = len % (1024 *100);
+        }
+        if ( len <= 0) {
+            len = 10;
+        }
+        if( rpcframe::RpcStatus::RPC_SEND_OK != client.async_call("test_method2", 
+                                                                  std::string(len, '*'), 
+                                                                  2, 
+                                                                  new my_CB())) 
+        {
+            printf("r1 send fail\n");
+        }
+        client.async_call("test_method2", std::string(len, '*'), 4, NULL);
     }
+    sleep(90000);
     return 0;
 }
 

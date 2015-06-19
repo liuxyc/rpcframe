@@ -145,17 +145,17 @@ class RpcInnerReq : public ::google::protobuf::Message {
   inline ::std::string* release_service_name();
   inline void set_allocated_service_name(::std::string* service_name);
 
-  // required string methond_name = 2;
-  inline bool has_methond_name() const;
-  inline void clear_methond_name();
-  static const int kMethondNameFieldNumber = 2;
-  inline const ::std::string& methond_name() const;
-  inline void set_methond_name(const ::std::string& value);
-  inline void set_methond_name(const char* value);
-  inline void set_methond_name(const char* value, size_t size);
-  inline ::std::string* mutable_methond_name();
-  inline ::std::string* release_methond_name();
-  inline void set_allocated_methond_name(::std::string* methond_name);
+  // required string method_name = 2;
+  inline bool has_method_name() const;
+  inline void clear_method_name();
+  static const int kMethodNameFieldNumber = 2;
+  inline const ::std::string& method_name() const;
+  inline void set_method_name(const ::std::string& value);
+  inline void set_method_name(const char* value);
+  inline void set_method_name(const char* value, size_t size);
+  inline ::std::string* mutable_method_name();
+  inline ::std::string* release_method_name();
+  inline void set_allocated_method_name(::std::string* method_name);
 
   // required string request_id = 3;
   inline bool has_request_id() const;
@@ -192,8 +192,8 @@ class RpcInnerReq : public ::google::protobuf::Message {
  private:
   inline void set_has_service_name();
   inline void clear_has_service_name();
-  inline void set_has_methond_name();
-  inline void clear_has_methond_name();
+  inline void set_has_method_name();
+  inline void clear_has_method_name();
   inline void set_has_request_id();
   inline void clear_has_request_id();
   inline void set_has_type();
@@ -206,7 +206,7 @@ class RpcInnerReq : public ::google::protobuf::Message {
   ::google::protobuf::uint32 _has_bits_[1];
   mutable int _cached_size_;
   ::std::string* service_name_;
-  ::std::string* methond_name_;
+  ::std::string* method_name_;
   ::std::string* request_id_;
   ::std::string* data_;
   int type_;
@@ -399,80 +399,80 @@ inline void RpcInnerReq::set_allocated_service_name(::std::string* service_name)
   // @@protoc_insertion_point(field_set_allocated:RpcInnerReq.service_name)
 }
 
-// required string methond_name = 2;
-inline bool RpcInnerReq::has_methond_name() const {
+// required string method_name = 2;
+inline bool RpcInnerReq::has_method_name() const {
   return (_has_bits_[0] & 0x00000002u) != 0;
 }
-inline void RpcInnerReq::set_has_methond_name() {
+inline void RpcInnerReq::set_has_method_name() {
   _has_bits_[0] |= 0x00000002u;
 }
-inline void RpcInnerReq::clear_has_methond_name() {
+inline void RpcInnerReq::clear_has_method_name() {
   _has_bits_[0] &= ~0x00000002u;
 }
-inline void RpcInnerReq::clear_methond_name() {
-  if (methond_name_ != &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
-    methond_name_->clear();
+inline void RpcInnerReq::clear_method_name() {
+  if (method_name_ != &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
+    method_name_->clear();
   }
-  clear_has_methond_name();
+  clear_has_method_name();
 }
-inline const ::std::string& RpcInnerReq::methond_name() const {
-  // @@protoc_insertion_point(field_get:RpcInnerReq.methond_name)
-  return *methond_name_;
+inline const ::std::string& RpcInnerReq::method_name() const {
+  // @@protoc_insertion_point(field_get:RpcInnerReq.method_name)
+  return *method_name_;
 }
-inline void RpcInnerReq::set_methond_name(const ::std::string& value) {
-  set_has_methond_name();
-  if (methond_name_ == &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
-    methond_name_ = new ::std::string;
+inline void RpcInnerReq::set_method_name(const ::std::string& value) {
+  set_has_method_name();
+  if (method_name_ == &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
+    method_name_ = new ::std::string;
   }
-  methond_name_->assign(value);
-  // @@protoc_insertion_point(field_set:RpcInnerReq.methond_name)
+  method_name_->assign(value);
+  // @@protoc_insertion_point(field_set:RpcInnerReq.method_name)
 }
-inline void RpcInnerReq::set_methond_name(const char* value) {
-  set_has_methond_name();
-  if (methond_name_ == &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
-    methond_name_ = new ::std::string;
+inline void RpcInnerReq::set_method_name(const char* value) {
+  set_has_method_name();
+  if (method_name_ == &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
+    method_name_ = new ::std::string;
   }
-  methond_name_->assign(value);
-  // @@protoc_insertion_point(field_set_char:RpcInnerReq.methond_name)
+  method_name_->assign(value);
+  // @@protoc_insertion_point(field_set_char:RpcInnerReq.method_name)
 }
-inline void RpcInnerReq::set_methond_name(const char* value, size_t size) {
-  set_has_methond_name();
-  if (methond_name_ == &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
-    methond_name_ = new ::std::string;
+inline void RpcInnerReq::set_method_name(const char* value, size_t size) {
+  set_has_method_name();
+  if (method_name_ == &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
+    method_name_ = new ::std::string;
   }
-  methond_name_->assign(reinterpret_cast<const char*>(value), size);
-  // @@protoc_insertion_point(field_set_pointer:RpcInnerReq.methond_name)
+  method_name_->assign(reinterpret_cast<const char*>(value), size);
+  // @@protoc_insertion_point(field_set_pointer:RpcInnerReq.method_name)
 }
-inline ::std::string* RpcInnerReq::mutable_methond_name() {
-  set_has_methond_name();
-  if (methond_name_ == &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
-    methond_name_ = new ::std::string;
+inline ::std::string* RpcInnerReq::mutable_method_name() {
+  set_has_method_name();
+  if (method_name_ == &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
+    method_name_ = new ::std::string;
   }
-  // @@protoc_insertion_point(field_mutable:RpcInnerReq.methond_name)
-  return methond_name_;
+  // @@protoc_insertion_point(field_mutable:RpcInnerReq.method_name)
+  return method_name_;
 }
-inline ::std::string* RpcInnerReq::release_methond_name() {
-  clear_has_methond_name();
-  if (methond_name_ == &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
+inline ::std::string* RpcInnerReq::release_method_name() {
+  clear_has_method_name();
+  if (method_name_ == &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
     return NULL;
   } else {
-    ::std::string* temp = methond_name_;
-    methond_name_ = const_cast< ::std::string*>(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+    ::std::string* temp = method_name_;
+    method_name_ = const_cast< ::std::string*>(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
     return temp;
   }
 }
-inline void RpcInnerReq::set_allocated_methond_name(::std::string* methond_name) {
-  if (methond_name_ != &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
-    delete methond_name_;
+inline void RpcInnerReq::set_allocated_method_name(::std::string* method_name) {
+  if (method_name_ != &::google::protobuf::internal::GetEmptyStringAlreadyInited()) {
+    delete method_name_;
   }
-  if (methond_name) {
-    set_has_methond_name();
-    methond_name_ = methond_name;
+  if (method_name) {
+    set_has_method_name();
+    method_name_ = method_name;
   } else {
-    clear_has_methond_name();
-    methond_name_ = const_cast< ::std::string*>(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+    clear_has_method_name();
+    method_name_ = const_cast< ::std::string*>(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
   }
-  // @@protoc_insertion_point(field_set_allocated:RpcInnerReq.methond_name)
+  // @@protoc_insertion_point(field_set_allocated:RpcInnerReq.method_name)
 }
 
 // required string request_id = 3;
