@@ -41,7 +41,7 @@ public:
 class response_pkg
 {
 public:
-    response_pkg(uint32_t size)
+    explicit response_pkg(uint32_t size)
     : data(NULL)
     , data_len(size)
     {

@@ -257,9 +257,7 @@ void RpcEventLooper::run() {
 
         //deal async call timeout
         //FIXME:dealTimeoutCb() may block event loop
-        //printf("before dealcb back\n");
         dealTimeoutCb();
-        //printf("after dealcb back\n");
 
         for (int i = 0; i < nfds; i++) 
         {  
@@ -339,13 +337,11 @@ int RpcEventLooper::noBlockConnect(int sockfd, const char* hostname, int port, i
     if(!getHostIpByName(hostip, hostname)) {
         printf("gethostbyname fail\n");
     }
-    printf("%s\n", hostip.c_str());
     inet_pton(AF_INET, hostip.c_str(), &address.sin_addr);
     address.sin_port = htons(port);
     int fdopt = setNoBlocking(sockfd);
     ret = ::connect(sockfd, (struct sockaddr*)&address, sizeof(address));
     if(ret == 0) {
-        printf("connect immediately\n");
         fcntl(sockfd, F_SETFL,fdopt);
         return sockfd;
     }

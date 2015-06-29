@@ -53,7 +53,7 @@ public:
      *
      * @return 
      */
-    virtual ServiceRET runService(const std::string &method_name, const std::string &request_data, std::string &resp_data, RpcRespBroker *resp_broker) = 0;
+    virtual ServiceRET runService(const std::string &method_name, const std::string &req_data, std::string &resp_data, RpcRespBroker *resp_broker) = 0;
 
 };
 typedef std::unordered_map<std::string, IService *> ServiceMap;

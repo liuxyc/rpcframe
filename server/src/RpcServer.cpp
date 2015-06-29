@@ -20,7 +20,7 @@
 #include "RpcServerConn.h"
 #include "util.h"
 
-#define _MAX_SOCKFD_COUNT 65535 
+#define RPC_MAX_SOCKFD_COUNT 65535 
 
 namespace rpcframe
 {
@@ -84,7 +84,6 @@ bool RpcServer::addService(const std::string &name, IService *p_service)
     }
     m_service_map[name] = p_service;
     return true;
-    
 }
 
 IService *RpcServer::getService(const std::string &name)
@@ -100,7 +99,7 @@ IService *RpcServer::getService(const std::string &name)
 
 bool RpcServer::startListen() {
 
-    m_epoll_fd = epoll_create(_MAX_SOCKFD_COUNT);  
+    m_epoll_fd = epoll_create(RPC_MAX_SOCKFD_COUNT);  
     if( m_epoll_fd == -1) {
         printf("epoll_create fail %s\n", strerror(errno));
         return false;
@@ -315,9 +314,9 @@ bool RpcServer::start() {
         printf("start listen failed\n");
     }
 
-    struct epoll_event events[_MAX_SOCKFD_COUNT];  
+    struct epoll_event events[RPC_MAX_SOCKFD_COUNT];  
     while(!m_stop) {
-        int nfds = epoll_wait(m_epoll_fd, events, _MAX_SOCKFD_COUNT, 2000);  
+        int nfds = epoll_wait(m_epoll_fd, events, RPC_MAX_SOCKFD_COUNT, 2000);  
         for (int i = 0; i < nfds; i++)  
         {  
             int client_socket = events[i].data.fd;  

@@ -19,7 +19,7 @@ namespace rpcframe {
 class server_resp_pkg
 {
 public:
-    server_resp_pkg(uint32_t size)
+    explicit server_resp_pkg(uint32_t size)
     {
         data = new char[size];
         data_len = size;
@@ -38,7 +38,7 @@ typedef std::pair<int, server_resp_pkg *> pkg_ret_t;
 class RpcClientConn
 {
 public:
-    RpcClientConn(int fd);
+    explicit RpcClientConn(int fd);
     ~RpcClientConn();
 
     pkg_ret_t getResponse();

@@ -8,6 +8,7 @@
 #include "RpcClient.h"
 #include "RpcClientBlocker.h"
 #include "RpcEventLooper.h"
+#include "util.h"
 
 namespace rpcframe
 {

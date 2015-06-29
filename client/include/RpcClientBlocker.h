@@ -25,7 +25,7 @@ namespace rpcframe
 class RpcClientBlocker: public RpcClientCallBack 
 {
 public:
-    RpcClientBlocker(int timeout)
+    explicit RpcClientBlocker(int timeout)
     : RpcClientCallBack()
     , m_done(false)
     { 
