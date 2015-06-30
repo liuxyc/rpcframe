@@ -40,9 +40,9 @@ void RpcClientWorker::run() {
         if (m_stop) {
             break;
         }
-        server_resp_pkg *pkg = NULL;
+        response_pkg *pkg = NULL;
         if (m_ev->m_response_q.pop(pkg, 1000)) {
-            std::unique_ptr<server_resp_pkg> u_ptr(pkg);
+            std::unique_ptr<response_pkg> u_ptr(pkg);
 
             //must get request id from here
             RpcInnerResp resp;

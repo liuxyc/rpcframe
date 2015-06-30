@@ -16,24 +16,7 @@
 
 namespace rpcframe {
 
-class server_resp_pkg
-{
-public:
-    explicit server_resp_pkg(uint32_t size)
-    {
-        data = new char[size];
-        data_len = size;
-    };
-    ~server_resp_pkg()
-    {
-        delete [] data;
-    };
-    char *data;
-    uint32_t data_len;
-
-};
-
-typedef std::pair<int, server_resp_pkg *> pkg_ret_t;
+typedef std::pair<int, response_pkg *> pkg_ret_t;
 
 class RpcClientConn
 {
@@ -54,7 +37,7 @@ private:
     int m_fd;
     uint32_t m_cur_left_len;
     uint32_t m_cur_pkg_size;
-    server_resp_pkg *m_rpk;
+    response_pkg *m_rpk;
     std::atomic<bool> is_connected;
     std::mutex m_mutex;
 

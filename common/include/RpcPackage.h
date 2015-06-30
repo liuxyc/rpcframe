@@ -14,8 +14,6 @@
 namespace rpcframe
 {
 
-class RpcConnection;
-
 class request_pkg
 {
 public:
@@ -56,8 +54,6 @@ public:
 
     response_pkg(const response_pkg &) = delete;
     response_pkg &operator=(const response_pkg&) = delete;
-
-
 };
 
 typedef Queue<request_pkg *> ReqQueue;

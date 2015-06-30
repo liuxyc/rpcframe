@@ -70,8 +70,8 @@ public:
         return m_queue.size();
         
     }
-    Queue(uint32_t max_m_queuelen = 100000000)
-    : m_max_q_len(max_m_queuelen)
+    Queue(uint32_t max_queuelen = 100000000)
+    : m_max_q_len(max_queuelen)
     {
     
     };

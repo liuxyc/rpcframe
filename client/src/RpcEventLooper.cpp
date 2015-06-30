@@ -181,7 +181,7 @@ void RpcEventLooper::timeoutCb(const std::string &req_id) {
     RpcInnerResp resp;
     resp.set_request_id(req_id);
     resp.set_data("");
-    server_resp_pkg *timeout_resp_pkg = new server_resp_pkg(resp.ByteSize());
+    response_pkg *timeout_resp_pkg = new response_pkg(resp.ByteSize());
     resp.SerializeToArray(timeout_resp_pkg->data, timeout_resp_pkg->data_len);
     m_response_q.push(timeout_resp_pkg);
     //printf("send fake resp for sync req %s\n", req_id.c_str());
@@ -217,7 +217,7 @@ void RpcEventLooper::dealTimeoutCb() {
                             RpcInnerResp resp;
                             resp.set_request_id(cb->getReqId());
                             resp.set_data("");
-                            server_resp_pkg *timeout_resp_pkg = new server_resp_pkg(resp.ByteSize());
+                            response_pkg *timeout_resp_pkg = new response_pkg(resp.ByteSize());
                             resp.SerializeToArray(timeout_resp_pkg->data, timeout_resp_pkg->data_len);
                             m_response_q.push(timeout_resp_pkg);
                             //printf("send fake resp for async req %s\n", cb->getReqId().c_str());

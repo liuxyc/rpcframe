@@ -127,7 +127,7 @@ pkg_ret_t RpcClientConn::getResponse()
             return pkg_ret_t(0, NULL);
         }
         //printf("pkg len is %d\n", m_cur_pkg_size);
-        m_rpk = new server_resp_pkg(m_cur_pkg_size);
+        m_rpk = new response_pkg(m_cur_pkg_size);
         m_cur_left_len = m_cur_pkg_size;
     }
     int data_ret = readPkgData();
@@ -138,7 +138,7 @@ pkg_ret_t RpcClientConn::getResponse()
         return pkg_ret_t(0, NULL);
     }
     else {
-        server_resp_pkg *p_rpk = m_rpk;
+        response_pkg *p_rpk = m_rpk;
         m_rpk = NULL;
         return pkg_ret_t(0, p_rpk);
     }

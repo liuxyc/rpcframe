@@ -14,6 +14,7 @@
 #include <chrono>
 #include "Queue.h"
 #include "RpcClientEnum.h"
+#include "RpcPackage.h"
 
 namespace rpcframe
 {
@@ -22,7 +23,6 @@ class RpcClient;
 class RpcClientCallBack;
 class RpcClientConn;
 class RpcClientWorker;
-class server_resp_pkg;
 
 class RpcEventLooper
 {
@@ -36,7 +36,7 @@ public:
     void removeCb(const std::string &req_id);
     void timeoutCb(const std::string &req_id);
     void dealTimeoutCb();
-    Queue<server_resp_pkg *> m_response_q;
+    RespQueue m_response_q;
 
 private:
     void addConnection();
@@ -53,8 +53,6 @@ private:
     std::unordered_map<std::string, RpcClientCallBack *> m_cb_map;
     RpcClientWorker *m_worker;
     std::thread *m_worker_th;
-    //FIXME:the resolution of std::time_t is not enough for timeout
-    //there will be >1000 call in one second, they will have the same time_t
     std::map<std::string, std::string> m_cb_timer_map;
     uint32_t m_req_seqid;
     std::string m_host_ip;
