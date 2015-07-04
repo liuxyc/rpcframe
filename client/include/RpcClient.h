@@ -5,18 +5,12 @@
 
 #ifndef RPCFRAME_RPCCLIENT
 #define RPCFRAME_RPCCLIENT
-#include <utility>
-#include <map>
-#include <unordered_map>
 #include <vector>
 #include <mutex>
+#include <thread>
 #include <atomic>
-#include <condition_variable>
 
-#include "Queue.h"
-#include "RpcPackage.h"
-#include "RpcClientEnum.h"
-
+#include "RpcDefs.h"
 
 namespace rpcframe
 {
@@ -34,6 +28,12 @@ public:
     };
     virtual ~RpcClientCallBack(){};
 
+    /**
+     * @brief implement this method for your callback
+     *
+     * @param status
+     * @param response_data
+     */
     virtual void callback(const RpcStatus status, const std::string &response_data) = 0;
 
     std::string getType() {
@@ -128,9 +128,6 @@ private:
     std::mutex m_mutex;
 
     std::vector<std::thread *> m_thread_vec;
-    Queue<server_resp_pkg *> m_response_q;
-
-    
 };
 
 };

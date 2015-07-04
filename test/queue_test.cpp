@@ -1,5 +1,6 @@
 #include "gtest/gtest.h"
 #include "Queue.h"
+#include <thread>
 
 TEST(QueueTest, full)
 {

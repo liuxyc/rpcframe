@@ -7,17 +7,18 @@
 #define RPCFRAME_ISERVICE
 
 #include "RpcRespBroker.h"
+#include "RpcDefs.h"
+#include <map>
+#include <string>
 
 namespace rpcframe {
-
-//class rpcframe::RpcRespBroker;
 
 #define RPC_ADD_METHOD(class_name, method_name) m_method_map[#method_name] = &class_name::method_name;
 
 #define REG_METHOD(class_name) \
-    typedef rpcframe::IService::ServiceRET (class_name::*METHOD_FUNC)(const std::string &, std::string &, rpcframe::RpcRespBroker *); \
+    typedef rpcframe::RpcStatus (class_name::*METHOD_FUNC)(const std::string &, std::string &, rpcframe::RpcRespBroker *); \
     std::map<std::string, METHOD_FUNC> m_method_map; \
-    ServiceRET runService(const std::string &method_name, \
+    rpcframe::RpcStatus runService(const std::string &method_name, \
                           const std::string &request_data, \
                           std::string &resp_data, \
                           rpcframe::RpcRespBroker *resp_broker) \
@@ -27,19 +28,13 @@ namespace rpcframe {
             return (this->*p_fun)(request_data, resp_data, resp_broker); \
         }  \
         else { \
-            return ServiceRET::S_NOTFOUND;  \
+            return rpcframe::RpcStatus::RPC_METHOD_NOTFOUND;  \
         }  \
     };
 
 class IService
 {
 public:
-    enum class ServiceRET {
-        S_OK,
-        S_NONE,
-        S_FAIL,
-        S_NOTFOUND,
-    };
     IService() {};
     virtual ~IService() {};
     
@@ -53,10 +48,9 @@ public:
      *
      * @return 
      */
-    virtual ServiceRET runService(const std::string &method_name, const std::string &req_data, std::string &resp_data, RpcRespBroker *resp_broker) = 0;
+    virtual RpcStatus runService(const std::string &method_name, const std::string &req_data, std::string &resp_data, RpcRespBroker *resp_broker) = 0;
 
 };
-typedef std::unordered_map<std::string, IService *> ServiceMap;
 
 };
 #endif

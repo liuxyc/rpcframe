@@ -11,7 +11,7 @@
 
 #include "RpcClientWorker.h"
 #include "RpcClientConn.h"
-#include "RpcClientEnum.h"
+#include "RpcDefs.h"
 #include "RpcClient.h"
 #include "RpcEventLooper.h"
 #include "rpc.pb.h"
@@ -52,7 +52,7 @@ void RpcClientWorker::run() {
                 std::string cb_type = cb->getType();
                 //if marked as timeout, the callback already called by RpcCBStatus::RPC_TIMEOUT
                 if (!cb->isTimeout()) {
-                    cb->callback(RpcStatus::RPC_CB_OK, resp.data());
+                    cb->callback(static_cast<RpcStatus>(resp.ret_val()), resp.data());
                 }
                 else {
                     cb->callback(RpcStatus::RPC_CB_TIMEOUT, resp.data());

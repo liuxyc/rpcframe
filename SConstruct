@@ -13,12 +13,21 @@ env.StaticLibrary('rpcframe', rpcframe_src_files,
     CPPPATH = ['thirdparty/protobuf-261/include/', 'server/include/', 'client/include', 'common/include', 'common/proto'],
     LIBS=['pthread'])
 
+env.Install('./output/include/', 'client/include/RpcClient.h')
+env.Install('./output/include/', 'common/include/RpcDefs.h')
+env.Install('./output/include/', 'server/include/RpcServer.h')
+env.Install('./output/include/', 'server/include/RpcRespBroker.h')
+env.Install('./output/include/', 'server/include/IService.h')
+env.Install('./output/lib/', 'librpcframe.a')
+Clean('', './output')
+
 #client_test
 client_test_src = Split('test/client_test.cpp')
 env.Program('client_test', client_test_src, 
     LIBS=['rpcframe', 'pthread', 'uuid', 'protobuf'], 
     LIBPATH = ['.', 'thirdparty/protobuf-261/lib/'], 
-    CPPPATH = ['./include', 'common/include', 'client/include'])
+    CPPPATH = ['output/include/'])
+
 
 #server_test
 server_test_src = Split('test/server_test.cpp')
@@ -26,7 +35,7 @@ env.Program('server_test', server_test_src,
     LDFLAGS=[''], 
     LIBS=['rpcframe', 'pthread', 'protobuf'], 
     LIBPATH = ['.', 'thirdparty/protobuf-261/lib/'], 
-    CPPPATH = ['server/include', 'common/include'])
+    CPPPATH = ['output/include/'])
 
 #queue_test
 env.Program('queue_test', 'test/queue_test.cpp', 

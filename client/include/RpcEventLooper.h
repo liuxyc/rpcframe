@@ -8,12 +8,10 @@
 #include <utility>
 #include <unordered_map>
 #include <map>
-#include <vector>
 #include <atomic>
 #include <thread>
-#include <chrono>
 #include "Queue.h"
-#include "RpcClientEnum.h"
+#include "RpcDefs.h"
 #include "RpcPackage.h"
 
 namespace rpcframe
@@ -34,7 +32,7 @@ public:
     RpcStatus sendReq(const std::string &service_name, const std::string &method_name, const std::string &request_data, RpcClientCallBack *cb_obj, std::string &req_id);
     RpcClientCallBack *getCb(const std::string &req_id);
     void removeCb(const std::string &req_id);
-    void timeoutCb(const std::string &req_id);
+    void timeoutCb(const std::string &req_id, bool is_lock = true);
     void dealTimeoutCb();
     RespQueue m_response_q;
 

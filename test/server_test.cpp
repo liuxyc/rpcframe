@@ -8,6 +8,8 @@
 #include <chrono>
 #include <random>
 #include <memory>
+#include <thread>
+#include <mutex>
 
 class MyService_async: public rpcframe::IService
 {
@@ -22,7 +24,7 @@ public:
     virtual ~MyService_async(){};
 
     //method1
-    rpcframe::IService::ServiceRET test_method_async(const std::string &request_data, 
+    rpcframe::RpcStatus test_method_async(const std::string &request_data, 
                                                      std::string &resp_data, 
                                                      rpcframe::RpcRespBroker *resp_broker) 
     {
@@ -36,15 +38,15 @@ public:
                 });
         t->get_id();
         /*
-           Don't delete resp_broker if you return rpcframe::IService::ServiceRET::S_OK
+           Don't delete resp_broker if you return rpcframe::RpcStatus::RPC_SERVER_OK
 
-           Return rpcframe::IService::ServiceRET::S_NONE, means you don't want RpcServer send response
+           Return rpcframe::RpcStatus::RPC_SERVER_NONE, means you don't want RpcServer send response
            ,you can send the response by resp_broker later or not send never(just delete resp_broker)
 
            Not send response will cause client side timeout or hang on a "no timeout call", but this is 
            reasonable if client didn't set callback(ONE_WAY call)
            */
-        return rpcframe::IService::ServiceRET::S_NONE;
+        return rpcframe::RpcStatus::RPC_SERVER_NONE;
     };
 
 };
@@ -66,7 +68,7 @@ public:
     virtual ~MyService(){};
 
     //method1
-    rpcframe::IService::ServiceRET test_method(const std::string &request_data, 
+    rpcframe::RpcStatus test_method(const std::string &request_data, 
                                                std::string &resp_data, 
                                                rpcframe::RpcRespBroker *resp_broker) 
     {
@@ -77,11 +79,11 @@ public:
         m_mutex.unlock();
         //make timeout
         std::this_thread::sleep_for(std::chrono::seconds(5));
-        return rpcframe::IService::ServiceRET::S_OK;
+        return rpcframe::RpcStatus::RPC_SERVER_OK;
     };
 
     //method2
-    rpcframe::IService::ServiceRET test_method1(const std::string &request_data, 
+    rpcframe::RpcStatus test_method1(const std::string &request_data, 
                                                 std::string &resp_data, 
                                                 rpcframe::RpcRespBroker *resp_broker) 
     {
@@ -91,27 +93,27 @@ public:
         std::random_device rd;
         uint32_t t = rd() % 5;
         std::this_thread::sleep_for(std::chrono::seconds(t));
-        return rpcframe::IService::ServiceRET::S_OK;
+        return rpcframe::RpcStatus::RPC_SERVER_OK;
     };
 
     //method3
-    rpcframe::IService::ServiceRET test_method2(const std::string &request_data, 
+    rpcframe::RpcStatus test_method2(const std::string &request_data, 
                                                 std::string &resp_data, 
                                                 rpcframe::RpcRespBroker *resp_broker) 
     {
         //printf("my method1 get %s\n", request_data.c_str());
         resp_data = std::string("my feedback3");
-        return rpcframe::IService::ServiceRET::S_OK;
+        return rpcframe::RpcStatus::RPC_SERVER_OK;
     };
 
     //method big resp
-    rpcframe::IService::ServiceRET test_method_big_resp(const std::string &request_data, 
+    rpcframe::RpcStatus test_method_big_resp(const std::string &request_data, 
                                                         std::string &resp_data, 
                                                         rpcframe::RpcRespBroker *resp_broker) 
     {
         //printf("my method1 get %s\n", request_data.c_str());
         resp_data = std::string(1024*1024*40, 'a');
-        return rpcframe::IService::ServiceRET::S_OK;
+        return rpcframe::RpcStatus::RPC_SERVER_OK;
     };
 
     int m_cnt;

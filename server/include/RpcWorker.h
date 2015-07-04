@@ -5,10 +5,6 @@
 
 #ifndef RPCFRAME_RPCWORKER
 #define RPCFRAME_RPCWORKER
-#include <utility>
-#include <unordered_map>
-#include <map>
-#include <vector>
 #include <atomic>
 
 #include "Queue.h"
@@ -18,18 +14,18 @@
 namespace rpcframe
 {
 
-class RpcServer;
+class RpcServerImpl;
 
 class RpcWorker
 {
 public:
-    RpcWorker(ReqQueue *workqueue, RpcServer *server);
+    RpcWorker(ReqQueue *workqueue, RpcServerImpl *server);
     ~RpcWorker();
     void stop();
     void run();
 private:
     ReqQueue *m_work_q;
-    RpcServer *m_server;
+    RpcServerImpl *m_server;
     std::atomic<bool> m_stop;
     
 };

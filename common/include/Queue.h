@@ -7,7 +7,6 @@
 #define RPCFRAME_QUEUE_
 
 #include <queue>
-#include <thread>
 #include <mutex>
 #include <condition_variable>
 

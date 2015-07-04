@@ -12,5 +12,6 @@ message RpcInnerReq {
 
 message RpcInnerResp {
     required string request_id = 1;
-    required string data = 2;
+    required uint32 ret_val = 2;
+    required string data = 3;
 }

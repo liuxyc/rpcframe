@@ -108,16 +108,18 @@ RpcStatus RpcEventLooper::sendReq(
         printf("send data too large %lu\n", request_data.length());
         return RpcStatus::RPC_SEND_FAIL;
     }
-    std::lock_guard<std::mutex> mlock(m_mutex);
+    m_mutex.lock();
     if (m_conn == NULL) {
         if (!connect()) {
             if (cb_obj != NULL) {
                 cb_obj->callback(RpcStatus::RPC_SEND_FAIL, "");
                 delete cb_obj;
             }
+            m_mutex.unlock();
             return RpcStatus::RPC_SEND_FAIL;
         }
     }
+    m_mutex.unlock();
     //gen readable request_id 
     std::stringstream ssm;
     ssm << std::to_string((int)getpid())
@@ -131,27 +133,35 @@ RpcStatus RpcEventLooper::sendReq(
     uint32_t cb_timeout = 0;
     if (cb_obj != NULL) {
         cb_obj->setReqId(req_id);
+        m_mutex.lock();
         m_cb_map.insert(std::make_pair(req_id, cb_obj));
+        m_mutex.unlock();
         cb_timeout = cb_obj->getTimeout();
         if( cb_timeout > 0) {
             tm_id = std::to_string(std::time(nullptr)) + "_" + std::to_string(m_req_seqid);
+            m_mutex.lock();
             m_cb_timer_map.insert(std::make_pair(tm_id, req_id));
+            m_mutex.unlock();
         }
     }
+    m_mutex.lock();
     ++m_req_seqid;
     RpcStatus send_ret = m_conn->sendReq(service_name, method_name, request_data, req_id, (cb_obj == NULL), cb_timeout);
+    m_mutex.unlock();
     if (send_ret == RpcStatus::RPC_SEND_OK) {
         printf("send %s\n", req_id.c_str());
     }
     else {
         printf("send fail %s\n", req_id.c_str());
         if (cb_obj != NULL) {
+            m_mutex.lock();
             if( cb_timeout > 0) {
                 m_cb_timer_map.erase(tm_id);
             }
             m_cb_map.erase(req_id);
             cb_obj->callback(send_ret, "");
             delete cb_obj;
+            m_mutex.unlock();
         }
     }
     return send_ret;
@@ -176,15 +186,21 @@ void RpcEventLooper::removeCb(const std::string &req_id) {
     }
 }
 
-void RpcEventLooper::timeoutCb(const std::string &req_id) {
-    std::lock_guard<std::mutex> mlock(m_mutex);
+void RpcEventLooper::timeoutCb(const std::string &req_id, bool is_lock) {
+    if (is_lock) {
+        m_mutex.lock();
+    }
     RpcInnerResp resp;
     resp.set_request_id(req_id);
+    resp.set_ret_val(static_cast<uint32_t>(RpcStatus::RPC_SERVER_NONE));
     resp.set_data("");
     response_pkg *timeout_resp_pkg = new response_pkg(resp.ByteSize());
     resp.SerializeToArray(timeout_resp_pkg->data, timeout_resp_pkg->data_len);
     m_response_q.push(timeout_resp_pkg);
     //printf("send fake resp for sync req %s\n", req_id.c_str());
+    if (is_lock) {
+        m_mutex.unlock();
+    }
 }
 
 void RpcEventLooper::dealTimeoutCb() {
@@ -214,13 +230,7 @@ void RpcEventLooper::dealTimeoutCb() {
                             //RpcClient will send fake resp for "blocker" type, because it can make
                             //sure blocker will not be used again
                             cb->setType("timeout");
-                            RpcInnerResp resp;
-                            resp.set_request_id(cb->getReqId());
-                            resp.set_data("");
-                            response_pkg *timeout_resp_pkg = new response_pkg(resp.ByteSize());
-                            resp.SerializeToArray(timeout_resp_pkg->data, timeout_resp_pkg->data_len);
-                            m_response_q.push(timeout_resp_pkg);
-                            //printf("send fake resp for async req %s\n", cb->getReqId().c_str());
+                            timeoutCb(cb->getReqId(), false);
                         }
                         continue;
 
