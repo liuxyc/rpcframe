@@ -1,6 +1,6 @@
 import os
 #gen rpcframe proto
-os.system("thirdparty/protobuf-261/bin/protoc --cpp_out=common/proto/ -Icommon/proto common/proto/rpc.proto")
+os.system("LD_LIBRARY_PATH=./thirdparty/protobuf-261/lib/ thirdparty/protobuf-261/bin/protoc --cpp_out=common/proto/ -Icommon/proto common/proto/rpc.proto")
 
 env = Environment(CCFLAGS = '-std=c++11 -g -Wall -O3')
 
