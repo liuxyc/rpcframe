@@ -119,6 +119,9 @@ public:
 
     const RpcClientConfig &getConfig();
 
+    RpcClient(const RpcClient &) = delete;
+    RpcClient &operator=(const RpcClient &) = delete;
+
 private:
     RpcClientConfig m_cfg;
     bool m_isConnected;

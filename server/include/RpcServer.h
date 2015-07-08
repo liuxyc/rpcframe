@@ -38,6 +38,9 @@ public:
     bool start();
     void stop();
 
+    RpcServer(const RpcServer &) = delete;
+    RpcServer &operator=(const RpcServer &) = delete;
+
 private:
     RpcServerImpl *m_server_impl;
 };

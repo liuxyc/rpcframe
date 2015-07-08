@@ -36,6 +36,8 @@ public:
     void dealTimeoutCb();
     RespQueue m_response_q;
 
+    RpcEventLooper(const RpcEventLooper &) = delete;
+    RpcEventLooper &operator=(const RpcEventLooper &) = delete;
 private:
     void addConnection();
     void removeConnection();

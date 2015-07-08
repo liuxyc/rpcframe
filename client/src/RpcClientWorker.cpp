@@ -8,6 +8,7 @@
 #include <stdlib.h>  
 #include <string.h>  
 #include <unistd.h>
+#include <sys/prctl.h>
 
 #include "RpcClientWorker.h"
 #include "RpcClientConn.h"
@@ -36,6 +37,7 @@ void RpcClientWorker::stop() {
 }
 
 void RpcClientWorker::run() {
+    prctl(PR_SET_NAME, "RpcClientWorker", 0, 0, 0); 
     while(1) {
         if (m_stop) {
             break;

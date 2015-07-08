@@ -7,6 +7,7 @@
 #include <stdlib.h>  
 #include <string.h>  
 #include <unistd.h>
+#include <sys/prctl.h>
 
 #include "RpcWorker.h"
 #include "RpcRespBroker.h"
@@ -35,6 +36,7 @@ void RpcWorker::stop() {
 }
 
 void RpcWorker::run() {
+    prctl(PR_SET_NAME, "RpcSWorker", 0, 0, 0); 
     while(1) {
         if (m_stop) {
             break;
@@ -51,7 +53,7 @@ void RpcWorker::run() {
             RpcInnerResp resp;
             resp.set_request_id(req.request_id());
             if (p_service != NULL) {
-                RpcRespBroker *rpcbroker = new RpcRespBroker(m_server, pkg->connection_id, req.request_id(),
+                IRpcRespBroker *rpcbroker = new RpcRespBroker(m_server, pkg->connection_id, req.request_id(),
                                                             (req.type() == RpcInnerReq::TWO_WAY));
 
                 RpcStatus ret = p_service->runService(req.method_name(), 

@@ -16,7 +16,7 @@ env.StaticLibrary('rpcframe', rpcframe_src_files,
 env.Install('./output/include/', 'client/include/RpcClient.h')
 env.Install('./output/include/', 'common/include/RpcDefs.h')
 env.Install('./output/include/', 'server/include/RpcServer.h')
-env.Install('./output/include/', 'server/include/RpcRespBroker.h')
+env.Install('./output/include/', 'server/include/IRpcRespBroker.h')
 env.Install('./output/include/', 'server/include/IService.h')
 env.Install('./output/lib/', 'librpcframe.a')
 Clean('', './output')

@@ -6,7 +6,7 @@
 #ifndef RPCFRAME_ISERVICE
 #define RPCFRAME_ISERVICE
 
-#include "RpcRespBroker.h"
+#include "IRpcRespBroker.h"
 #include "RpcDefs.h"
 #include <map>
 #include <string>
@@ -16,12 +16,12 @@ namespace rpcframe {
 #define RPC_ADD_METHOD(class_name, method_name) m_method_map[#method_name] = &class_name::method_name;
 
 #define REG_METHOD(class_name) \
-    typedef rpcframe::RpcStatus (class_name::*METHOD_FUNC)(const std::string &, std::string &, rpcframe::RpcRespBroker *); \
+    typedef rpcframe::RpcStatus (class_name::*METHOD_FUNC)(const std::string &, std::string &, rpcframe::IRpcRespBroker *); \
     std::map<std::string, METHOD_FUNC> m_method_map; \
     rpcframe::RpcStatus runService(const std::string &method_name, \
                           const std::string &request_data, \
                           std::string &resp_data, \
-                          rpcframe::RpcRespBroker *resp_broker) \
+                          rpcframe::IRpcRespBroker *resp_broker) \
     { \
         if (m_method_map.find(method_name) != m_method_map.end()) { \
             METHOD_FUNC p_fun = m_method_map[method_name]; \
@@ -48,7 +48,7 @@ public:
      *
      * @return 
      */
-    virtual RpcStatus runService(const std::string &method_name, const std::string &req_data, std::string &resp_data, RpcRespBroker *resp_broker) = 0;
+    virtual RpcStatus runService(const std::string &method_name, const std::string &req_data, std::string &resp_data, IRpcRespBroker *resp_broker) = 0;
 
 };
 

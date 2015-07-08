@@ -26,13 +26,13 @@ public:
     //method1
     rpcframe::RpcStatus test_method_async(const std::string &request_data, 
                                                      std::string &resp_data, 
-                                                     rpcframe::RpcRespBroker *resp_broker) 
+                                                     rpcframe::IRpcRespBroker *resp_broker) 
     {
         //printf("my method get %s\n", request_data.c_str());
         //make a async response
         std::thread *t = new std::thread([resp_broker](){
                 //must delete broker after call resp_broker->response
-                std::unique_ptr<rpcframe::RpcRespBroker> broker_ptr(resp_broker);
+                std::unique_ptr<rpcframe::IRpcRespBroker> broker_ptr(resp_broker);
                 std::this_thread::sleep_for(std::chrono::seconds(5));
                 broker_ptr->response("my feedback async");
                 });
@@ -70,7 +70,7 @@ public:
     //method1
     rpcframe::RpcStatus test_method(const std::string &request_data, 
                                                std::string &resp_data, 
-                                               rpcframe::RpcRespBroker *resp_broker) 
+                                               rpcframe::IRpcRespBroker *resp_broker) 
     {
         //printf("my method get %s\n", request_data.c_str());
         resp_data = "my feedback";
@@ -85,7 +85,7 @@ public:
     //method2
     rpcframe::RpcStatus test_method1(const std::string &request_data, 
                                                 std::string &resp_data, 
-                                                rpcframe::RpcRespBroker *resp_broker) 
+                                                rpcframe::IRpcRespBroker *resp_broker) 
     {
         //printf("my method1 get %s\n", request_data.c_str());
         resp_data = "my feedback1";
@@ -99,7 +99,7 @@ public:
     //method3
     rpcframe::RpcStatus test_method2(const std::string &request_data, 
                                                 std::string &resp_data, 
-                                                rpcframe::RpcRespBroker *resp_broker) 
+                                                rpcframe::IRpcRespBroker *resp_broker) 
     {
         //printf("my method1 get %s\n", request_data.c_str());
         resp_data = std::string("my feedback3");
@@ -109,7 +109,7 @@ public:
     //method big resp
     rpcframe::RpcStatus test_method_big_resp(const std::string &request_data, 
                                                         std::string &resp_data, 
-                                                        rpcframe::RpcRespBroker *resp_broker) 
+                                                        rpcframe::IRpcRespBroker *resp_broker) 
     {
         //printf("my method1 get %s\n", request_data.c_str());
         resp_data = std::string(1024*1024*40, 'a');
