@@ -196,7 +196,14 @@ void RpcEventLooper::timeoutCb(const std::string &req_id, bool is_lock) {
     resp.set_ret_val(static_cast<uint32_t>(RpcStatus::RPC_SERVER_NONE));
     resp.set_data("");
     response_pkg *timeout_resp_pkg = new response_pkg(resp.ByteSize());
-    resp.SerializeToArray(timeout_resp_pkg->data, timeout_resp_pkg->data_len);
+    if (!resp.SerializeToArray(timeout_resp_pkg->data, timeout_resp_pkg->data_len)) {
+        printf("[ERROR]serialize internal pkg fail\n");
+        delete timeout_resp_pkg;
+        if (is_lock) {
+            m_mutex.unlock();
+        }
+        return;
+    }
     m_response_q.push(timeout_resp_pkg);
     //printf("send fake resp for sync req %s\n", req_id.c_str());
     if (is_lock) {

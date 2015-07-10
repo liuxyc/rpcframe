@@ -48,7 +48,10 @@ void RpcClientWorker::run() {
 
             //must get request id from here
             RpcInnerResp resp;
-            resp.ParseFromArray(pkg->data, pkg->data_len);
+            if(!resp.ParseFromArray(pkg->data, pkg->data_len)) {
+                printf("[ERROR]parse internal pkg fail\n");
+                continue;
+            }
             RpcClientCallBack *cb = m_ev->getCb(resp.request_id());
             if (cb != NULL) {
                 std::string cb_type = cb->getType();

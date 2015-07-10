@@ -202,6 +202,7 @@ int RpcServerConn::sendData()
                     MSG_NOSIGNAL | MSG_DONTWAIT);  
     if (slen <= 0) {
         if (slen == 0 || errno == EPIPE) {
+            delete m_sent_pkg;
             printf("peer closed\n");
             return -1;
         }

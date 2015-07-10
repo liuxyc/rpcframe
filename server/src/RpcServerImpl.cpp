@@ -306,7 +306,11 @@ void RpcServerImpl::onDataIn(const int fd) {
         {  
             if (pkgret.second != NULL) {
                 //got a full request, put to worker queue
-                m_request_q.push(pkgret.second);
+                if ( !m_request_q.push(pkgret.second)) {
+                    //queue fail, drop pkg
+                    printf("[WARNING]server queue fail, drop pkg\n");
+                    delete pkgret.second;
+                }
             }
         }  
     }
@@ -403,7 +407,11 @@ void RpcServerImpl::pushResp(std::string conn_id, response_pkg *resp_pkg)
     std::lock_guard<std::mutex> mlock(m_mutex);
     if (m_conn_set.find(conn_id) != m_conn_set.end()) {
         RpcServerConn *conn = m_conn_set[conn_id];
-        conn->m_response_q.push(resp_pkg);
+        if (!conn->m_response_q.push(resp_pkg)) {
+            printf("[WARNING]server resp queue fail, drop resp pkg\n");
+            delete resp_pkg;
+            return;
+        }
         m_resp_conn_q.push(conn_id);
         uint64_t resp_cnt = 1;
         ssize_t s = write(m_resp_ev_fd, &(resp_cnt), sizeof(uint64_t));

@@ -84,8 +84,6 @@ public:
     int m_connect_timeout;
 };
 
-class server_resp_pkg;
-
 //NOTICE: start/stop RpcClient is heavy, keep the instance as long as possiable
 class RpcClient
 {

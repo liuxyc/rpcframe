@@ -46,7 +46,11 @@ void RpcWorker::run() {
             std::unique_ptr<request_pkg> u_ptr(pkg);
             //must get request id from here
             RpcInnerReq req;
-            req.ParseFromArray(pkg->data, pkg->data_len);
+            if (!req.ParseFromArray(pkg->data, pkg->data_len)) {
+                printf("[ERROR]parse internal pkg fail\n");
+                continue;
+            }
+
 
             std::string resp_data;
             IService *p_service = m_server->getService(req.service_name());
@@ -84,9 +88,14 @@ void RpcWorker::run() {
             if (req.type() == RpcInnerReq::TWO_WAY) {
                 resp.set_data(resp_data);
                 response_pkg *resp_pkg = new response_pkg(resp.ByteSize());
-                resp.SerializeToArray(resp_pkg->data, resp_pkg->data_len);
-                //put response to connection queue, max worker throughput
-                m_server->pushResp(pkg->connection_id, resp_pkg);
+                if(!resp.SerializeToArray(resp_pkg->data, resp_pkg->data_len)) {
+                    delete resp_pkg;
+                    printf("[ERROR]serialize innernal pkg fail\n");
+                }
+                else {
+                    //put response to connection queue, max worker throughput
+                    m_server->pushResp(pkg->connection_id, resp_pkg);
+                }
             }
 
         } 

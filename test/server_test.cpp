@@ -20,8 +20,12 @@ public:
     MyService_async(){
         //to make your method to be callable, must write RPC_ADD_METHOD(your_class_name, your_method_name)
         RPC_ADD_METHOD(MyService_async, test_method_async)
+        m_t = NULL;
     };
-    virtual ~MyService_async(){};
+    virtual ~MyService_async(){
+        delete m_t;
+    
+    };
 
     //method1
     rpcframe::RpcStatus test_method_async(const std::string &request_data, 
@@ -30,13 +34,13 @@ public:
     {
         //printf("my method get %s\n", request_data.c_str());
         //make a async response
-        std::thread *t = new std::thread([resp_broker](){
+        m_t = new std::thread([resp_broker](){
                 //must delete broker after call resp_broker->response
                 std::unique_ptr<rpcframe::IRpcRespBroker> broker_ptr(resp_broker);
                 std::this_thread::sleep_for(std::chrono::seconds(5));
                 broker_ptr->response("my feedback async");
                 });
-        t->get_id();
+        m_t->get_id();
         /*
            Don't delete resp_broker if you return rpcframe::RpcStatus::RPC_SERVER_OK
 
@@ -48,6 +52,7 @@ public:
            */
         return rpcframe::RpcStatus::RPC_SERVER_NONE;
     };
+    std::thread *m_t;
 
 };
 
