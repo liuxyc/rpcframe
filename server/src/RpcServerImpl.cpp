@@ -153,7 +153,7 @@ bool RpcServerImpl::startListen() {
     //listen socket epoll event
     struct epoll_event ev;  
     memset(&ev, 0, sizeof(ev));
-    ev.events = EPOLLIN | EPOLLERR | EPOLLHUP;  
+    ev.events = EPOLLIN;  
     ev.data.fd = m_listen_socket;
     epoll_ctl(m_epoll_fd, EPOLL_CTL_ADD, m_listen_socket, &ev);  
 
@@ -165,7 +165,7 @@ bool RpcServerImpl::startListen() {
     }
 
     memset(&ev, 0, sizeof(ev));
-    ev.events = EPOLLIN | EPOLLERR | EPOLLHUP;  
+    ev.events = EPOLLIN;  
     ev.data.fd = m_resp_ev_fd;
     epoll_ctl(m_epoll_fd, EPOLL_CTL_ADD, m_resp_ev_fd, &ev);  
 
@@ -188,7 +188,7 @@ void RpcServerImpl::onDataOut(const int fd) {
             struct epoll_event event_mod;  
             memset(&event_mod, 0, sizeof(event_mod));
             event_mod.data.fd = fd;
-            event_mod.events = EPOLLIN | EPOLLERR | EPOLLHUP;
+            event_mod.events = EPOLLIN;
             epoll_ctl(m_epoll_fd, EPOLL_CTL_MOD, event_mod.data.fd, &event_mod);
         }
     }
@@ -225,9 +225,9 @@ bool RpcServerImpl::onDataOutEvent() {
         if (m_conn_set.find(connid) != m_conn_set.end()) {
             //we have resp data to send
             RpcServerConn *conn = m_conn_set[connid];
-            printf("conn %s resp queue len %lu\n", 
-                    conn->m_seqid.c_str(), 
-                    conn->m_response_q.size());
+            //printf("conn %s resp queue len %lu\n", 
+                    //conn->m_seqid.c_str(), 
+                    //conn->m_response_q.size());
             int sent_ret = conn->sendResponse();
             if (sent_ret == -1 ) {
                 removeConnection(conn->getFd());
@@ -238,9 +238,9 @@ bool RpcServerImpl::onDataOutEvent() {
                 //until this resp send finish
                 struct epoll_event ev;  
                 memset(&ev, 0, sizeof(ev));
-                ev.events = EPOLLIN | EPOLLOUT | EPOLLERR | EPOLLHUP;
+                ev.events = EPOLLIN | EPOLLOUT;
                 ev.data.fd = conn->getFd();
-                epoll_ctl(m_epoll_fd, EPOLL_CTL_MOD, conn->getFd(), &ev);  
+                epoll_ctl(m_epoll_fd, EPOLL_CTL_MOD, ev.data.fd, &ev);  
             }
             else {
                 //printf("sent to %d\n", conn->getFd());
@@ -248,7 +248,7 @@ bool RpcServerImpl::onDataOutEvent() {
                 struct epoll_event event_mod;  
                 memset(&event_mod, 0, sizeof(event_mod));
                 event_mod.data.fd = conn->getFd();
-                event_mod.events = EPOLLIN | EPOLLERR | EPOLLHUP;
+                event_mod.events = EPOLLIN;
                 epoll_ctl(m_epoll_fd, EPOLL_CTL_MOD, event_mod.data.fd, &event_mod);
             }
         }
@@ -280,7 +280,7 @@ void RpcServerImpl::onAccept() {
         //fcntl(new_client_socket, F_SETFL, fcntl(new_client_socket, F_GETFL) | O_NONBLOCK);
         struct epoll_event ev;  
         memset(&ev, 0, sizeof(ev));
-        ev.events = EPOLLIN | EPOLLERR | EPOLLHUP;
+        ev.events = EPOLLIN ;
         ev.data.fd = new_client_socket;
         epoll_ctl(m_epoll_fd, EPOLL_CTL_ADD, new_client_socket, &ev);  
         m_seqid++;
@@ -324,6 +324,9 @@ bool RpcServerImpl::start() {
     struct epoll_event events[RPC_MAX_SOCKFD_COUNT];  
     while(!m_stop) {
         int nfds = epoll_wait(m_epoll_fd, events, RPC_MAX_SOCKFD_COUNT, 2000);  
+        if ( nfds == -1) {
+            perror("epoll_pwait\n");
+        }
         for (int i = 0; i < nfds; i++)  
         {  
             int client_socket = events[i].data.fd;  
@@ -349,11 +352,12 @@ bool RpcServerImpl::start() {
                 }
             }  
 
-            if (!(events[i].events & EPOLLIN) && !(events[i].events & EPOLLOUT))  
-            {  
-                printf("EPOLL ERROR\n");
-                epoll_ctl(m_epoll_fd, EPOLL_CTL_DEL, events[i].data.fd, &events[i]);  
-            }  
+            if (events[i].events & EPOLLERR) {
+                printf("EPOLL ERROR %s\n", strerror(errno));
+            }
+            if (events[i].events & EPOLLHUP) {
+                printf("EPOLL HUP %s\n", strerror(errno));
+            }
         }  
         //printf("server eloop request queue len %lu\n", m_request_q.size());
     }
@@ -375,10 +379,7 @@ void RpcServerImpl::setSocketKeepAlive(int fd)
 void RpcServerImpl::removeConnection(int fd)
 {
     std::lock_guard<std::mutex> mlock(m_mutex);
-    struct epoll_event event_del;  
-    event_del.data.fd = fd;
-    event_del.events = 0;  
-    epoll_ctl(m_epoll_fd, EPOLL_CTL_DEL, event_del.data.fd, &event_del);
+    epoll_ctl(m_epoll_fd, EPOLL_CTL_DEL, fd, NULL);
     if (m_conn_map.find(fd) != m_conn_map.end()) {
         m_conn_set.erase(m_conn_map[fd]->m_seqid);
         delete m_conn_map[fd];

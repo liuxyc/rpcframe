@@ -33,32 +33,39 @@ public:
 
 int main()
 {
-    int conn_cnt = 1;
     int pkg_cnt = 2;
     auto endp = std::make_pair("localhost", 8801);
     rpcframe::RpcClientConfig ccfg(endp);
 
     rpcframe::RpcClient client(ccfg, "test_service");
     //async with big resp
-    for (int cnt = 0; cnt < conn_cnt; ++cnt) {
-        for (int pcnt = 0; pcnt < pkg_cnt; ++pcnt) {
-            if(rpcframe::RpcStatus::RPC_SEND_OK != client.async_call("test_method_big_resp", 
-                                                                     std::string(1024 * 10, '*'), 
-                                                                     10, 
-                                                                     new my_CB())) 
-            {
-                printf("send fail\n");
-            }
+    for (int pcnt = 0; pcnt < pkg_cnt; ++pcnt) {
+        if(rpcframe::RpcStatus::RPC_SEND_OK != client.async_call("test_method_big_resp", 
+                                                                 std::string(1024 * 10, '*'), 
+                                                                 10, 
+                                                                 new my_CB())) 
+        {
+            printf("send fail\n");
         }
     }
     client.async_call("test_method_big_resp_unknow", "unknow", 2, new my_CB());
+
+    //call not exist service
+    rpcframe::RpcClient client_wrong_srv(ccfg, "test_service_not_exist");
+    client_wrong_srv.async_call("test_method_big_resp_unknow", "unknow", 2, new my_CB());
+    std::string resp_wrong_data;
+    if (rpcframe::RpcStatus::RPC_SRV_NOTFOUND == client_wrong_srv.call("test_method_big_resp_unknow", "unknow", resp_wrong_data, 2)) {
+        printf("call unknow serivce back\n");
+    }
     sleep(3);
-    conn_cnt = 10;
-    pkg_cnt = 10000;
+
+    int conn_cnt = 10;
+    pkg_cnt = 1000;
     //fast async/sync call
     for (int cnt = 0; cnt < conn_cnt; ++cnt) {
+        rpcframe::RpcClient newclient(ccfg, "test_service");
         for (int pcnt = 0; pcnt < pkg_cnt; ++pcnt) {
-            if(rpcframe::RpcStatus::RPC_SEND_OK != client.async_call("test_method2", 
+            if(rpcframe::RpcStatus::RPC_SEND_OK != newclient.async_call("test_method2", 
                                                                 std::string(1024 * 10, '*'), 
                                                                 10, 
                                                                 new my_CB())) 
@@ -79,29 +86,27 @@ int main()
              */
         }
     }
-    conn_cnt = 1;
+
     pkg_cnt = 10;
     //round 1, async call all callback will timeout
     printf("round 1\n");
-    for (int cnt = 0; cnt < conn_cnt; ++cnt) {
-        for (int pcnt = 0; pcnt < pkg_cnt; ++pcnt) {
-            std::random_device rd;
-            uint32_t len = rd();
-            if ( len > 1024 * 100 ) {
-                len = len % (1024 *100);
-            }
-            if ( len <= 0) {
-                len = 10;
-            }
-            if( rpcframe::RpcStatus::RPC_SEND_OK != client.async_call("test_method", 
-                                                                      std::string(len, '*'), 
-                                                                      2, 
-                                                                      new my_CB())) 
-            {
-                printf("r1 send fail\n");
-            }
-            client.async_call("test_method", std::string(len, '*'), 4, NULL);
+    for (int pcnt = 0; pcnt < pkg_cnt; ++pcnt) {
+        std::random_device rd;
+        uint32_t len = rd();
+        if ( len > 1024 * 100 ) {
+            len = len % (1024 *100);
         }
+        if ( len <= 0) {
+            len = 10;
+        }
+        if( rpcframe::RpcStatus::RPC_SEND_OK != client.async_call("test_method", 
+                                                                  std::string(len, '*'), 
+                                                                  2, 
+                                                                  new my_CB())) 
+        {
+            printf("r1 send fail\n");
+        }
+        client.async_call("test_method", std::string(len, '*'), 4, NULL);
     }
     sleep(30);
     //round 2 async and sync call, random callback timeout
@@ -153,7 +158,7 @@ int main()
     client_call_async_server.async_call("test_method_async", std::string(20, '*'), 10, NULL);
     client_call_async_server.call("test_method_async", std::string(10, '*'), resp_data, 10);
     printf("async server back: %s\n", resp_data.c_str());
-    sleep(3);
+    sleep(5);
     for(uint32_t i = 0; i < 100000; ++i) {
         std::random_device rd;
         uint32_t len = rd();
@@ -172,7 +177,6 @@ int main()
         }
         client.async_call("test_method2", std::string(len, '*'), 4, NULL);
     }
-    sleep(90000);
     return 0;
 }
 
