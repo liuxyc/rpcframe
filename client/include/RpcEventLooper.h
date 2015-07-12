@@ -10,6 +10,7 @@
 #include <map>
 #include <atomic>
 #include <thread>
+#include <ctime>
 #include "Queue.h"
 #include "RpcDefs.h"
 #include "RpcPackage.h"
@@ -53,7 +54,7 @@ private:
     std::unordered_map<std::string, RpcClientCallBack *> m_cb_map;
     RpcClientWorker *m_worker;
     std::thread *m_worker_th;
-    std::map<std::string, std::string> m_cb_timer_map;
+    std::multimap<std::time_t, std::string> m_cb_timer_map;
     uint32_t m_req_seqid;
     std::string m_host_ip;
 

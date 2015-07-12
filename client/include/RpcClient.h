@@ -109,7 +109,7 @@ public:
      * @param method_name
      * @param request_data
      * @param timeout
-     * @param cb_obj
+     * @param cb_obj RpcClient will not delete cb_obj, user should delete if it no longer used
      *
      * @return 
      */

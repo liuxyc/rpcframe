@@ -130,7 +130,7 @@ RpcStatus RpcEventLooper::sendReq(
         << "_" << m_host_ip
         << "_" << std::to_string(m_req_seqid);
     req_id = ssm.str();
-    std::string tm_id;
+    std::time_t tm_id;
     uint32_t cb_timeout = 0;
     if (cb_obj != NULL) {
         cb_obj->setReqId(req_id);
@@ -139,7 +139,7 @@ RpcStatus RpcEventLooper::sendReq(
         m_mutex.unlock();
         cb_timeout = cb_obj->getTimeout();
         if( cb_timeout > 0) {
-            tm_id = std::to_string(std::time(nullptr)) + "_" + std::to_string(m_req_seqid);
+            tm_id = std::time(nullptr) + cb_timeout;
             m_mutex.lock();
             m_cb_timer_map.insert(std::make_pair(tm_id, req_id));
             m_mutex.unlock();
@@ -222,10 +222,8 @@ void RpcEventLooper::dealTimeoutCb() {
             if (m_cb_map.find(reqid) != m_cb_map.end()) { 
                 RpcClientCallBack *cb = m_cb_map[reqid];
                 if(cb != NULL) {
-                    std::string tm_str = cur_it->first;
-                    size_t endp = tm_str.find("_");
-                    std::time_t tm = std::stoul(tm_str.substr(0, endp));
-                    if((std::time(nullptr) - tm) > cb->getTimeout()) {
+                    std::time_t tm = cur_it->first;
+                    if(std::time(nullptr) > tm) {
                         //found a timeout cb
                         //printf("%s timeout\n", cb->getReqId().c_str());
                         //cb->callback(RpcStatus::RPC_CB_TIMEOUT, "");

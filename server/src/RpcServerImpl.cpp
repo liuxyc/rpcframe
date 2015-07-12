@@ -353,10 +353,10 @@ bool RpcServerImpl::start() {
             }  
 
             if (events[i].events & EPOLLERR) {
-                printf("EPOLL ERROR %s\n", strerror(errno));
+                printf("EPOLL ERROR\n");
             }
             if (events[i].events & EPOLLHUP) {
-                printf("EPOLL HUP %s\n", strerror(errno));
+                printf("EPOLL HUP\n");
             }
         }  
         //printf("server eloop request queue len %lu\n", m_request_q.size());
