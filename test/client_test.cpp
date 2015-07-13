@@ -19,7 +19,7 @@ public:
     virtual ~my_CB() {};
 
     virtual void callback(const rpcframe::RpcStatus status, const std::string &response_data) {
-        if (status != rpcframe::RpcStatus::RPC_CB_OK) {
+        if (status != rpcframe::RpcStatus::RPC_SERVER_OK) {
             printf("client cb return %d\n", status);
         }
         else {
@@ -137,7 +137,7 @@ int main()
             std::string resp_data;
             rpcframe::RpcStatus ret_st = 
                     client2.call("test_method1", "aaaaaaabbbbbbbbccccccc", resp_data, 3);
-            if (rpcframe::RpcStatus::RPC_CB_OK == ret_st) {
+            if (rpcframe::RpcStatus::RPC_SERVER_OK == ret_st) {
                 printf("test_method1 back %s\n", resp_data.c_str());
             }
             else {
