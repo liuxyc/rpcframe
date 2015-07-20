@@ -5,6 +5,7 @@ message RpcInnerReq {
     enum RPC_TYPE {
         ONE_WAY = 0;
         TWO_WAY = 1;
+        HTTP = 2;
     }
     required RPC_TYPE type = 4;
     required string data = 5;

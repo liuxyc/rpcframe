@@ -18,6 +18,7 @@ public:
     : connection_id(conn_id)
     , data(NULL)
     , data_len(size)
+    , http_conn(NULL)
     {
         data = new char[size];
     };
@@ -28,6 +29,7 @@ public:
     std::string connection_id;
     char *data;
     uint32_t data_len;
+    void *http_conn;
     request_pkg(const request_pkg &) = delete;
     request_pkg &operator=(const request_pkg &) = delete;
 

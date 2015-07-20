@@ -84,6 +84,10 @@ public:
         m_mutex.unlock();
         //make timeout
         std::this_thread::sleep_for(std::chrono::seconds(5));
+        if (resp_broker->isFromHttp()) {
+            resp_data = "<html><body><h1>this response for http</h1></body></html>";
+        }
+
         return rpcframe::RpcStatus::RPC_SERVER_OK;
     };
 
@@ -131,6 +135,7 @@ int main(int argc, char * argv[])
     auto endp = std::make_pair("127.0.0.1", 8801);
     rpcframe::RpcServerConfig cfg(endp);
     cfg.setThreadNum(4);
+    cfg.enableHttp(8000);
     rpcframe::RpcServer rpcServer(cfg);
     MyService ms;
     MyService_async ms_async;

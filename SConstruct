@@ -6,6 +6,7 @@ env = Environment(CCFLAGS = '-std=c++11 -g -Wall -O3')
 
 #rpcframe static library
 rpcframe_src_files = Glob('server/src/*.cpp') 
+rpcframe_src_files.append(Glob('server/src/*.c'))
 rpcframe_src_files.append(Glob('client/src/*.cpp'))
 rpcframe_src_files.append('common/proto/rpc.pb.cc')
 rpcframe_src_files.append(Glob('common/src/*.cpp'))

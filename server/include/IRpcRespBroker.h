@@ -31,6 +31,13 @@ public:
      * @return 
      */
     virtual bool isNeedResp() = 0;
+
+    /**
+     * @brief check whether the request is http request
+     *
+     * @return 
+     */
+    virtual bool isFromHttp() = 0;
 };
 
 };

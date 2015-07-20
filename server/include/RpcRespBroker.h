@@ -22,6 +22,7 @@ public:
     RpcRespBroker(RpcServerImpl *server, const std::string &conn_id, const std::string &req_id, bool needResp);
     bool response(const std::string &resp_data);
     bool isNeedResp();
+    bool isFromHttp();
 
     RpcRespBroker(const RpcRespBroker &) = delete;
     RpcRespBroker &operator=(const RpcRespBroker &) = delete;

@@ -32,6 +32,10 @@ bool RpcRespBroker::isNeedResp() {
     return m_need_resp;
 }
 
+bool RpcRespBroker::isFromHttp() {
+    return (m_conn_id == "http_connection");
+}
+
 bool RpcRespBroker::response(const std::string &resp_data) {
     if(m_need_resp) {
         RpcInnerResp resp;

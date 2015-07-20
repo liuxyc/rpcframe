@@ -22,6 +22,7 @@
 #include "util.h"
 #include "RpcPackage.h"
 #include "RpcWorker.h"
+#include "RpcHttpServer.h"
 
 #define RPC_MAX_SOCKFD_COUNT 65535 
 
@@ -60,6 +61,21 @@ void RpcServerConfig::setMaxConnection(uint32_t max_conn_num)
     m_max_conn_num = max_conn_num;
 }
 
+void RpcServerConfig::enableHttp(int port)
+{
+    m_http_port = port;
+}
+
+void RpcServerConfig::disableHttp()
+{
+    m_http_port = -1;
+}
+
+int RpcServerConfig::getHttpPort()
+{
+    return m_http_port;
+}
+
 RpcServerImpl::RpcServerImpl(RpcServerConfig &cfg)
 : m_cfg(cfg)
 , m_seqid(0)
@@ -73,6 +89,10 @@ RpcServerImpl::RpcServerImpl(RpcServerConfig &cfg)
         std::thread *th = new std::thread(&RpcWorker::run, rw);
         m_thread_vec.push_back(th);
         m_worker_vec.push_back(rw);
+    }
+    if (cfg.getHttpPort() != -1) {
+        RpcHttpServer *m_http_server = new RpcHttpServer(cfg, this);
+        std::thread *http_th = new std::thread(&RpcHttpServer::start, m_http_server);
     }
 }
 
@@ -316,6 +336,10 @@ void RpcServerImpl::onDataIn(const int fd) {
     }
 }
 
+bool RpcServerImpl::pushReq(request_pkg *req_pkg) {
+    return m_request_q.push(req_pkg);
+}
+
 bool RpcServerImpl::start() {
     if(!startListen()) {
         printf("start listen failed\n");
@@ -429,6 +453,7 @@ void RpcServerImpl::pushResp(std::string conn_id, response_pkg *resp_pkg)
 
 void RpcServerImpl::stop() {
     m_stop = true;
+    m_http_server->stop();
     for(auto rw: m_worker_vec) {
         rw->stop();
     }

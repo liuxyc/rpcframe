@@ -23,6 +23,7 @@ class request_pkg;
 class response_pkg;
 class RpcWorker;
 class IService;
+class RpcHttpServer;
 
 typedef std::unordered_map<std::string, IService *> ServiceMap;
 
@@ -56,6 +57,8 @@ public:
     void addConnection(int fd, RpcServerConn *conn);
     RpcServerConn *getConnection(int fd);
     void pushResp(std::string seqid, response_pkg *resp_pkg);
+    bool pushReq(request_pkg *req_pkg);
+    RpcHttpServer *m_http_server;
 
 private:
     bool startListen();

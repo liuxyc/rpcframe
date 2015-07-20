@@ -14,6 +14,7 @@
 #include "RpcServerConn.h"
 #include "RpcServerImpl.h"
 #include "rpc.pb.h"
+#include "mongoose.h"
 
 namespace rpcframe
 {
@@ -51,7 +52,6 @@ void RpcWorker::run() {
                 continue;
             }
 
-
             std::string resp_data;
             IService *p_service = m_server->getService(req.service_name());
             RpcInnerResp resp;
@@ -72,9 +72,17 @@ void RpcWorker::run() {
                     case RpcStatus::RPC_METHOD_NOTFOUND:
                         delete rpcbroker;
                         printf("[WARNING]Unknow method request #%s#\n", req.method_name().c_str());
+                        if(req.type() == RpcInnerReq::HTTP) {
+                            mg_connection *conn = (struct mg_connection *)pkg->http_conn;
+                            sendHttpFail(conn, resp_data);
+                        }
                         break;
                     case RpcStatus::RPC_SERVER_FAIL:
                         delete rpcbroker;
+                        if(req.type() == RpcInnerReq::HTTP) {
+                            mg_connection *conn = (struct mg_connection *)pkg->http_conn;
+                            sendHttpFail(conn, resp_data);
+                        }
                         printf("[WARNING]method call fail #%s#\n", req.method_name().c_str());
                         break;
                     default:
@@ -84,6 +92,10 @@ void RpcWorker::run() {
             else {
                 resp.set_ret_val(static_cast<uint32_t>(RpcStatus::RPC_SRV_NOTFOUND));
                 printf("[WARNING]Unknow service request #%s#\n", req.service_name().c_str());
+                if(req.type() == RpcInnerReq::HTTP) {
+                    mg_connection *conn = (struct mg_connection *)pkg->http_conn;
+                    sendHttpFail(conn, resp_data);
+                }
             }
             if (req.type() == RpcInnerReq::TWO_WAY) {
                 resp.set_data(resp_data);
@@ -97,12 +109,33 @@ void RpcWorker::run() {
                     m_server->pushResp(pkg->connection_id, resp_pkg);
                 }
             }
+            else if(req.type() == RpcInnerReq::HTTP) {
+                mg_connection *conn = (struct mg_connection *)pkg->http_conn;
+                sendHttpOk(conn, resp_data);
+            }
 
         } 
         else {
             //printf("thread: %lu, no data\n", std::this_thread::get_id());
         }
     }
+}
+
+void RpcWorker::sendHttpOk(mg_connection *conn, const std::string &resp) {
+    mg_send_header(conn, "Content-Type", "text/plain");
+    mg_send_header(conn, "Content-Length", std::to_string(resp.size()).c_str());
+    mg_send_header(conn, "Connection", "close");
+    mg_write(conn, "\r\n", 2);
+    mg_printf(conn, resp.c_str());
+}
+
+void RpcWorker::sendHttpFail(mg_connection *conn, const std::string &resp) {
+    //TODO:send HTTP return code for fail
+    mg_send_header(conn, "Content-Type", "text/plain");
+    mg_send_header(conn, "Content-Length", std::to_string(resp.size()).c_str());
+    mg_send_header(conn, "Connection", "close");
+    mg_write(conn, "\r\n", 2);
+    mg_printf(conn, resp.c_str());
 }
 
 };

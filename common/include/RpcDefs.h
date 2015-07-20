@@ -5,7 +5,8 @@
 
 #ifndef RPCFRAME_RPCDEFS
 #define RPCFRAME_RPCDEFS
-
+#include <utility>
+#include <string>
 
 namespace rpcframe
 {
@@ -30,11 +31,15 @@ public:
     void setThreadNum(uint32_t thread_num);
     uint32_t getThreadNum();
     void setMaxConnection(uint32_t max_conn_num);
+    void enableHttp(int port);
+    void disableHttp();
+    int getHttpPort();
 
     uint32_t m_thread_num;
     std::string m_hostname;
     int m_port;
     uint32_t m_max_conn_num;
+    int m_http_port;
 };
 };
 #endif
