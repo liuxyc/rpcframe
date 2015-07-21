@@ -36,6 +36,10 @@ void RpcWorker::stop() {
     m_stop = true;
 }
 
+//FIXME:any HTTP related code is not work!
+//mongoose is not thread safe, deal http request is not avaliable in RpcWorker
+//need find new solution to replace the mg_* code
+//the new solution should support handle "conn" per thread
 void RpcWorker::run() {
     prctl(PR_SET_NAME, "RpcSWorker", 0, 0, 0); 
     while(1) {
@@ -49,6 +53,10 @@ void RpcWorker::run() {
             RpcInnerReq req;
             if (!req.ParseFromArray(pkg->data, pkg->data_len)) {
                 printf("[ERROR]parse internal pkg fail\n");
+                if(req.type() == RpcInnerReq::HTTP) {
+                    mg_connection *conn = (struct mg_connection *)pkg->http_conn;
+                    sendHttpFail(conn, 500, "");
+                }
                 continue;
             }
 
@@ -68,22 +76,26 @@ void RpcWorker::run() {
                 switch (ret) {
                     case RpcStatus::RPC_SERVER_OK:
                         delete rpcbroker;
+                        if(req.type() == RpcInnerReq::HTTP) {
+                            mg_connection *conn = (struct mg_connection *)pkg->http_conn;
+                            sendHttpOk(conn, resp_data);
+                        }
                         break;
                     case RpcStatus::RPC_METHOD_NOTFOUND:
                         delete rpcbroker;
                         printf("[WARNING]Unknow method request #%s#\n", req.method_name().c_str());
                         if(req.type() == RpcInnerReq::HTTP) {
                             mg_connection *conn = (struct mg_connection *)pkg->http_conn;
-                            sendHttpFail(conn, resp_data);
+                            sendHttpFail(conn, 404, std::string("Unknow method request:") + req.method_name());
                         }
                         break;
                     case RpcStatus::RPC_SERVER_FAIL:
                         delete rpcbroker;
+                        printf("[WARNING]method call fail #%s#\n", req.method_name().c_str());
                         if(req.type() == RpcInnerReq::HTTP) {
                             mg_connection *conn = (struct mg_connection *)pkg->http_conn;
-                            sendHttpFail(conn, resp_data);
+                            sendHttpOk(conn, resp_data);
                         }
-                        printf("[WARNING]method call fail #%s#\n", req.method_name().c_str());
                         break;
                     default:
                         break;
@@ -94,7 +106,7 @@ void RpcWorker::run() {
                 printf("[WARNING]Unknow service request #%s#\n", req.service_name().c_str());
                 if(req.type() == RpcInnerReq::HTTP) {
                     mg_connection *conn = (struct mg_connection *)pkg->http_conn;
-                    sendHttpFail(conn, resp_data);
+                    sendHttpFail(conn, 404, std::string("Unknow service request:") + req.service_name());
                 }
             }
             if (req.type() == RpcInnerReq::TWO_WAY) {
@@ -109,11 +121,6 @@ void RpcWorker::run() {
                     m_server->pushResp(pkg->connection_id, resp_pkg);
                 }
             }
-            else if(req.type() == RpcInnerReq::HTTP) {
-                mg_connection *conn = (struct mg_connection *)pkg->http_conn;
-                sendHttpOk(conn, resp_data);
-            }
-
         } 
         else {
             //printf("thread: %lu, no data\n", std::this_thread::get_id());
@@ -121,6 +128,8 @@ void RpcWorker::run() {
     }
 }
 
+//FIXME:this code is not work!
+//mongoose is not thread safe, deal http request is not avaliable in RpcWorker
 void RpcWorker::sendHttpOk(mg_connection *conn, const std::string &resp) {
     mg_send_header(conn, "Content-Type", "text/plain");
     mg_send_header(conn, "Content-Length", std::to_string(resp.size()).c_str());
@@ -129,8 +138,10 @@ void RpcWorker::sendHttpOk(mg_connection *conn, const std::string &resp) {
     mg_printf(conn, resp.c_str());
 }
 
-void RpcWorker::sendHttpFail(mg_connection *conn, const std::string &resp) {
-    //TODO:send HTTP return code for fail
+//FIXME:this code is not work!
+//mongoose is not thread safe, deal http request is not avaliable in RpcWorker
+void RpcWorker::sendHttpFail(mg_connection *conn, int status, const std::string &resp) {
+    mg_send_status(conn, status);
     mg_send_header(conn, "Content-Type", "text/plain");
     mg_send_header(conn, "Content-Length", std::to_string(resp.size()).c_str());
     mg_send_header(conn, "Connection", "close");

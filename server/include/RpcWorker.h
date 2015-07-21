@@ -26,7 +26,7 @@ public:
     void run();
 private:
     void sendHttpOk(mg_connection *conn, const std::string &resp);
-    void sendHttpFail(mg_connection *conn, const std::string &resp);
+    void sendHttpFail(mg_connection *conn, int status, const std::string &resp);
 
     ReqQueue *m_work_q;
     RpcServerImpl *m_server;

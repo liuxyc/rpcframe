@@ -22,6 +22,8 @@ public:
 
     void start();
     void stop();
+    void sendHttpOk(mg_connection *conn, const std::string &resp);
+    void sendHttpFail(mg_connection *conn, int status, const std::string &resp);
 
     RpcHttpServer(const RpcHttpServer &) = delete;
     RpcHttpServer &operator=(const RpcHttpServer &) = delete;
