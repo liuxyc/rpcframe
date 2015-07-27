@@ -8,6 +8,10 @@ The rpc interface is simple, it send and receive std::string as raw data.<br>
 ## Server side implement rpcframe::IService and write member method:<br>
 <pre><code>rpcframe::RpcStatus method_name(const std::string &req_data, std::string &resp_data, rpcframe::RpcRespBroker *resp_broker)</code></pre>;
 <br>
+##HTTP interface:<br>
+<pre><code>HTTP GET http://127.0.0.1:8000/[service_name]/[method_name]
+curl --data "hello server"  http://127.0.0.1:8000/test_service/test_method
+ </code></pre><br>
 #### Please check test/server_test.cpp, test/client_test.cpp for more usage details.<br>
 
 dependence：<br>
