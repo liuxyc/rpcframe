@@ -135,7 +135,7 @@ int main(int argc, char * argv[])
     auto endp = std::make_pair("127.0.0.1", 8801);
     rpcframe::RpcServerConfig cfg(endp);
     cfg.setThreadNum(4);
-    cfg.enableHttp(8000);
+    cfg.enableHttp(8000, 4);
     rpcframe::RpcServer rpcServer(cfg);
     MyService ms;
     MyService_async ms_async;

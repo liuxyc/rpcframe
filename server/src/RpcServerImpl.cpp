@@ -61,9 +61,10 @@ void RpcServerConfig::setMaxConnection(uint32_t max_conn_num)
     m_max_conn_num = max_conn_num;
 }
 
-void RpcServerConfig::enableHttp(int port)
+void RpcServerConfig::enableHttp(int port, int thread_num)
 {
     m_http_port = port;
+    m_http_thread_num = thread_num;
 }
 
 void RpcServerConfig::disableHttp()
@@ -83,6 +84,7 @@ RpcServerImpl::RpcServerImpl(RpcServerConfig &cfg)
 , m_listen_socket(-1)
 , m_resp_ev_fd(-1)
 , m_stop(false)
+, m_http_server(NULL)
 {
     for(uint32_t i = 0; i < m_cfg.getThreadNum(); ++i) {
         RpcWorker *rw = new RpcWorker(&m_request_q, this);
@@ -91,8 +93,8 @@ RpcServerImpl::RpcServerImpl(RpcServerConfig &cfg)
         m_worker_vec.push_back(rw);
     }
     if (cfg.getHttpPort() != -1) {
-        RpcHttpServer *m_http_server = new RpcHttpServer(cfg, this);
-        std::thread *http_th = new std::thread(&RpcHttpServer::start, m_http_server);
+        m_http_server = new RpcHttpServer(cfg, this);
+        m_http_server->start();
     }
 }
 
@@ -168,7 +170,7 @@ bool RpcServerImpl::startListen() {
         return false;  
     }  
     else {  
-        printf("Listening......\n");  
+        printf("Listening on %d\n", m_cfg.m_port);  
     }  
     //listen socket epoll event
     struct epoll_event ev;  

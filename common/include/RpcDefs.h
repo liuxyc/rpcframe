@@ -31,7 +31,7 @@ public:
     void setThreadNum(uint32_t thread_num);
     uint32_t getThreadNum();
     void setMaxConnection(uint32_t max_conn_num);
-    void enableHttp(int port);
+    void enableHttp(int port, int thread_num);
     void disableHttp();
     int getHttpPort();
 
@@ -40,6 +40,7 @@ public:
     int m_port;
     uint32_t m_max_conn_num;
     int m_http_port;
+    int m_http_thread_num;
 };
 };
 #endif

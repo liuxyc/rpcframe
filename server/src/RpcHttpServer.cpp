@@ -18,14 +18,13 @@
 namespace rpcframe
 {
 
-//FIXME:ev_handler_mt is not work!
+//FIXME:ev_handler_mt is not work for mongoose
 //mongoose is not thread safe
-static int ev_handler_mt(struct mg_connection *conn, enum mg_event ev) {
+__attribute__((unused)) static int ev_handler_mt(struct mg_connection *conn, enum mg_event ev) {
     switch (ev) {
         case MG_AUTH: return MG_TRUE;
         case MG_REQUEST:
         {
-            printf("Income conn %p\n", conn);
             std::string url_string = conn->uri;
             if (url_string[0] != '/') {
                 mg_printf_data(conn, "Invalid Request URI [%s]", conn->uri);  
@@ -65,15 +64,7 @@ static int ev_handler_mt(struct mg_connection *conn, enum mg_event ev) {
 }
 
 //below is the right mongoose solution, it only can deal one http request in one time
-void sendHttpOk(mg_connection *conn, const std::string &resp) {
-    mg_send_header(conn, "Content-Type", "text/plain");
-    mg_send_header(conn, "Content-Length", std::to_string(resp.size()).c_str());
-    mg_send_header(conn, "Connection", "close");
-    mg_write(conn, "\r\n", 2);
-    mg_printf(conn, resp.c_str());
-}
-
-void sendHttpFail(mg_connection *conn, int status, const std::string &resp) {
+void sendHttpResp(mg_connection *conn, int status, const std::string &resp) {
     mg_send_status(conn, status);
     mg_send_header(conn, "Content-Type", "text/plain");
     mg_send_header(conn, "Content-Length", std::to_string(resp.size()).c_str());
@@ -87,7 +78,6 @@ static int ev_handler(struct mg_connection *conn, enum mg_event ev) {
         case MG_AUTH: return MG_TRUE;
         case MG_REQUEST:
         {
-            printf("Income conn %p\n", conn);
             std::string url_string = conn->uri;
             if (url_string[0] != '/') {
                 mg_printf_data(conn, "Invalid Request URI [%s]", conn->uri);  
@@ -112,17 +102,17 @@ static int ev_handler(struct mg_connection *conn, enum mg_event ev) {
                     switch (ret) {
                         case RpcStatus::RPC_SERVER_OK:
                             delete rpcbroker;
-                            sendHttpOk(conn, resp_data);
+                            sendHttpResp(conn, 200, resp_data);
                             break;
                         case RpcStatus::RPC_METHOD_NOTFOUND:
                             delete rpcbroker;
                             printf("[WARNING]Unknow method request #%s#\n", method_name.c_str());
-                            sendHttpFail(conn, 404, std::string("Unknow method request:") + method_name);
+                            sendHttpResp(conn, 404, std::string("Unknow method request:") + method_name);
                             break;
                         case RpcStatus::RPC_SERVER_FAIL:
                             delete rpcbroker;
                             printf("[WARNING]method call fail #%s#\n", method_name.c_str());
-                            sendHttpOk(conn, resp_data);
+                            sendHttpResp(conn, 200, resp_data);
                             break;
                         default:
                             break;
@@ -130,7 +120,7 @@ static int ev_handler(struct mg_connection *conn, enum mg_event ev) {
                 }
                 else {
                     printf("[WARNING]Unknow service request #%s#\n", service_name.c_str());
-                    sendHttpFail(conn, 404, std::string("Unknow service request:") + service_name);
+                    sendHttpResp(conn, 404, std::string("Unknow service request:") + service_name);
                 }
             }
             else {
@@ -142,37 +132,65 @@ static int ev_handler(struct mg_connection *conn, enum mg_event ev) {
     }
 }
 
+void* process_proc(void* p_server)  
+{  
+    if (p_server == NULL) {
+        printf("[ERROR]process_proc p_server NULL\n");
+        return NULL;
+    }
+    mgthread_parameter *mptr = static_cast<mgthread_parameter *>(p_server);
+    struct mg_server *mserver = static_cast<struct mg_server*>(mptr->mgserver);
+    RpcHttpServer *http_server = static_cast<RpcHttpServer *>(mptr->httpserver);
+    while(!http_server->isStop())
+    {  
+        mg_poll_server(mserver, 50);  
+    }  
+    return NULL;  
+}  
 
 RpcHttpServer::RpcHttpServer(RpcServerConfig &cfg, RpcServerImpl *server)
 : m_server(server)
 , m_stop(false)
 , m_listen_port(cfg.getHttpPort())
+, m_thread_num(cfg.m_http_thread_num)
+, m_servers(NULL)
 {
+    m_servers = new mgthread_parameter[m_thread_num];
 }
 
 RpcHttpServer::~RpcHttpServer() {
+    delete [] m_servers;
 }
 
 void RpcHttpServer::start() {
-  struct mg_server *server;
-
-  // Create and configure the server
-  server = mg_create_server(m_server, ev_handler);
-  mg_set_option(server, "listening_port", std::to_string(m_listen_port).c_str());
-
-  // Serve request. Hit Ctrl-C to terminate the program
-  printf("Starting on port %s\n", mg_get_option(server, "listening_port"));
-  while(!m_stop) {
-    mg_poll_server(server, 1);
-  }
-
-  // Cleanup, and free server instance
-  mg_destroy_server(&server);
+    for(int i = 0; i < m_thread_num; i++)  
+    {  
+        m_servers[i].mgserver = mg_create_server(m_server, ev_handler);  
+        m_servers[i].httpserver = this;
+        if(i == 0)  
+        {  
+            mg_set_option(m_servers[i].mgserver, "listening_port", std::to_string(m_listen_port).c_str());
+        }  
+        else  
+        {  
+            mg_copy_listeners(m_servers[0].mgserver, m_servers[i].mgserver);
+        }  
+        mg_start_thread(process_proc, &m_servers[i]);  
+    }  
+    printf("Listening on HTTP port %d\n", m_listen_port);
 }
 
 
 void RpcHttpServer::stop() {
     m_stop = true;
+    for(int i = 0; i < m_thread_num; i++)  
+    {  
+        mg_destroy_server(&(m_servers[i].mgserver));
+    }
+}
+
+bool RpcHttpServer::isStop() {
+    return m_stop;
 }
 
 };

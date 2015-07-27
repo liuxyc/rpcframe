@@ -13,6 +13,16 @@ namespace rpcframe
 {
 
 class RpcServerImpl;
+class RpcHttpServer;
+
+typedef struct mg_server * mongoose_server_ptr;
+
+class mgthread_parameter
+{
+public:
+    mongoose_server_ptr mgserver;
+    RpcHttpServer *httpserver;
+};
 
 class RpcHttpServer
 {
@@ -22,6 +32,7 @@ public:
 
     void start();
     void stop();
+    bool isStop();
     void sendHttpOk(mg_connection *conn, const std::string &resp);
     void sendHttpFail(mg_connection *conn, int status, const std::string &resp);
 
@@ -32,6 +43,8 @@ private:
     RpcServerImpl *m_server;
     std::atomic<bool> m_stop;
     int m_listen_port;
+    int m_thread_num;
+    mgthread_parameter *m_servers;
 };
 
 };
