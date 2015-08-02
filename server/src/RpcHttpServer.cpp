@@ -18,51 +18,6 @@
 namespace rpcframe
 {
 
-//FIXME:ev_handler_mt is not work for mongoose
-//mongoose is not thread safe
-__attribute__((unused)) static int ev_handler_mt(struct mg_connection *conn, enum mg_event ev) {
-    switch (ev) {
-        case MG_AUTH: return MG_TRUE;
-        case MG_REQUEST:
-        {
-            std::string url_string = conn->uri;
-            if (url_string[0] != '/') {
-                mg_printf_data(conn, "Invalid Request URI [%s]", conn->uri);  
-                mg_send_status(conn, 500);
-                return MG_TRUE;
-            }
-            RpcServerImpl *server = (RpcServerImpl *)conn->server_param;
-            std::string::size_type service_pos = url_string.find('/', 1);
-            if (service_pos != std::string::npos) {
-                std::string service_name = url_string.substr(1, service_pos - 1);
-                std::string method_name = url_string.substr(service_pos + 1, url_string.size());
-                RpcInnerReq req;
-                req.set_service_name(service_name);
-                req.set_method_name(method_name);
-
-                req.set_request_id("http_request");
-                req.set_data(conn->content, conn->content_len);
-                req.set_type(RpcInnerReq::HTTP);
-                request_pkg *rpk = new request_pkg(req.ByteSize(), "http_connection");
-                rpk->http_conn = (void *)conn;
-                req.SerializeToArray(rpk->data, rpk->data_len);
-                if (!server->pushReq(rpk)) {
-                    delete rpk;
-                    mg_printf_data(conn, "Http server error");
-                    mg_send_status(conn, 500);
-                    return MG_TRUE;
-                }
-            }
-            else {
-                mg_printf_data(conn, "Invalid Request URI [%s]", conn->uri);  
-                return MG_FALSE;
-            }
-            return MG_MORE;
-        }
-        default: return MG_FALSE;
-    }
-}
-
 //below is the right mongoose solution, it only can deal one http request in one time
 void sendHttpResp(mg_connection *conn, int status, const std::string &resp) {
     mg_send_status(conn, status);
@@ -92,7 +47,7 @@ static int ev_handler(struct mg_connection *conn, enum mg_event ev) {
                 IService *p_service = server->getService(service_name);
                 if (p_service != NULL) {
                     IRpcRespBroker *rpcbroker = new RpcRespBroker(server, "http_connection", "http_request",
-                                                                false);
+                                                                true, conn);
                     std::string req_data(conn->content, conn->content_len);
                     std::string resp_data;
                     RpcStatus ret = p_service->runService(method_name, 
@@ -114,6 +69,12 @@ static int ev_handler(struct mg_connection *conn, enum mg_event ev) {
                             printf("[WARNING]method call fail #%s#\n", method_name.c_str());
                             sendHttpResp(conn, 200, resp_data);
                             break;
+                        //FIXME:mongoose is not thread safe, async response is not avaliabe in http mode
+                        /*
+                        case RpcStatus::RPC_SERVER_NONE:
+                            return MG_MORE;
+                            break;
+                        */
                         default:
                             break;
                     }

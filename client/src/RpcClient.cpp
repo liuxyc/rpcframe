@@ -15,7 +15,7 @@ namespace rpcframe
 {
 
 RpcClientConfig::RpcClientConfig(std::pair<const char *, int> &endpoint)
-: m_thread_num(std::thread::hardware_concurrency())
+: m_thread_num(1)
 , m_hostname(endpoint.first)
 , m_port(endpoint.second)
 , m_connect_timeout(3)
@@ -48,7 +48,7 @@ RpcClient::RpcClient(RpcClientConfig &cfg, const std::string &service_name)
 , m_fd(-1)
 , m_servicename(service_name)
 {
-    m_ev = new RpcEventLooper(this);
+    m_ev = new RpcEventLooper(this, cfg.getThreadNum());
     std::thread *th = new std::thread(&RpcEventLooper::run, m_ev);
     m_thread_vec.push_back(th);
 
@@ -87,6 +87,7 @@ RpcStatus RpcClient::call(const std::string &method_name, const std::string &req
         }
         else {
             m_ev->removeCb(req_id);
+            delete rb;
         }
     }
     else {

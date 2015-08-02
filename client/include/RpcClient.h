@@ -30,6 +30,7 @@ public:
 
     /**
      * @brief implement this method for your callback
+     *        NOTICE:callback may called in multithread
      *
      * @param status
      * @param response_data

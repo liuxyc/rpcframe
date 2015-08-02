@@ -34,6 +34,8 @@ RpcServerConfig::RpcServerConfig(std::pair<const char *, int> &endpoint)
 , m_hostname(endpoint.first)
 , m_port(endpoint.second)
 , m_max_conn_num(1024 * 10)
+, m_http_port(8000)
+, m_http_thread_num(std::thread::hardware_concurrency())
 {
     
     

@@ -58,7 +58,6 @@ public:
     RpcServerConn *getConnection(int fd);
     void pushResp(std::string seqid, response_pkg *resp_pkg);
     bool pushReq(request_pkg *req_pkg);
-    //RpcHttpServer *m_http_server;
 
 private:
     bool startListen();

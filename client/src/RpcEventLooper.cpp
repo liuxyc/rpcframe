@@ -31,13 +31,14 @@ namespace rpcframe
 
 #define _MAX_SOCKFD_COUNT 65536
 
-RpcEventLooper::RpcEventLooper(RpcClient *client)
+RpcEventLooper::RpcEventLooper(RpcClient *client, int thread_num)
 : m_client(client)
 , m_stop(false)
 , m_fd(-1)
 , m_conn(NULL)
 , m_req_seqid(0)
 , MAX_REQ_LIMIT_BYTE(100 * 1024 * 1024)
+, m_thread_num(thread_num)
 {
     if(!getHostIp(m_host_ip)) {
         printf("[ERROR]get hostip fail!");
@@ -50,22 +51,28 @@ RpcEventLooper::RpcEventLooper(RpcClient *client)
         printf("set epoll fd noblock fail");
     }  
 
-    m_worker = new RpcClientWorker(this);
-    m_worker_th = new std::thread(&RpcClientWorker::run, m_worker);
+    for(int i = 0; i < m_thread_num; ++i) {
+        RpcClientWorker *worker = new RpcClientWorker(this);
+        std::thread *worker_th = new std::thread(&RpcClientWorker::run, worker);
+        m_worker_vec.push_back(worker);
+        m_thread_vec.push_back(worker_th);
+    }
 
 }
 
 RpcEventLooper::~RpcEventLooper() {
     printf("~RpcEventLooper()\n");
-    m_worker->stop();
-    m_worker_th->join();
-    delete m_worker;
-    delete m_worker_th;
 
 }
 
 void RpcEventLooper::stop() {
     m_stop = true;
+    for(int i = 0; i < m_thread_num; ++i) {
+        m_worker_vec[i]->stop();
+        m_thread_vec[i]->join();
+        delete m_worker_vec[i];
+        delete m_thread_vec[i];
+    }
 }
 
 void RpcEventLooper::removeConnection() {
@@ -75,7 +82,7 @@ void RpcEventLooper::removeConnection() {
     for (auto cb = m_cb_map.begin(); cb != m_cb_map.end(); ) {
         if (cb->second != NULL) {
             cb->second->callback(RpcStatus::RPC_DISCONNECTED, std::string(""));
-            delete cb->second;
+            //delete cb->second;
         }
         m_cb_map.erase(cb++);
     }
@@ -114,7 +121,7 @@ RpcStatus RpcEventLooper::sendReq(
         if (!connect()) {
             if (cb_obj != NULL) {
                 cb_obj->callback(RpcStatus::RPC_SEND_FAIL, "");
-                delete cb_obj;
+                //delete cb_obj;
             }
             m_mutex.unlock();
             return RpcStatus::RPC_SEND_FAIL;
@@ -161,7 +168,7 @@ RpcStatus RpcEventLooper::sendReq(
             }
             m_cb_map.erase(req_id);
             cb_obj->callback(send_ret, "");
-            delete cb_obj;
+            //delete cb_obj;
             m_mutex.unlock();
         }
     }
@@ -182,7 +189,7 @@ RpcClientCallBack *RpcEventLooper::getCb(const std::string &req_id) {
 void RpcEventLooper::removeCb(const std::string &req_id) {
     std::lock_guard<std::mutex> mlock(m_mutex);
     if (m_cb_map.find(req_id) != m_cb_map.end()) {
-        delete m_cb_map[req_id];
+        //delete m_cb_map[req_id];
         m_cb_map.erase(req_id);
     }
 }
@@ -226,16 +233,16 @@ void RpcEventLooper::dealTimeoutCb() {
                     if(std::time(nullptr) > tm) {
                         //found a timeout cb
                         //printf("%s timeout\n", cb->getReqId().c_str());
-                        //cb->callback(RpcStatus::RPC_CB_TIMEOUT, "");
-                        cb->markTimeout();
                         if( cb->getType() != "blocker") {
                             //NOTE:gen a fake resp pkg, in case of:server never return the real 
                             //package, this fake package can make sure the cb instance get released
 
                             //RpcClient will send fake resp for "blocker" type, because it can make
                             //sure blocker will not be used again
-                            cb->setType("timeout");
-                            timeoutCb(cb->getReqId(), false);
+                            //cb->setType("timeout");
+                            //timeoutCb(cb->getReqId(), false);
+                            cb->callback(RpcStatus::RPC_CB_TIMEOUT, "");
+                            m_cb_map.erase(reqid);
                         }
                     }
                     else {

@@ -8,6 +8,7 @@
 #include <string>
 
 #include "IRpcRespBroker.h"
+#include "mongoose.h"
 
 namespace rpcframe {
 
@@ -19,7 +20,7 @@ class RpcServerImpl;
 class RpcRespBroker: public IRpcRespBroker
 {
 public:
-    RpcRespBroker(RpcServerImpl *server, const std::string &conn_id, const std::string &req_id, bool needResp);
+    RpcRespBroker(RpcServerImpl *server, const std::string &conn_id, const std::string &req_id, bool needResp, mg_connection *http_conn);
     bool response(const std::string &resp_data);
     bool isNeedResp();
     bool isFromHttp();
@@ -27,10 +28,12 @@ public:
     RpcRespBroker(const RpcRespBroker &) = delete;
     RpcRespBroker &operator=(const RpcRespBroker &) = delete;
 private:
+    void sendHttpResp(mg_connection *conn, int status, const std::string &resp);
     RpcServerImpl *m_server;
     std::string m_conn_id;
     std::string m_req_id;
     bool m_need_resp;
+    mg_connection *m_http_conn;
 };
 
 };

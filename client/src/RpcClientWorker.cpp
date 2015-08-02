@@ -59,15 +59,13 @@ void RpcClientWorker::run() {
                 if (!cb->isTimeout()) {
                     cb->callback(static_cast<RpcStatus>(resp.ret_val()), resp.data());
                 }
-                else {
-                    cb->callback(RpcStatus::RPC_CB_TIMEOUT, resp.data());
-                }
+                m_ev->removeCb(resp.request_id());
 
-                //NOTE:if the callback is from blocker, we do not removeCb here, the RpcClient will 
-                //send another fake response and set the callback type to "timeout", at that time 
+                //NOTE:if the callback is from blocker, the RpcClient will 
+                //send another fake response and set the callback type to "timeoutB", at that time 
                 //we can call removeCb
-                if ( cb_type != "blocker" ) {
-                    m_ev->removeCb(resp.request_id());
+                if ( cb_type == "timeoutB" ) {
+                    delete cb;
                 }
             }
             else {

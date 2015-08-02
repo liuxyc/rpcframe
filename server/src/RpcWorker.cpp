@@ -66,7 +66,7 @@ void RpcWorker::run() {
             resp.set_request_id(req.request_id());
             if (p_service != NULL) {
                 IRpcRespBroker *rpcbroker = new RpcRespBroker(m_server, pkg->connection_id, req.request_id(),
-                                                            (req.type() == RpcInnerReq::TWO_WAY));
+                                                            (req.type() == RpcInnerReq::TWO_WAY), NULL);
 
                 RpcStatus ret = p_service->runService(req.method_name(), 
                                                                  req.data(), 
@@ -96,6 +96,9 @@ void RpcWorker::run() {
                             mg_connection *conn = (struct mg_connection *)pkg->http_conn;
                             sendHttpOk(conn, resp_data);
                         }
+                        break;
+                    case RpcStatus::RPC_SERVER_NONE:
+                        continue;
                         break;
                     default:
                         break;

@@ -26,7 +26,7 @@ class RpcClientWorker;
 class RpcEventLooper
 {
 public:
-    RpcEventLooper(RpcClient *client);
+    RpcEventLooper(RpcClient *client, int thread_num);
     ~RpcEventLooper();
     void stop();
     void run();
@@ -52,13 +52,14 @@ private:
     RpcClientConn *m_conn;
     std::mutex m_mutex;
     std::unordered_map<std::string, RpcClientCallBack *> m_cb_map;
-    RpcClientWorker *m_worker;
-    std::thread *m_worker_th;
     std::multimap<std::time_t, std::string> m_cb_timer_map;
     uint32_t m_req_seqid;
     std::string m_host_ip;
-
     const uint32_t MAX_REQ_LIMIT_BYTE;
+    int m_thread_num;
+    std::vector<std::thread *> m_thread_vec;
+    std::vector<RpcClientWorker *> m_worker_vec;
+
 
     
 };

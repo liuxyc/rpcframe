@@ -32,7 +32,7 @@ public:
                                                      std::string &resp_data, 
                                                      rpcframe::IRpcRespBroker *resp_broker) 
     {
-        //printf("my method get %s\n", request_data.c_str());
+        printf("test_method_async get %s\n", request_data.c_str());
         //make a async response
         m_t = new std::thread([resp_broker](){
                 //must delete broker after call resp_broker->response
@@ -81,6 +81,7 @@ public:
         resp_data = "my feedback";
         m_mutex.lock();
         printf("cnt: %d\n", m_cnt++);
+        //printf("data: %s\n", request_data.c_str());
         m_mutex.unlock();
         //make timeout
         std::this_thread::sleep_for(std::chrono::seconds(5));
