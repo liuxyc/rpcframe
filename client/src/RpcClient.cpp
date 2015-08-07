@@ -70,37 +70,26 @@ const RpcClientConfig &RpcClient::getConfig() {
 }
 
 RpcStatus RpcClient::call(const std::string &method_name, const std::string &request_data, std::string &response_data, uint32_t timeout) {
-    RpcClientBlocker *rb = new RpcClientBlocker(timeout);
+    std::shared_ptr<RpcClientBlocker> rb(new RpcClientBlocker(timeout));
     std::string req_id;
     RpcStatus ret_st = m_ev->sendReq(m_servicename, method_name, request_data, rb, req_id);
     if (ret_st == RpcStatus::RPC_SEND_OK) {
         std::pair<RpcStatus, std::string> ret_p = rb->wait();
         response_data = ret_p.second;
         ret_st = ret_p.first;
-        if(ret_st == RpcStatus::RPC_CB_TIMEOUT) {
-            //delete rb will cause race condition if the real response back, 
-            //so, call m_ev->timeoutCb will send a fake response
-            //let Worker remove the callback instance
-            rb->markTimeout();
-            rb->setType("timeoutB");
-            m_ev->timeoutCb(req_id);
-        }
-        else {
-            m_ev->removeCb(req_id);
-            delete rb;
-        }
     }
     else {
         ret_st = RpcStatus::RPC_SEND_FAIL;
     }
+    m_ev->removeCb(req_id);
     
     return ret_st;
 }
 
-RpcStatus RpcClient::async_call(const std::string &method_name, const std::string &request_data, uint32_t timeout, RpcClientCallBack *cb_obj) {
+RpcStatus RpcClient::async_call(const std::string &method_name, const std::string &request_data, uint32_t timeout, std::shared_ptr<RpcClientCallBack> cb_obj) {
     std::string req_id;
     int test_heap = 0;
-    if ((long)&test_heap < (long)cb_obj) {
+    if ((long)&test_heap < (long)(cb_obj.get())) {
         printf("[ERROR]please alloc cb_obj from heap!!!\n");
         return RpcStatus::RPC_SEND_FAIL;
     }

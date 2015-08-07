@@ -37,7 +37,7 @@ int main()
     auto endp = std::make_pair("localhost", 8801);
     rpcframe::RpcClientConfig ccfg(endp);
     ccfg.setThreadNum(4);
-    my_CB *pCB = new my_CB();
+    std::shared_ptr<my_CB> pCB(new my_CB());
 
     rpcframe::RpcClient client(ccfg, "test_service");
     //async with big resp

@@ -9,6 +9,7 @@
 #include <string.h>  
 #include <unistd.h>
 #include <sys/prctl.h>
+#include <memory>
 
 #include "RpcClientWorker.h"
 #include "RpcClientConn.h"
@@ -52,7 +53,7 @@ void RpcClientWorker::run() {
                 printf("[ERROR]parse internal pkg fail\n");
                 continue;
             }
-            RpcClientCallBack *cb = m_ev->getCb(resp.request_id());
+            std::shared_ptr<RpcClientCallBack> cb = m_ev->getCb(resp.request_id());
             if (cb != NULL) {
                 std::string cb_type = cb->getType();
                 //if marked as timeout, the callback already called by RpcCBStatus::RPC_TIMEOUT
@@ -60,13 +61,6 @@ void RpcClientWorker::run() {
                     cb->callback(static_cast<RpcStatus>(resp.ret_val()), resp.data());
                 }
                 m_ev->removeCb(resp.request_id());
-
-                //NOTE:if the callback is from blocker, the RpcClient will 
-                //send another fake response and set the callback type to "timeoutB", at that time 
-                //we can call removeCb
-                if ( cb_type == "timeoutB" ) {
-                    delete cb;
-                }
             }
             else {
                 //printf("the cb of req:%s is NULL\n", resp.request_id().c_str());

@@ -9,6 +9,7 @@
 #include <mutex>
 #include <thread>
 #include <atomic>
+#include <memory>
 
 #include "RpcDefs.h"
 
@@ -114,7 +115,7 @@ public:
      *
      * @return 
      */
-    RpcStatus async_call(const std::string &method_name, const std::string &request_data, uint32_t timeout, RpcClientCallBack *cb_obj);
+    RpcStatus async_call(const std::string &method_name, const std::string &request_data, uint32_t timeout, std::shared_ptr<RpcClientCallBack> cb_obj);
 
     const RpcClientConfig &getConfig();
 
