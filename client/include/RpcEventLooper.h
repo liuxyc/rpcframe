@@ -9,6 +9,7 @@
 #include <unordered_map>
 #include <map>
 #include <atomic>
+#include <memory>
 #include <thread>
 #include <ctime>
 #include "Queue.h"
@@ -30,10 +31,9 @@ public:
     ~RpcEventLooper();
     void stop();
     void run();
-    RpcStatus sendReq(const std::string &service_name, const std::string &method_name, const std::string &request_data, RpcClientCallBack *cb_obj, std::string &req_id);
-    RpcClientCallBack *getCb(const std::string &req_id);
+    RpcStatus sendReq(const std::string &service_name, const std::string &method_name, const std::string &request_data, std::shared_ptr<RpcClientCallBack> cb_obj, std::string &req_id);
+    std::shared_ptr<RpcClientCallBack> getCb(const std::string &req_id);
     void removeCb(const std::string &req_id);
-    void timeoutCb(const std::string &req_id, bool is_lock = true);
     void dealTimeoutCb();
     RespQueue m_response_q;
 
@@ -51,7 +51,7 @@ private:
     int m_fd;
     RpcClientConn *m_conn;
     std::mutex m_mutex;
-    std::unordered_map<std::string, RpcClientCallBack *> m_cb_map;
+    std::unordered_map<std::string, std::shared_ptr<RpcClientCallBack> > m_cb_map;
     std::multimap<std::time_t, std::string> m_cb_timer_map;
     uint32_t m_req_seqid;
     std::string m_host_ip;

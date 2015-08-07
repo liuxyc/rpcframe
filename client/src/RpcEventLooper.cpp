@@ -82,7 +82,6 @@ void RpcEventLooper::removeConnection() {
     for (auto cb = m_cb_map.begin(); cb != m_cb_map.end(); ) {
         if (cb->second != NULL) {
             cb->second->callback(RpcStatus::RPC_DISCONNECTED, std::string(""));
-            //delete cb->second;
         }
         m_cb_map.erase(cb++);
     }
@@ -109,7 +108,7 @@ RpcStatus RpcEventLooper::sendReq(
         const std::string &service_name, 
         const std::string &method_name, 
         const std::string &request_data, 
-        RpcClientCallBack *cb_obj, 
+        std::shared_ptr<RpcClientCallBack> cb_obj, 
         std::string &req_id) {
 
     if (request_data.length() >= MAX_REQ_LIMIT_BYTE) {
@@ -121,7 +120,6 @@ RpcStatus RpcEventLooper::sendReq(
         if (!connect()) {
             if (cb_obj != NULL) {
                 cb_obj->callback(RpcStatus::RPC_SEND_FAIL, "");
-                //delete cb_obj;
             }
             m_mutex.unlock();
             return RpcStatus::RPC_SEND_FAIL;
@@ -168,7 +166,6 @@ RpcStatus RpcEventLooper::sendReq(
             }
             m_cb_map.erase(req_id);
             cb_obj->callback(send_ret, "");
-            //delete cb_obj;
             m_mutex.unlock();
         }
     }
@@ -176,7 +173,7 @@ RpcStatus RpcEventLooper::sendReq(
 
 }
 
-RpcClientCallBack *RpcEventLooper::getCb(const std::string &req_id) {
+std::shared_ptr<RpcClientCallBack> RpcEventLooper::getCb(const std::string &req_id) {
     std::lock_guard<std::mutex> mlock(m_mutex);
     if (m_cb_map.find(req_id) != m_cb_map.end()) {
         return m_cb_map[req_id];
@@ -189,32 +186,7 @@ RpcClientCallBack *RpcEventLooper::getCb(const std::string &req_id) {
 void RpcEventLooper::removeCb(const std::string &req_id) {
     std::lock_guard<std::mutex> mlock(m_mutex);
     if (m_cb_map.find(req_id) != m_cb_map.end()) {
-        //delete m_cb_map[req_id];
         m_cb_map.erase(req_id);
-    }
-}
-
-void RpcEventLooper::timeoutCb(const std::string &req_id, bool is_lock) {
-    if (is_lock) {
-        m_mutex.lock();
-    }
-    RpcInnerResp resp;
-    resp.set_request_id(req_id);
-    resp.set_ret_val(static_cast<uint32_t>(RpcStatus::RPC_CB_TIMEOUT));
-    resp.set_data("");
-    response_pkg *timeout_resp_pkg = new response_pkg(resp.ByteSize());
-    if (!resp.SerializeToArray(timeout_resp_pkg->data, timeout_resp_pkg->data_len)) {
-        printf("[ERROR]serialize internal pkg fail\n");
-        delete timeout_resp_pkg;
-        if (is_lock) {
-            m_mutex.unlock();
-        }
-        return;
-    }
-    m_response_q.push(timeout_resp_pkg);
-    //printf("send fake resp for sync req %s\n", req_id.c_str());
-    if (is_lock) {
-        m_mutex.unlock();
     }
 }
 
@@ -227,20 +199,13 @@ void RpcEventLooper::dealTimeoutCb() {
             auto cur_it = cb_timer_it++;
             std::string reqid = cur_it->second;
             if (m_cb_map.find(reqid) != m_cb_map.end()) { 
-                RpcClientCallBack *cb = m_cb_map[reqid];
+                std::shared_ptr<RpcClientCallBack> cb = m_cb_map[reqid];
                 if(cb != NULL) {
                     std::time_t tm = cur_it->first;
                     if(std::time(nullptr) > tm) {
                         //found a timeout cb
                         //printf("%s timeout\n", cb->getReqId().c_str());
                         if( cb->getType() != "blocker") {
-                            //NOTE:gen a fake resp pkg, in case of:server never return the real 
-                            //package, this fake package can make sure the cb instance get released
-
-                            //RpcClient will send fake resp for "blocker" type, because it can make
-                            //sure blocker will not be used again
-                            //cb->setType("timeout");
-                            //timeoutCb(cb->getReqId(), false);
                             cb->callback(RpcStatus::RPC_CB_TIMEOUT, "");
                             m_cb_map.erase(reqid);
                         }
