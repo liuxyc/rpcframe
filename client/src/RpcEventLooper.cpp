@@ -205,10 +205,8 @@ void RpcEventLooper::dealTimeoutCb() {
                     if(std::time(nullptr) > tm) {
                         //found a timeout cb
                         //printf("%s timeout\n", cb->getReqId().c_str());
-                        if( cb->getType() != "blocker") {
-                            cb->callback(RpcStatus::RPC_CB_TIMEOUT, "");
-                            m_cb_map.erase(reqid);
-                        }
+                        cb->callback(RpcStatus::RPC_CB_TIMEOUT, "");
+                        m_cb_map.erase(reqid);
                     }
                     else {
                         //got item not timeout, stop search
