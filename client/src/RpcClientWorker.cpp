@@ -58,7 +58,7 @@ void RpcClientWorker::run() {
                 std::string cb_type = cb->getType();
                 //if marked as timeout, the callback already called by RpcCBStatus::RPC_TIMEOUT
                 if (!cb->isTimeout()) {
-                    cb->callback(static_cast<RpcStatus>(resp.ret_val()), resp.data());
+                    cb->callback_safe(static_cast<RpcStatus>(resp.ret_val()), resp.data());
                 }
                 m_ev->removeCb(resp.request_id());
             }

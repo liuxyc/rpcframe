@@ -21,10 +21,16 @@ class RpcEventLooper;
 class RpcClientCallBack 
 {
 public:
+    /**
+     * @brief Callback base class
+     *        we suggest each async_call have it's own CallBack instance
+     */
     RpcClientCallBack() 
     : m_timeout(0)
     , m_reqid("")
     , m_has_timeout(false)
+    , m_is_done(false)
+    , m_is_shared(false)
     {
     };
     virtual ~RpcClientCallBack(){};
@@ -37,6 +43,21 @@ public:
      * @param response_data
      */
     virtual void callback(const RpcStatus status, const std::string &response_data) = 0;
+
+    void callback_safe(const RpcStatus status, const std::string &response_data) {
+        //if a callback instance shared by many call, not use internal "m_is_done"
+        if (m_is_shared) {
+            callback(status, response_data);
+        } 
+        else {
+            std::lock_guard<std::mutex> lock(m_mutex);
+            if (!m_is_done) {
+                callback(status, response_data);
+                m_is_done = true;
+            }
+        }
+
+    }
 
     std::string getType() {
         return m_type_mark;
@@ -63,12 +84,24 @@ public:
     bool isTimeout() {
         return m_has_timeout;
     }
+    /**
+     * @brief set a CallbackObject as shared will have "timeout/success come both" issue
+     *        because we can't identify the callback source
+     *
+     * @param isshared bool, default is false
+     */
+    void setShared(bool isshared) {
+        m_is_shared = isshared;
+    }
 
 protected:
     std::string m_type_mark;
     uint32_t m_timeout;
     std::string m_reqid;
     bool m_has_timeout;
+    bool m_is_done;
+    bool m_is_shared;
+    std::mutex m_mutex;
     
 };
 

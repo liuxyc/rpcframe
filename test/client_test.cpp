@@ -38,6 +38,7 @@ int main()
     rpcframe::RpcClientConfig ccfg(endp);
     ccfg.setThreadNum(4);
     std::shared_ptr<my_CB> pCB(new my_CB());
+    pCB->setShared(true);
 
     rpcframe::RpcClient client(ccfg, "test_service");
     //async with big resp
@@ -69,7 +70,7 @@ int main()
             if(rpcframe::RpcStatus::RPC_SEND_OK != newclient.async_call("test_method2", 
                                                                 std::string(1024 * 10, '*'), 
                                                                 10, 
-                                                                pCB)) 
+                                                                std::make_shared<my_CB>()))
             {
                 printf("send fail\n");
             }

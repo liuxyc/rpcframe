@@ -82,7 +82,7 @@ void RpcEventLooper::removeConnection() {
     m_fd = -1;
     for (auto cb = m_cb_map.begin(); cb != m_cb_map.end(); ) {
         if (cb->second != NULL) {
-            cb->second->callback(RpcStatus::RPC_DISCONNECTED, std::string(""));
+            cb->second->callback_safe(RpcStatus::RPC_DISCONNECTED, std::string(""));
         }
         m_cb_map.erase(cb++);
     }
@@ -120,7 +120,7 @@ RpcStatus RpcEventLooper::sendReq(
     if (m_conn == NULL) {
         if (!connect() || m_conn == NULL) {
             if (cb_obj != NULL) {
-                cb_obj->callback(RpcStatus::RPC_SEND_FAIL, "");
+                cb_obj->callback_safe(RpcStatus::RPC_SEND_FAIL, "");
             }
             m_mutex.unlock();
             return RpcStatus::RPC_SEND_FAIL;
@@ -170,7 +170,7 @@ RpcStatus RpcEventLooper::sendReq(
                 m_cb_timer_map.erase(tm_id);
             }
             m_cb_map.erase(req_id);
-            cb_obj->callback(send_ret, "");
+            cb_obj->callback_safe(send_ret, "");
             m_mutex.unlock();
         }
     }
@@ -210,7 +210,7 @@ void RpcEventLooper::dealTimeoutCb() {
                     if(std::time(nullptr) > tm) {
                         //found a timeout cb
                         //printf("%s timeout\n", cb->getReqId().c_str());
-                        cb->callback(RpcStatus::RPC_CB_TIMEOUT, "");
+                        cb->callback_safe(RpcStatus::RPC_CB_TIMEOUT, "");
                         m_cb_map.erase(reqid);
                     }
                     else {

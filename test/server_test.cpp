@@ -42,10 +42,10 @@ public:
                 });
         m_t->get_id();
         /*
-           Don't delete resp_broker if you return rpcframe::RpcStatus::RPC_SERVER_OK
+           NOTICE:Don't delete resp_broker if you return rpcframe::RpcStatus::RPC_SERVER_OK
 
            Return rpcframe::RpcStatus::RPC_SERVER_NONE, means you don't want RpcServer send response
-           ,you can send the response by resp_broker later or not send never(just delete resp_broker)
+           ,you can send the response by resp_broker later or not send ever(just delete resp_broker)
 
            Not send response will cause client side timeout or hang on a "no timeout call", but this is 
            reasonable if client didn't set callback(ONE_WAY call)
@@ -137,6 +137,7 @@ int main(int argc, char * argv[])
     rpcframe::RpcServerConfig cfg(endp);
     cfg.setThreadNum(8);
     cfg.enableHttp(8000, 4);
+    //cfg.disableHttp();
     rpcframe::RpcServer rpcServer(cfg);
     MyService ms;
     MyService_async ms_async;
