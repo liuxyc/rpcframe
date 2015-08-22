@@ -79,6 +79,7 @@ void RpcEventLooper::removeConnection() {
     std::lock_guard<std::mutex> mlock(m_mutex);
     delete m_conn;
     m_conn = NULL;
+    m_fd = -1;
     for (auto cb = m_cb_map.begin(); cb != m_cb_map.end(); ) {
         if (cb->second != NULL) {
             cb->second->callback(RpcStatus::RPC_DISCONNECTED, std::string(""));
@@ -117,7 +118,7 @@ RpcStatus RpcEventLooper::sendReq(
     }
     m_mutex.lock();
     if (m_conn == NULL) {
-        if (!connect()) {
+        if (!connect() || m_conn == NULL) {
             if (cb_obj != NULL) {
                 cb_obj->callback(RpcStatus::RPC_SEND_FAIL, "");
             }
@@ -125,7 +126,6 @@ RpcStatus RpcEventLooper::sendReq(
             return RpcStatus::RPC_SEND_FAIL;
         }
     }
-    m_mutex.unlock();
     //gen readable request_id 
     std::stringstream ssm;
     ssm << std::to_string((int)getpid())
@@ -134,10 +134,12 @@ RpcStatus RpcEventLooper::sendReq(
         << "_" << std::time(nullptr)
         << "_" << m_host_ip
         << "_" << std::to_string(m_req_seqid);
+    m_mutex.unlock();
     req_id = ssm.str();
     std::time_t tm_id;
     uint32_t cb_timeout = 0;
     if (cb_obj != NULL) {
+        //if has timeout set, put this callback to timeout map
         cb_obj->setReqId(req_id);
         m_mutex.lock();
         m_cb_map.insert(std::make_pair(req_id, cb_obj));
@@ -150,9 +152,12 @@ RpcStatus RpcEventLooper::sendReq(
             m_mutex.unlock();
         }
     }
+    RpcStatus send_ret = RpcStatus::RPC_SEND_FAIL;
     m_mutex.lock();
-    ++m_req_seqid;
-    RpcStatus send_ret = m_conn->sendReq(service_name, method_name, request_data, req_id, (cb_obj == NULL), cb_timeout);
+    if (m_conn != NULL) {
+        ++m_req_seqid;
+        send_ret = m_conn->sendReq(service_name, method_name, request_data, req_id, (cb_obj == NULL), cb_timeout);
+    }
     m_mutex.unlock();
     if (send_ret == RpcStatus::RPC_SEND_OK) {
         printf("send %s\n", req_id.c_str());
