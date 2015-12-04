@@ -90,7 +90,7 @@ RpcStatus RpcClient::async_call(const std::string &method_name, const std::strin
     std::string req_id;
     int test_heap = 0;
     if ((long)&test_heap < (long)(cb_obj.get())) {
-        printf("[ERROR]please alloc cb_obj from heap!!!\n");
+        perror("[ERROR]please alloc cb_obj from heap!!!\n");
         return RpcStatus::RPC_SEND_FAIL;
     }
     if (cb_obj != NULL) {

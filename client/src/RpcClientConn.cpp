@@ -78,41 +78,41 @@ bool RpcClientConn::readPkgLen(uint32_t &pkg_len)
     return true;
 }
 
-int RpcClientConn::readPkgData()
+PkgReadStatus RpcClientConn::readPkgData()
 {
     if (m_rpk == NULL) {
         printf("rpk is NULL\n");
-        return -2;
+        return PkgReadStatus::FAIL;
     }
     if (!is_connected) {
         printf("connection already disconnected\n");
-        return -2;
+        return PkgReadStatus::FAIL;
     }
     int rev_size = recv(m_fd, m_rpk->data + (m_cur_pkg_size - m_cur_left_len), m_cur_left_len, 0);  
     if (rev_size <= 0) {
         if (rev_size == 0) {
             printf("recv pkg peer close %s\n", strerror(errno));
-            return -2;
+            return PkgReadStatus::FAIL;
         }
         if( errno == EAGAIN || errno == EINTR) {
             //printf("recv pkg interupt %s\n", strerror(errno));
-            return -1;
+            return PkgReadStatus::PARTIAL;
         }
         else {
             printf("recv pkg error %s\n", strerror(errno));
-            return -2;
+            return PkgReadStatus::FAIL;
         }
     }
     if ((uint32_t)rev_size == m_cur_left_len) {
         //printf("got full pkg %lu\n", rev_size);
         m_cur_left_len = 0;
         m_cur_pkg_size = 0;
-        return 0;
+        return PkgReadStatus::FULL;
     }
     else {
         m_cur_left_len = m_cur_left_len - rev_size;
         //printf(" half pkg got %d need %d more\n", rev_size, m_cur_left_len);
-        return -1;
+        return PkgReadStatus::PARTIAL;
     }
 }
 
@@ -130,11 +130,11 @@ pkg_ret_t RpcClientConn::getResponse()
         m_rpk = new response_pkg(m_cur_pkg_size);
         m_cur_left_len = m_cur_pkg_size;
     }
-    int data_ret = readPkgData();
-    if (data_ret == -2) {
+    PkgReadStatus data_ret = readPkgData();
+    if (data_ret == PkgReadStatus::FAIL) {
         return pkg_ret_t(-1, NULL);
     }
-    else if( data_ret == -1) {
+    else if( data_ret == PkgReadStatus::PARTIAL) {
         return pkg_ret_t(0, NULL);
     }
     else {

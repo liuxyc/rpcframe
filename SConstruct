@@ -2,7 +2,7 @@ import os
 #gen rpcframe proto
 os.system("LD_LIBRARY_PATH=./thirdparty/protobuf-261/lib/ thirdparty/protobuf-261/bin/protoc --cpp_out=common/proto/ -Icommon/proto common/proto/rpc.proto")
 
-env = Environment(CCFLAGS = '-std=c++11 -g -Wall -O3')
+env = Environment(CCFLAGS = '-std=c++11 -g -Wall -O3 -D_GLIBCXX_USE_CXX11_ABI=0')
 mongoose_env = Environment(CCFLAGS = '-g -Wall -DMONGOOSE_ENABLE_THREADS', CPPPATH = ['server/include/'])
 
 mongoose_obj = mongoose_env.Object(Glob('server/src/*.c'))

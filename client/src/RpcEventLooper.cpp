@@ -254,6 +254,12 @@ void RpcEventLooper::run() {
             if (events[i].events & EPOLLIN)//data come in
             {  
                 pkg_ret_t pkgret = m_conn->getResponse();
+                //pkgret: <int, pkgptr>
+                //int: -1 get pkg data fail
+                //      0 get pkg data success(may partial data)
+                //int: 0 
+                //  pkgptr: NULL, partial data
+                //  pkgptr: not NULL, full pkg data 
                 if( pkgret.first < 0 )  
                 {  
                     printf("rpc client socket disconnected: %d\n", client_socket);  

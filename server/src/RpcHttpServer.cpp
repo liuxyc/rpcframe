@@ -21,7 +21,7 @@ namespace rpcframe
 //below is the right mongoose solution, it only can deal one http request in one time
 void sendHttpResp(mg_connection *conn, int status, const std::string &resp) {
     mg_send_status(conn, status);
-    mg_send_header(conn, "Content-Type", "text/plain");
+    mg_send_header(conn, "Content-Type", "text/html");
     mg_send_header(conn, "Content-Length", std::to_string(resp.size()).c_str());
     mg_send_header(conn, "Connection", "close");
     mg_write(conn, "\r\n", 2);

@@ -11,6 +11,12 @@
 namespace rpcframe
 {
 
+enum class PkgReadStatus {
+  FAIL = -1,
+  PARTIAL = -2,
+  FULL = 0,
+};
+
 class request_pkg
 {
 public:
