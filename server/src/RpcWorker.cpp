@@ -114,6 +114,7 @@ void RpcWorker::run() {
             }
             if (req.type() == RpcInnerReq::TWO_WAY) {
                 resp.set_data(resp_data);
+                //NOTICE: memory fragments
                 response_pkg *resp_pkg = new response_pkg(resp.ByteSize());
                 if(!resp.SerializeToArray(resp_pkg->data, resp_pkg->data_len)) {
                     delete resp_pkg;

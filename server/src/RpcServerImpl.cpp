@@ -219,9 +219,8 @@ void RpcServerImpl::onDataOut(const int fd) {
 }
 
 bool RpcServerImpl::onDataOutEvent() {
-    uint64_t resp_cnt = -1;
-    ssize_t s = read(m_resp_ev_fd, &resp_cnt, sizeof(uint64_t));
-    if (s != sizeof(uint64_t)) {
+    eventfd_t resp_cnt = -1;
+    if (eventfd_read(m_resp_ev_fd, &resp_cnt) == -1) {
         perror("read resp event fail\n");
         return false;
     }
@@ -235,10 +234,9 @@ bool RpcServerImpl::onDataOutEvent() {
             if(conn->isSending()) {
                 //printf("still sending pkg\n");
                 //keep eventfd filled with the count of ready connection
-                uint64_t resp_cnt = 1;
-                ssize_t s = write(m_resp_ev_fd, &(resp_cnt), sizeof(uint64_t));
-                if (s != sizeof(uint64_t)) {
-                    perror("write resp event fd fail\n");
+                resp_cnt = 1;
+                if( eventfd_write(m_resp_ev_fd, resp_cnt) == -1) {
+                  printf("write resp event fd fail\n");
                 }
                 return false;
             }
@@ -442,9 +440,9 @@ void RpcServerImpl::pushResp(std::string conn_id, response_pkg *resp_pkg)
             return;
         }
         m_resp_conn_q.push(conn_id);
-        uint64_t resp_cnt = 1;
-        ssize_t s = write(m_resp_ev_fd, &(resp_cnt), sizeof(uint64_t));
-        if (s != sizeof(uint64_t)) {
+
+        eventfd_t resp_cnt = 1;
+        if( eventfd_write(m_resp_ev_fd, resp_cnt) == -1) {
             printf("write resp event fd fail\n");
         }
     }
