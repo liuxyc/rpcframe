@@ -26,7 +26,7 @@ namespace rpcframe
 class RpcServerConfig
 {
 public:
-    RpcServerConfig(std::pair<const char *, int> &);
+    explicit RpcServerConfig(std::pair<const char *, int> &);
     ~RpcServerConfig();
     void setThreadNum(uint32_t thread_num);
     uint32_t getThreadNum();

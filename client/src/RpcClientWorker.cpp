@@ -43,7 +43,7 @@ void RpcClientWorker::run() {
         if (m_stop) {
             break;
         }
-        response_pkg *pkg = NULL;
+        response_pkg *pkg = nullptr;
         if (m_ev->m_response_q.pop(pkg, 1000)) {
             std::unique_ptr<response_pkg> u_ptr(pkg);
 
@@ -54,8 +54,7 @@ void RpcClientWorker::run() {
                 continue;
             }
             std::shared_ptr<RpcClientCallBack> cb = m_ev->getCb(resp.request_id());
-            if (cb != NULL) {
-                std::string cb_type = cb->getType();
+            if (cb != nullptr) {
                 //if marked as timeout, the callback already called by RpcCBStatus::RPC_TIMEOUT
                 if (!cb->isTimeout()) {
                     cb->callback_safe(static_cast<RpcStatus>(resp.ret_val()), resp.data());
@@ -63,7 +62,7 @@ void RpcClientWorker::run() {
                 m_ev->removeCb(resp.request_id());
             }
             else {
-                //printf("the cb of req:%s is NULL\n", resp.request_id().c_str());
+                //printf("the cb of req:%s is nullptr\n", resp.request_id().c_str());
             }
 
         } 

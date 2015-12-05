@@ -23,7 +23,7 @@ public:
     pkg_ret_t getRequest();
     void reset();
 
-    int sendResponse();
+    PkgIOStatus sendResponse();
     int getFd() const ;
     bool isSending() const ;
 
@@ -32,9 +32,9 @@ public:
 
 private:
     bool readPkgLen(uint32_t &pkg_len);
-    int readPkgData();
+    PkgIOStatus readPkgData();
     int sendPkgLen();
-    int sendData();
+    PkgIOStatus sendData();
     int m_fd;
     uint32_t m_cur_left_len;
     uint32_t m_cur_pkg_size;

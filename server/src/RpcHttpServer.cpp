@@ -7,6 +7,7 @@
 #include <stdlib.h>  
 #include <string.h>  
 #include <unistd.h>
+#include <sys/prctl.h>
 
 #include "RpcHttpServer.h"
 #include "IService.h"
@@ -45,7 +46,7 @@ static int ev_handler(struct mg_connection *conn, enum mg_event ev) {
                 std::string service_name = url_string.substr(1, service_pos - 1);
                 std::string method_name = url_string.substr(service_pos + 1, url_string.size());
                 IService *p_service = server->getService(service_name);
-                if (p_service != NULL) {
+                if (p_service != nullptr) {
                     IRpcRespBroker *rpcbroker = new RpcRespBroker(server, "http_connection", "http_request",
                                                                 true, conn);
                     std::string req_data(conn->content, conn->content_len);
@@ -95,18 +96,19 @@ static int ev_handler(struct mg_connection *conn, enum mg_event ev) {
 
 void* process_proc(void* p_server)  
 {  
-    if (p_server == NULL) {
-        printf("[ERROR]process_proc p_server NULL\n");
-        return NULL;
+    if (p_server == nullptr) {
+        printf("[ERROR]process_proc p_server nullptr\n");
+        return nullptr;
     }
+    prctl(PR_SET_NAME, "RpcHttpServer", 0, 0, 0); 
     mgthread_parameter *mptr = static_cast<mgthread_parameter *>(p_server);
     struct mg_server *mserver = static_cast<struct mg_server*>(mptr->mgserver);
     RpcHttpServer *http_server = static_cast<RpcHttpServer *>(mptr->httpserver);
     while(!http_server->isStop())
     {  
-        mg_poll_server(mserver, 50);  
+        mg_poll_server(mserver, 5);  
     }  
-    return NULL;  
+    return nullptr;  
 }  
 
 RpcHttpServer::RpcHttpServer(RpcServerConfig &cfg, RpcServerImpl *server)
@@ -114,7 +116,7 @@ RpcHttpServer::RpcHttpServer(RpcServerConfig &cfg, RpcServerImpl *server)
 , m_stop(false)
 , m_listen_port(cfg.getHttpPort())
 , m_thread_num(cfg.m_http_thread_num)
-, m_servers(NULL)
+, m_servers(nullptr)
 {
     m_servers = new mgthread_parameter[m_thread_num];
 }

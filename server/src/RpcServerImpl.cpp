@@ -86,7 +86,7 @@ RpcServerImpl::RpcServerImpl(RpcServerConfig &cfg)
 , m_listen_socket(-1)
 , m_resp_ev_fd(-1)
 , m_stop(false)
-, m_http_server(NULL)
+, m_http_server(nullptr)
 {
     for(uint32_t i = 0; i < m_cfg.getThreadNum(); ++i) {
         RpcWorker *rw = new RpcWorker(&m_request_q, this);
@@ -119,7 +119,7 @@ IService *RpcServerImpl::getService(const std::string &name)
         return m_service_map[name];
     }
     else {
-        return NULL;
+        return nullptr;
     }
 }
 
@@ -199,11 +199,11 @@ bool RpcServerImpl::startListen() {
 void RpcServerImpl::onDataOut(const int fd) {
     if (m_conn_map.find(fd) != m_conn_map.end()) {
         RpcServerConn *conn = m_conn_map[fd];
-        int sent_ret = conn->sendResponse();
-        if (sent_ret == -1 ) {
+        PkgIOStatus sent_ret = conn->sendResponse();
+        if (sent_ret == PkgIOStatus::FAIL ) {
             removeConnection(fd);
         }
-        else if ( sent_ret == -2 ){
+        else if ( sent_ret == PkgIOStatus::PARTIAL ){
             //printf("OUT sent partial to %d\n", fd);
         }
         else {
@@ -222,7 +222,7 @@ bool RpcServerImpl::onDataOutEvent() {
     uint64_t resp_cnt = -1;
     ssize_t s = read(m_resp_ev_fd, &resp_cnt, sizeof(uint64_t));
     if (s != sizeof(uint64_t)) {
-        printf("read resp event fail\n");
+        perror("read resp event fail\n");
         return false;
     }
 
@@ -238,7 +238,7 @@ bool RpcServerImpl::onDataOutEvent() {
                 uint64_t resp_cnt = 1;
                 ssize_t s = write(m_resp_ev_fd, &(resp_cnt), sizeof(uint64_t));
                 if (s != sizeof(uint64_t)) {
-                    printf("write resp event fd fail\n");
+                    perror("write resp event fd fail\n");
                 }
                 return false;
             }
@@ -252,11 +252,11 @@ bool RpcServerImpl::onDataOutEvent() {
             //printf("conn %s resp queue len %lu\n", 
                     //conn->m_seqid.c_str(), 
                     //conn->m_response_q.size());
-            int sent_ret = conn->sendResponse();
-            if (sent_ret == -1 ) {
+            PkgIOStatus sent_ret = conn->sendResponse();
+            if (sent_ret == PkgIOStatus::FAIL ) {
                 removeConnection(conn->getFd());
             }
-            else if ( sent_ret == -2 ){
+            else if ( sent_ret == PkgIOStatus::PARTIAL ){
                 //printf("sent partial to %d\n", conn->getFd());
                 //send not finish, set EPOLLOUT flag on this fd, 
                 //until this resp send finish
@@ -316,7 +316,7 @@ void RpcServerImpl::onAccept() {
 void RpcServerImpl::onDataIn(const int fd) {
     //data come in
     RpcServerConn *conn = getConnection(fd);
-    if (conn == NULL) {
+    if (conn == nullptr) {
         //printf("rpc server socket already disconnected: %d\n", fd);  
     }
     else {
@@ -328,7 +328,7 @@ void RpcServerImpl::onDataIn(const int fd) {
         }  
         else 
         {  
-            if (pkgret.second != NULL) {
+            if (pkgret.second != nullptr) {
                 //got a full request, put to worker queue
                 if ( !m_request_q.push(pkgret.second)) {
                     //queue fail, drop pkg
@@ -407,7 +407,7 @@ void RpcServerImpl::setSocketKeepAlive(int fd)
 void RpcServerImpl::removeConnection(int fd)
 {
     std::lock_guard<std::mutex> mlock(m_mutex);
-    epoll_ctl(m_epoll_fd, EPOLL_CTL_DEL, fd, NULL);
+    epoll_ctl(m_epoll_fd, EPOLL_CTL_DEL, fd, nullptr);
     if (m_conn_map.find(fd) != m_conn_map.end()) {
         m_conn_set.erase(m_conn_map[fd]->m_seqid);
         delete m_conn_map[fd];
@@ -428,7 +428,7 @@ RpcServerConn *RpcServerImpl::getConnection(int fd)
     if( m_conn_map.find(fd) != m_conn_map.end()) {
         return m_conn_map[fd];
     }
-    return NULL;
+    return nullptr;
 }
 
 void RpcServerImpl::pushResp(std::string conn_id, response_pkg *resp_pkg)

@@ -93,7 +93,7 @@ RpcStatus RpcClient::async_call(const std::string &method_name, const std::strin
         perror("[ERROR]please alloc cb_obj from heap!!!\n");
         return RpcStatus::RPC_SEND_FAIL;
     }
-    if (cb_obj != NULL) {
+    if (cb_obj != nullptr) {
         cb_obj->setTimeout(timeout);
     }
 

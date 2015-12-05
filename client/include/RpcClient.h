@@ -101,6 +101,8 @@ protected:
     bool m_has_timeout;
     bool m_is_done;
     bool m_is_shared;
+
+private:
     std::mutex m_mutex;
     
 };

@@ -40,7 +40,7 @@ bool RpcRespBroker::isFromHttp() {
 
 bool RpcRespBroker::response(const std::string &resp_data) {
     if(m_need_resp) {
-        if (m_http_conn != NULL) {
+        if (m_http_conn != nullptr) {
             sendHttpResp(m_http_conn, 200, resp_data);
         }
         else {

@@ -11,7 +11,7 @@
 namespace rpcframe
 {
 
-enum class PkgReadStatus {
+enum class PkgIOStatus {
   FAIL = -1,
   PARTIAL = -2,
   FULL = 0,
@@ -22,9 +22,9 @@ class request_pkg
 public:
     request_pkg(uint32_t size, std::string conn_id)
     : connection_id(conn_id)
-    , data(NULL)
+    , data(nullptr)
     , data_len(size)
-    , http_conn(NULL)
+    , http_conn(nullptr)
     {
         data = new char[size];
     };
@@ -45,7 +45,7 @@ class response_pkg
 {
 public:
     explicit response_pkg(uint32_t size)
-    : data(NULL)
+    : data(nullptr)
     , data_len(size)
     {
         data = new char[size];

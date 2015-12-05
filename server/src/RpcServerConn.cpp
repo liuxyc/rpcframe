@@ -19,10 +19,10 @@ RpcServerConn::RpcServerConn(int fd, uint32_t seqid)
 : m_fd(fd)
 , m_cur_left_len(0)
 , m_cur_pkg_size(0)
-, m_rpk(NULL)
+, m_rpk(nullptr)
 , is_connected(true)
 , m_sent_len(0)
-, m_sent_pkg(NULL)
+, m_sent_pkg(nullptr)
 {
     //generate a connection id, this id used for track and identify RpcServerConn instance
     m_seqid = std::to_string(std::time(nullptr)) + "_";
@@ -34,10 +34,10 @@ RpcServerConn::~RpcServerConn()
 {
     printf("close fd %d\n", m_fd);
     close(m_fd);
-    if (m_rpk != NULL)
+    if (m_rpk != nullptr)
         delete m_rpk;
     while(m_response_q.size() != 0) {
-        response_pkg *pkg = NULL;
+        response_pkg *pkg = nullptr;
         if (m_response_q.pop(pkg, 0)) {
             delete pkg;
         }
@@ -50,10 +50,10 @@ void RpcServerConn::reset()
     is_connected = false;
     m_cur_left_len = 0;
     m_cur_pkg_size = 0;
-    if (m_rpk != NULL) {
+    if (m_rpk != nullptr) {
         delete m_rpk;
     }
-    m_rpk = NULL;
+    m_rpk = nullptr;
 }
 
 int RpcServerConn::getFd() const 
@@ -89,37 +89,37 @@ bool RpcServerConn::readPkgLen(uint32_t &pkg_len)
     return true;
 }
 
-int RpcServerConn::readPkgData()
+PkgIOStatus RpcServerConn::readPkgData()
 {
-    if (m_rpk == NULL) {
-        printf("rpk is NULL\n");
-        return -2;
+    if (m_rpk == nullptr) {
+        printf("rpk is nullptr\n");
+        return PkgIOStatus::FAIL;
     }
     if (!is_connected) {
         printf("connection already disconnected\n");
-        return -2;
+        return PkgIOStatus::FAIL;
     }
     errno = 0;
     int rev_size = recv(m_fd, m_rpk->data + (m_cur_pkg_size - m_cur_left_len), m_cur_left_len, 0);  
     if (rev_size <= 0) {
         if( errno == EAGAIN || errno == EINTR) {
-            return -1;
+            return PkgIOStatus::PARTIAL;
         }
         else {
             printf("recv pkg error %s\n", strerror(errno));
-            return -2;
+            return PkgIOStatus::FAIL;
         }
     }
     if ((uint32_t)rev_size == m_cur_left_len) {
         //printf("got full pkg\n");
         m_cur_left_len = 0;
         m_cur_pkg_size = 0;
-        return 0;
+        return PkgIOStatus::FULL;
     }
     else {
         m_cur_left_len = m_cur_left_len - rev_size;
         //printf(" half pkg got %d need %d more\n", rev_size, m_cur_left_len);
-        return -1;
+        return PkgIOStatus::PARTIAL;
     }
 }
 
@@ -128,25 +128,26 @@ pkg_ret_t RpcServerConn::getRequest()
     if (m_cur_pkg_size == 0) {
         //new pkg
         if (!readPkgLen(m_cur_pkg_size)) {
-            return pkg_ret_t(-1, NULL);
+            return pkg_ret_t(-1, nullptr);
         }
         if (m_cur_pkg_size == 0) {
-            return pkg_ret_t(0, NULL);
+            return pkg_ret_t(0, nullptr);
         }
         //printf("pkg len is %d\n", m_cur_pkg_size);
+        //TODO: may produce many memory fragment here
         m_rpk = new request_pkg(m_cur_pkg_size, m_seqid);
         m_cur_left_len = m_cur_pkg_size;
     }
-    int data_ret = readPkgData();
-    if (data_ret == -2) {
-        return pkg_ret_t(-1, NULL);
+    PkgIOStatus data_ret = readPkgData();
+    if (data_ret == PkgIOStatus::FAIL) {
+        return pkg_ret_t(-1, nullptr);
     }
-    else if( data_ret == -1) {
-        return pkg_ret_t(0, NULL);
+    else if( data_ret == PkgIOStatus::PARTIAL) {
+        return pkg_ret_t(0, nullptr);
     }
     else {
         request_pkg *p_rpk = m_rpk;
-        m_rpk = NULL;
+        m_rpk = nullptr;
         return pkg_ret_t(0, p_rpk);
     }
 }
@@ -163,7 +164,7 @@ int RpcServerConn::sendPkgLen()
     while(true) {
         if ( std::time(nullptr) - begin_tm > 1) {
             delete m_sent_pkg;
-            m_sent_pkg = NULL;
+            m_sent_pkg = nullptr;
             m_sent_len = 0;
             printf("send data len timeout!\n");
             return -1;
@@ -180,7 +181,7 @@ int RpcServerConn::sendPkgLen()
                 printf("send error! %s\n", strerror(errno));
                 is_connected = false;
                 delete m_sent_pkg;
-                m_sent_pkg = NULL;
+                m_sent_pkg = nullptr;
                 m_sent_len = 0;
                 return -1;
             }
@@ -194,7 +195,7 @@ int RpcServerConn::sendPkgLen()
     return 0;
 }
 
-int RpcServerConn::sendData()
+PkgIOStatus RpcServerConn::sendData()
 {
     int slen = send(m_fd, 
                     m_sent_pkg->data + m_sent_len, 
@@ -204,57 +205,57 @@ int RpcServerConn::sendData()
         if (slen == 0 || errno == EPIPE) {
             delete m_sent_pkg;
             printf("peer closed\n");
-            return -1;
+            return PkgIOStatus::FAIL;
         }
         if( errno != EAGAIN && errno != EINTR) {
             printf("send data error! %s\n", strerror(errno));
             delete m_sent_pkg;
-            m_sent_pkg = NULL;
+            m_sent_pkg = nullptr;
             m_sent_len = 0;
-            return -1;
+            return PkgIOStatus::FAIL;
         }
     }
     m_sent_len += slen;
     if (m_sent_pkg->data_len == m_sent_len) {
         //printf("full send %d\n", m_sent_len);
         delete m_sent_pkg;
-        m_sent_pkg = NULL;
+        m_sent_pkg = nullptr;
         m_sent_len = 0;
-        return 0;
+        return PkgIOStatus::FULL;
     }
     else {
         //printf("left send %d\n", m_sent_pkg->data_len - m_sent_len);
-        return -2;
+        return PkgIOStatus::PARTIAL;
     }
 }
 
-int RpcServerConn::sendResponse()
+PkgIOStatus RpcServerConn::sendResponse()
 {
     if (!is_connected) {
         printf("send connection already disconnected\n");
-        return -1;
+        return PkgIOStatus::FAIL;
     }
-    if (m_sent_pkg != NULL) {
+    if (m_sent_pkg != nullptr) {
         return sendData();
     }
     else {
-        response_pkg *pkg = NULL;
+        response_pkg *pkg = nullptr;
         if (m_response_q.pop(pkg, 0)) {
             m_sent_len = 0;
             m_sent_pkg = pkg;
             if (sendPkgLen() == -1) {
                 printf("send pkg len failed\n");
-                return -1;
+                return PkgIOStatus::FAIL;
             }
             //printf("send len success\n");
             return sendData();
         }
-        return -2;
+        return PkgIOStatus::PARTIAL;
     }
 }
 
 bool RpcServerConn::isSending() const {
-    return (m_sent_pkg != NULL);
+    return (m_sent_pkg != nullptr);
 }
 
 };

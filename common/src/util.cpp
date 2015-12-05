@@ -24,7 +24,7 @@ bool getHostIp(std::string &str_ip) {
 bool getHostIpByName(std::string &str_ip, const char *hname) {
     struct hostent *hent;
     hent = gethostbyname(hname);
-    if(hent == NULL) {
+    if(hent == nullptr) {
         printf("gethostbyname error %s\n", strerror(errno));
         return false;
     }
@@ -32,7 +32,7 @@ bool getHostIpByName(std::string &str_ip, const char *hname) {
     //printf("hostname: %s/naddress list: ", hent->h_name);
     //get first hostname ip
     char *c_ip = inet_ntoa(*(struct in_addr*)(hent->h_addr_list[0]));
-    if(c_ip != NULL) {
+    if(c_ip != nullptr) {
         str_ip.assign(c_ip);
         return true;
     }

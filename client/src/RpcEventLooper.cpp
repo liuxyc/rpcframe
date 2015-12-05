@@ -35,7 +35,7 @@ RpcEventLooper::RpcEventLooper(RpcClient *client, int thread_num)
 : m_client(client)
 , m_stop(false)
 , m_fd(-1)
-, m_conn(NULL)
+, m_conn(nullptr)
 , m_req_seqid(0)
 , MAX_REQ_LIMIT_BYTE(100 * 1024 * 1024)
 , m_thread_num(thread_num)
@@ -78,10 +78,10 @@ void RpcEventLooper::stop() {
 void RpcEventLooper::removeConnection() {
     std::lock_guard<std::mutex> mlock(m_mutex);
     delete m_conn;
-    m_conn = NULL;
+    m_conn = nullptr;
     m_fd = -1;
     for (auto cb = m_cb_map.begin(); cb != m_cb_map.end(); ) {
-        if (cb->second != NULL) {
+        if (cb->second != nullptr) {
             cb->second->callback_safe(RpcStatus::RPC_DISCONNECTED, std::string(""));
         }
         m_cb_map.erase(cb++);
@@ -117,9 +117,9 @@ RpcStatus RpcEventLooper::sendReq(
         return RpcStatus::RPC_SEND_FAIL;
     }
     m_mutex.lock();
-    if (m_conn == NULL) {
-        if (!connect() || m_conn == NULL) {
-            if (cb_obj != NULL) {
+    if (m_conn == nullptr) {
+        if (!connect() || m_conn == nullptr) {
+            if (cb_obj != nullptr) {
                 cb_obj->callback_safe(RpcStatus::RPC_SEND_FAIL, "");
             }
             m_mutex.unlock();
@@ -138,7 +138,7 @@ RpcStatus RpcEventLooper::sendReq(
     req_id = ssm.str();
     std::time_t tm_id;
     uint32_t cb_timeout = 0;
-    if (cb_obj != NULL) {
+    if (cb_obj != nullptr) {
         //if has timeout set, put this callback to timeout map
         cb_obj->setReqId(req_id);
         m_mutex.lock();
@@ -154,9 +154,9 @@ RpcStatus RpcEventLooper::sendReq(
     }
     RpcStatus send_ret = RpcStatus::RPC_SEND_FAIL;
     m_mutex.lock();
-    if (m_conn != NULL) {
+    if (m_conn != nullptr) {
         ++m_req_seqid;
-        send_ret = m_conn->sendReq(service_name, method_name, request_data, req_id, (cb_obj == NULL), cb_timeout);
+        send_ret = m_conn->sendReq(service_name, method_name, request_data, req_id, (cb_obj == nullptr), cb_timeout);
     }
     m_mutex.unlock();
     if (send_ret == RpcStatus::RPC_SEND_OK) {
@@ -164,7 +164,7 @@ RpcStatus RpcEventLooper::sendReq(
     }
     else {
         printf("send fail %s\n", req_id.c_str());
-        if (cb_obj != NULL) {
+        if (cb_obj != nullptr) {
             m_mutex.lock();
             if( cb_timeout > 0) {
                 m_cb_timer_map.erase(tm_id);
@@ -184,15 +184,13 @@ std::shared_ptr<RpcClientCallBack> RpcEventLooper::getCb(const std::string &req_
         return m_cb_map[req_id];
     }
     else {
-        return NULL;
+        return nullptr;
     }
 }
 
 void RpcEventLooper::removeCb(const std::string &req_id) {
     std::lock_guard<std::mutex> mlock(m_mutex);
-    if (m_cb_map.find(req_id) != m_cb_map.end()) {
-        m_cb_map.erase(req_id);
-    }
+    m_cb_map.erase(req_id);
 }
 
 void RpcEventLooper::dealTimeoutCb() {
@@ -205,7 +203,7 @@ void RpcEventLooper::dealTimeoutCb() {
             std::string reqid = cur_it->second;
             if (m_cb_map.find(reqid) != m_cb_map.end()) { 
                 std::shared_ptr<RpcClientCallBack> cb = m_cb_map[reqid];
-                if(cb != NULL) {
+                if(cb != nullptr) {
                     std::time_t tm = cur_it->first;
                     if(std::time(nullptr) > tm) {
                         //found a timeout cb
@@ -219,7 +217,7 @@ void RpcEventLooper::dealTimeoutCb() {
                     }
                 }
                 else {
-                    printf("WARNING found timeout NULL cb\n");
+                    printf("WARNING found timeout nullptr cb\n");
                 }
             }
             m_cb_timer_map.erase(cur_it);
@@ -258,8 +256,8 @@ void RpcEventLooper::run() {
                 //int: -1 get pkg data fail
                 //      0 get pkg data success(may partial data)
                 //int: 0 
-                //  pkgptr: NULL, partial data
-                //  pkgptr: not NULL, full pkg data 
+                //  pkgptr: nullptr, partial data
+                //  pkgptr: not nullptr, full pkg data 
                 if( pkgret.first < 0 )  
                 {  
                     printf("rpc client socket disconnected: %d\n", client_socket);  
@@ -271,7 +269,7 @@ void RpcEventLooper::run() {
                 }  
                 else 
                 {  
-                    if (pkgret.second != NULL) {
+                    if (pkgret.second != nullptr) {
                         //got a full response, put to worker queue
                         m_response_q.push(pkgret.second);
                     }
@@ -351,7 +349,7 @@ int RpcEventLooper::noBlockConnect(int sockfd, const char* hostname, int port, i
     FD_SET(sockfd, &writefds);
     timeout.tv_sec = timeoutv;
     timeout.tv_usec = 0;
-    ret = ::select(sockfd+1, NULL, &writefds, NULL, &timeout);
+    ret = ::select(sockfd+1, nullptr, &writefds, nullptr, &timeout);
     if(ret <= 0) { 
         printf("connect %s time out\n", hostname);
         close(sockfd);

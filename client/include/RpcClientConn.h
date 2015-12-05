@@ -29,7 +29,7 @@ public:
 
 private:
     bool readPkgLen(uint32_t &pkg_len);
-    PkgReadStatus readPkgData();
+    PkgIOStatus readPkgData();
 
 private:
     int m_fd;

@@ -109,7 +109,7 @@ int main()
         {
             printf("r1 send fail\n");
         }
-        client.async_call("test_method", std::string(len, '*'), 3, NULL);
+        client.async_call("test_method", std::string(len, '*'), 3, nullptr);
     }
     sleep(30);
     //round 2 async and sync call, random callback timeout
@@ -147,7 +147,7 @@ int main()
                 printf("test_method1 call fail %d\n", ret_st);
             }
             
-            client2.async_call("test_method", std::string(len, '*'), 3, NULL);
+            client2.async_call("test_method", std::string(len, '*'), 3, nullptr);
         }
     }
 
@@ -158,7 +158,7 @@ int main()
     //request a server side async response, server will response after 5 seconds,
     //so we set timeout = 10 seconds
     client_call_async_server.async_call("test_method_async", std::string(23, '*'), 10, pCB);
-    client_call_async_server.async_call("test_method_async", std::string(20, '*'), 10, NULL);
+    client_call_async_server.async_call("test_method_async", std::string(20, '*'), 10, nullptr);
     client_call_async_server.call("test_method_async", std::string(10, '*'), resp_data, 10);
     printf("async server back: %s\n", resp_data.c_str());
     sleep(10);
@@ -178,7 +178,7 @@ int main()
         {
             printf("r1 send fail\n");
         }
-        client.async_call("test_method2", std::string(len, '*'), 4, NULL);
+        client.async_call("test_method2", std::string(len, '*'), 4, nullptr);
     }
     sleep(10);
     return 0;

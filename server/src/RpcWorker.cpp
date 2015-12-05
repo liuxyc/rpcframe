@@ -46,7 +46,7 @@ void RpcWorker::run() {
         if (m_stop) {
             break;
         }
-        request_pkg *pkg = NULL;
+        request_pkg *pkg = nullptr;
         if (m_work_q->pop(pkg, 10)) {
             std::unique_ptr<request_pkg> u_ptr(pkg);
             //must get request id from here
@@ -64,9 +64,9 @@ void RpcWorker::run() {
             IService *p_service = m_server->getService(req.service_name());
             RpcInnerResp resp;
             resp.set_request_id(req.request_id());
-            if (p_service != NULL) {
+            if (p_service != nullptr) {
                 IRpcRespBroker *rpcbroker = new RpcRespBroker(m_server, pkg->connection_id, req.request_id(),
-                                                            (req.type() == RpcInnerReq::TWO_WAY), NULL);
+                                                            (req.type() == RpcInnerReq::TWO_WAY), nullptr);
 
                 RpcStatus ret = p_service->runService(req.method_name(), 
                                                                  req.data(), 
