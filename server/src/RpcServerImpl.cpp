@@ -351,6 +351,9 @@ bool RpcServerImpl::start() {
     while(!m_stop) {
         int nfds = epoll_wait(m_epoll_fd, events, RPC_MAX_SOCKFD_COUNT, 2000);  
         if ( nfds == -1) {
+            if( m_stop ) {
+              break;
+            }
             perror("epoll_pwait\n");
         }
         for (int i = 0; i < nfds; i++)  

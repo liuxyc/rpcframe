@@ -11,6 +11,9 @@
 #include <thread>
 #include <mutex>
 
+#include <signal.h>
+#include <cstring>
+
 class MyService_async: public rpcframe::IService
 {
 public:
@@ -131,8 +134,24 @@ public:
 
 };
 
+rpcframe::RpcServer *g_server_handler = nullptr;
+
+void quit_handler(int signum) 
+{
+  if (g_server_handler != nullptr) {
+    g_server_handler->stop();
+  }
+}
+
 int main(int argc, char * argv[])
 {
+    struct sigaction sigint;
+    memset(&sigint, 0, sizeof(struct sigaction));
+    sigint.sa_handler = quit_handler;
+    if (sigaction(SIGINT, &sigint, NULL) == -1) {
+      perror("set signal handler fail\n");
+    }
+
     auto endp = std::make_pair("127.0.0.1", 8801);
     rpcframe::RpcServerConfig cfg(endp);
     cfg.setThreadNum(8);
@@ -144,6 +163,7 @@ int main(int argc, char * argv[])
     //bind service_name to service instance
     rpcServer.addService("test_service", &ms);
     rpcServer.addService("test_service_async", &ms_async);
+    g_server_handler = &rpcServer;
     rpcServer.start();
-    rpcServer.stop();
+    printf("RPCServer stoped\n");
 }

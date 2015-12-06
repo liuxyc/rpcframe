@@ -146,6 +146,8 @@ void RpcHttpServer::start() {
 
 void RpcHttpServer::stop() {
     m_stop = true;
+    printf("wait http thread stop for 2 second...\n");
+    sleep(2);
     for(int i = 0; i < m_thread_num; i++)  
     {  
         mg_destroy_server(&(m_servers[i].mgserver));
