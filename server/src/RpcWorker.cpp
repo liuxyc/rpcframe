@@ -14,6 +14,7 @@
 #include "RpcServerConn.h"
 #include "RpcServerImpl.h"
 #include "rpc.pb.h"
+#include "util.h"
 #include "mongoose.h"
 
 namespace rpcframe
@@ -52,7 +53,7 @@ void RpcWorker::run() {
             //must get request id from here
             RpcInnerReq req;
             if (!req.ParseFromArray(pkg->data, pkg->data_len)) {
-                printf("[ERROR]parse internal pkg fail\n");
+                RPC_LOG(RPC_LOG_LEV::ERROR, "parse internal pkg fail");
                 if(req.type() == RpcInnerReq::HTTP) {
                     mg_connection *conn = (struct mg_connection *)pkg->http_conn;
                     sendHttpFail(conn, 500, "");
@@ -83,7 +84,7 @@ void RpcWorker::run() {
                         break;
                     case RpcStatus::RPC_METHOD_NOTFOUND:
                         delete rpcbroker;
-                        printf("[WARNING]Unknow method request #%s#\n", req.method_name().c_str());
+                        RPC_LOG(RPC_LOG_LEV::WARNING, "Unknow method request #%s#", req.method_name().c_str());
                         if(req.type() == RpcInnerReq::HTTP) {
                             mg_connection *conn = (struct mg_connection *)pkg->http_conn;
                             sendHttpFail(conn, 404, std::string("Unknow method request:") + req.method_name());
@@ -91,7 +92,7 @@ void RpcWorker::run() {
                         break;
                     case RpcStatus::RPC_SERVER_FAIL:
                         delete rpcbroker;
-                        printf("[WARNING]method call fail #%s#\n", req.method_name().c_str());
+                        RPC_LOG(RPC_LOG_LEV::WARNING, "method call fail #%s#", req.method_name().c_str());
                         if(req.type() == RpcInnerReq::HTTP) {
                             mg_connection *conn = (struct mg_connection *)pkg->http_conn;
                             sendHttpOk(conn, resp_data);
@@ -106,7 +107,7 @@ void RpcWorker::run() {
             }
             else {
                 resp.set_ret_val(static_cast<uint32_t>(RpcStatus::RPC_SRV_NOTFOUND));
-                printf("[WARNING]Unknow service request #%s#\n", req.service_name().c_str());
+                RPC_LOG(RPC_LOG_LEV::WARNING, "Unknow service request #%s#", req.service_name().c_str());
                 if(req.type() == RpcInnerReq::HTTP) {
                     mg_connection *conn = (struct mg_connection *)pkg->http_conn;
                     sendHttpFail(conn, 404, std::string("Unknow service request:") + req.service_name());
@@ -118,7 +119,7 @@ void RpcWorker::run() {
                 response_pkg *resp_pkg = new response_pkg(resp.ByteSize());
                 if(!resp.SerializeToArray(resp_pkg->data, resp_pkg->data_len)) {
                     delete resp_pkg;
-                    printf("[ERROR]serialize innernal pkg fail\n");
+                    RPC_LOG(RPC_LOG_LEV::ERROR, "serialize innernal pkg fail");
                 }
                 else {
                     //put response to connection queue, max worker throughput
@@ -127,7 +128,7 @@ void RpcWorker::run() {
             }
         } 
         else {
-            //printf("thread: %lu, no data\n", std::this_thread::get_id());
+            //RPC_LOG(RPC_LOG_LEV::DEBUG, "thread: %lu, no data", std::this_thread::get_id());
         }
     }
 }

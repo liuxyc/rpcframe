@@ -17,6 +17,7 @@
 #include "RpcClient.h"
 #include "RpcEventLooper.h"
 #include "rpc.pb.h"
+#include "util.h"
 
 namespace rpcframe
 {
@@ -50,7 +51,7 @@ void RpcClientWorker::run() {
             //must get request id from here
             RpcInnerResp resp;
             if(!resp.ParseFromArray(pkg->data, pkg->data_len)) {
-                printf("[ERROR]parse internal pkg fail\n");
+                RPC_LOG(RPC_LOG_LEV::ERROR, "[ERROR]parse internal pkg fail");
                 continue;
             }
             std::shared_ptr<RpcClientCallBack> cb = m_ev->getCb(resp.request_id());
@@ -62,7 +63,7 @@ void RpcClientWorker::run() {
                 m_ev->removeCb(resp.request_id());
             }
             else {
-                //printf("the cb of req:%s is nullptr\n", resp.request_id().c_str());
+                //RPC_LOG(RPC_LOG_LEV::ERROR, "the cb of req:%s is nullptr", resp.request_id().c_str());
             }
 
         } 

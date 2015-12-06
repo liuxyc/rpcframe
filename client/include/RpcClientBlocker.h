@@ -35,7 +35,7 @@ public:
         if (!m_done) {
              std::cv_status ret = m_cv.wait_for(lk, std::chrono::seconds(m_timeout));
              if (ret == std::cv_status::timeout) {
-                //printf("blocker timeout\n");
+                //RPC_LOG(RPC_LOG_LEV::DEBUG, "blocker timeout");
                 return std::make_pair(RpcStatus::RPC_CB_TIMEOUT, m_resp_data);
              }
         }

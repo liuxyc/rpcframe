@@ -41,14 +41,14 @@ RpcEventLooper::RpcEventLooper(RpcClient *client, int thread_num)
 , m_thread_num(thread_num)
 {
     if(!getHostIp(m_host_ip)) {
-        printf("[ERROR]get hostip fail!");
+        RPC_LOG(RPC_LOG_LEV::ERROR, "[ERROR]get hostip fail!");
     }
     m_epoll_fd = epoll_create(_MAX_SOCKFD_COUNT);  
     //set noblock
     int opts = O_NONBLOCK;  
     if(fcntl(m_epoll_fd,F_SETFL,opts)<0)  
     {  
-        printf("set epoll fd noblock fail");
+        RPC_LOG(RPC_LOG_LEV::ERROR, "set epoll fd noblock fail");
     }  
 
     for(int i = 0; i < m_thread_num; ++i) {
@@ -61,7 +61,7 @@ RpcEventLooper::RpcEventLooper(RpcClient *client, int thread_num)
 }
 
 RpcEventLooper::~RpcEventLooper() {
-    printf("~RpcEventLooper()\n");
+    RPC_LOG(RPC_LOG_LEV::DEBUG, "~RpcEventLooper()");
 
 }
 
@@ -101,7 +101,7 @@ void RpcEventLooper::addConnection()
         epoll_ctl(m_epoll_fd, EPOLL_CTL_ADD, m_fd, &ev);  
     }
     else {
-        printf("invalid fd\n");
+        RPC_LOG(RPC_LOG_LEV::ERROR, "invalid fd");
     }
 }
 
@@ -113,7 +113,7 @@ RpcStatus RpcEventLooper::sendReq(
         std::string &req_id) {
 
     if (request_data.length() >= MAX_REQ_LIMIT_BYTE) {
-        printf("send data too large %lu\n", request_data.length());
+        RPC_LOG(RPC_LOG_LEV::ERROR, "send data too large %lu", request_data.length());
         return RpcStatus::RPC_SEND_FAIL;
     }
     m_mutex.lock();
@@ -160,10 +160,10 @@ RpcStatus RpcEventLooper::sendReq(
     }
     m_mutex.unlock();
     if (send_ret == RpcStatus::RPC_SEND_OK) {
-        printf("send %s\n", req_id.c_str());
+        RPC_LOG(RPC_LOG_LEV::DEBUG, "send %s", req_id.c_str());
     }
     else {
-        printf("send fail %s\n", req_id.c_str());
+        RPC_LOG(RPC_LOG_LEV::ERROR, "send fail %s", req_id.c_str());
         if (cb_obj != nullptr) {
             m_mutex.lock();
             if( cb_timeout > 0) {
@@ -207,7 +207,7 @@ void RpcEventLooper::dealTimeoutCb() {
                     std::time_t tm = cur_it->first;
                     if(std::time(nullptr) > tm) {
                         //found a timeout cb
-                        //printf("%s timeout\n", cb->getReqId().c_str());
+                        //RPC_LOG(RPC_LOG_LEV::WARNING, "%s timeout", cb->getReqId().c_str());
                         cb->callback_safe(RpcStatus::RPC_CB_TIMEOUT, "");
                         m_cb_map.erase(reqid);
                     }
@@ -217,7 +217,7 @@ void RpcEventLooper::dealTimeoutCb() {
                     }
                 }
                 else {
-                    printf("WARNING found timeout nullptr cb\n");
+                    RPC_LOG(RPC_LOG_LEV::ERROR, "found timeout nullptr cb");
                 }
             }
             m_cb_timer_map.erase(cur_it);
@@ -230,14 +230,14 @@ void RpcEventLooper::run() {
     struct epoll_event events[_MAX_SOCKFD_COUNT];  
     while(1) {
         if (m_stop) {
-            printf("RpcEventLooper stoped\n");
+            RPC_LOG(RPC_LOG_LEV::DEBUG, "RpcEventLooper stoped");
             removeConnection();
             break;
         }
 
         int nfds = epoll_wait(m_epoll_fd, events, _MAX_SOCKFD_COUNT, 1000);  
         if (m_stop) {
-            printf("RpcEventLooper stoped\n");
+            RPC_LOG(RPC_LOG_LEV::DEBUG, "RpcEventLooper stoped");
             removeConnection();
             break;
         }
@@ -260,7 +260,7 @@ void RpcEventLooper::run() {
                 //  pkgptr: not nullptr, full pkg data 
                 if( pkgret.first < 0 )  
                 {  
-                    printf("rpc client socket disconnected: %d\n", client_socket);  
+                    RPC_LOG(RPC_LOG_LEV::WARNING, "rpc client socket disconnected: %d", client_socket);  
                     struct epoll_event event_del;  
                     event_del.data.fd = client_socket;
                     event_del.events = 0;  
@@ -277,11 +277,11 @@ void RpcEventLooper::run() {
             }  
             else  
             {  
-                printf("EPOLL ERROR\n");
+                RPC_LOG(RPC_LOG_LEV::WARNING, "EPOLL ERROR");
                 epoll_ctl(m_epoll_fd, EPOLL_CTL_DEL, client_socket, &events[i]);  
             }  
         }  
-        //printf("epoll loop\n");
+        //RPC_LOG(RPC_LOG_LEV::DEBUG, "epoll loop");
     }
     close(m_epoll_fd);
 }
@@ -290,14 +290,14 @@ bool RpcEventLooper::connect() {
     m_fd = ::socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
     if(m_fd < 0)
     {
-        printf("socket creation failed\n");
+        RPC_LOG(RPC_LOG_LEV::ERROR, "socket creation failed");
         return false;
     }
 
     if (noBlockConnect(m_fd, m_client->getConfig().m_hostname.c_str(), 
                        m_client->getConfig().m_port, m_client->getConfig().m_connect_timeout) == -1)
     {
-        printf("Connect error.\n");
+        RPC_LOG(RPC_LOG_LEV::ERROR, "Connect error.");
         return false;
     }
 
@@ -328,7 +328,7 @@ int RpcEventLooper::noBlockConnect(int sockfd, const char* hostname, int port, i
     address.sin_family = AF_INET;
     std::string hostip;
     if(!getHostIpByName(hostip, hostname)) {
-        printf("gethostbyname fail\n");
+        RPC_LOG(RPC_LOG_LEV::ERROR, "gethostbyname fail");
     }
     inet_pton(AF_INET, hostip.c_str(), &address.sin_addr);
     address.sin_port = htons(port);
@@ -339,7 +339,7 @@ int RpcEventLooper::noBlockConnect(int sockfd, const char* hostname, int port, i
         return sockfd;
     }
     else if(errno != EINPROGRESS) {//if errno not EINPROGRESS, errror
-        printf("unblock connect not support\n");
+        RPC_LOG(RPC_LOG_LEV::ERROR, "unblock connect not support");
         ::close(sockfd);
         return -1;
     }
@@ -351,24 +351,24 @@ int RpcEventLooper::noBlockConnect(int sockfd, const char* hostname, int port, i
     timeout.tv_usec = 0;
     ret = ::select(sockfd+1, nullptr, &writefds, nullptr, &timeout);
     if(ret <= 0) { 
-        printf("connect %s time out\n", hostname);
+        RPC_LOG(RPC_LOG_LEV::ERROR, "connect %s time out", hostname);
         close(sockfd);
         return -1;
     }
     if(!FD_ISSET(sockfd, &writefds)) {
-        printf("no events on sockfd found\n");
+        RPC_LOG(RPC_LOG_LEV::ERROR, "no events on sockfd found");
         close(sockfd);
         return -1;
     }
     int error = 0;
     socklen_t length = sizeof(error);
     if(getsockopt(sockfd, SOL_SOCKET, SO_ERROR, &error, &length) < 0) {
-        printf("get socket option error\n");
+        RPC_LOG(RPC_LOG_LEV::ERROR, "get socket option error");
         close(sockfd);
         return -1;
     }
     if(error != 0 ) {
-        printf("connect host %s error:%s\n", hostname, strerror(error));
+        RPC_LOG(RPC_LOG_LEV::ERROR, "connect host %s error:%s", hostname, strerror(error));
         close(sockfd);
         return -1;
     }

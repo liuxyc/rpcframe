@@ -55,7 +55,7 @@ RpcClient::RpcClient(RpcClientConfig &cfg, const std::string &service_name)
 }
 
 RpcClient::~RpcClient() {
-    printf("~RpcClient()\n");
+    RPC_LOG(RPC_LOG_LEV::DEBUG, "~RpcClient()");
     m_ev->stop();
     for(auto th: m_thread_vec) {
         th->join();
@@ -90,7 +90,7 @@ RpcStatus RpcClient::async_call(const std::string &method_name, const std::strin
     std::string req_id;
     int test_heap = 0;
     if ((long)&test_heap < (long)(cb_obj.get())) {
-        perror("[ERROR]please alloc cb_obj from heap!!!\n");
+        RPC_LOG(RPC_LOG_LEV::ERROR, "[ERROR]please alloc cb_obj from heap!!!\n");
         return RpcStatus::RPC_SEND_FAIL;
     }
     if (cb_obj != nullptr) {

@@ -15,6 +15,7 @@
 #include "RpcServerImpl.h"
 #include "RpcPackage.h"
 #include "rpc.pb.h"
+#include "util.h"
 
 namespace rpcframe
 {
@@ -62,12 +63,12 @@ static int ev_handler(struct mg_connection *conn, enum mg_event ev) {
                             break;
                         case RpcStatus::RPC_METHOD_NOTFOUND:
                             delete rpcbroker;
-                            printf("[WARNING]Unknow method request #%s#\n", method_name.c_str());
+                            RPC_LOG(RPC_LOG_LEV::WARNING, "Unknow method request #%s#", method_name.c_str());
                             sendHttpResp(conn, 404, std::string("Unknow method request:") + method_name);
                             break;
                         case RpcStatus::RPC_SERVER_FAIL:
                             delete rpcbroker;
-                            printf("[WARNING]method call fail #%s#\n", method_name.c_str());
+                            RPC_LOG(RPC_LOG_LEV::WARNING, "method call fail #%s#", method_name.c_str());
                             sendHttpResp(conn, 200, resp_data);
                             break;
                         //FIXME:mongoose is not thread safe, async response is not avaliabe in http mode
@@ -81,7 +82,7 @@ static int ev_handler(struct mg_connection *conn, enum mg_event ev) {
                     }
                 }
                 else {
-                    printf("[WARNING]Unknow service request #%s#\n", service_name.c_str());
+                    RPC_LOG(RPC_LOG_LEV::WARNING, "Unknow service request #%s#", service_name.c_str());
                     sendHttpResp(conn, 404, std::string("Unknow service request:") + service_name);
                 }
             }
@@ -97,7 +98,7 @@ static int ev_handler(struct mg_connection *conn, enum mg_event ev) {
 void* process_proc(void* p_server)  
 {  
     if (p_server == nullptr) {
-        printf("[ERROR]process_proc p_server nullptr\n");
+        RPC_LOG(RPC_LOG_LEV::ERROR, "process_proc p_server nullptr");
         return nullptr;
     }
     prctl(PR_SET_NAME, "RpcHttpServer", 0, 0, 0); 
@@ -140,13 +141,13 @@ void RpcHttpServer::start() {
         }  
         mg_start_thread(process_proc, &m_servers[i]);  
     }  
-    printf("Listening on HTTP port %d\n", m_listen_port);
+    RPC_LOG(RPC_LOG_LEV::INFO, "Listening on HTTP port %d", m_listen_port);
 }
 
 
 void RpcHttpServer::stop() {
     m_stop = true;
-    printf("wait http thread stop for 2 second...\n");
+    RPC_LOG(RPC_LOG_LEV::INFO, "wait http thread stop for 2 second...");
     sleep(2);
     for(int i = 0; i < m_thread_num; i++)  
     {  
