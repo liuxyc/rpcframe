@@ -2,8 +2,8 @@
  * Copyright (c) 2014-2015, Xiaoyu Liu <liuxyc at gmail dot com>
  * All rights reserved.
  */
+#include "RpcClientWorker.h"
 
-#include <memory>
 #include <stdio.h>  
 #include <stdlib.h>  
 #include <string.h>  
@@ -11,7 +11,6 @@
 #include <sys/prctl.h>
 #include <memory>
 
-#include "RpcClientWorker.h"
 #include "RpcClientConn.h"
 #include "RpcDefs.h"
 #include "RpcClient.h"

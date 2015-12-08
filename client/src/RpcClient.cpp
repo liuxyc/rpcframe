@@ -3,9 +3,10 @@
 *   All rights reserved.
 *  
 */
+#include "RpcClient.h"
+
 #include <thread>
 
-#include "RpcClient.h"
 #include "RpcClientBlocker.h"
 #include "RpcEventLooper.h"
 #include "util.h"

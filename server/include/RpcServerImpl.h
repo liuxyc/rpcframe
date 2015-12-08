@@ -17,7 +17,6 @@
 namespace rpcframe
 {
 
-
 class RpcServerConn;
 class request_pkg;
 class response_pkg;
@@ -30,7 +29,7 @@ typedef std::unordered_map<std::string, IService *> ServiceMap;
 class RpcServerImpl
 {
 public:
-    RpcServerImpl(RpcServerConfig &cfg);
+    explicit RpcServerImpl(RpcServerConfig &cfg);
     ~RpcServerImpl();
 
     /**

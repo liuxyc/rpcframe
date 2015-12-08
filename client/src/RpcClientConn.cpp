@@ -2,6 +2,7 @@
  * Copyright (c) 2014-2015, Xiaoyu Liu <liuxyc at gmail dot com>
  * All rights reserved.
  */
+#include "RpcClientConn.h"
 
 #include <errno.h>
 #include <fcntl.h>  
@@ -11,7 +12,6 @@
 #include <unistd.h>
 #include <uuid/uuid.h>
 
-#include "RpcClientConn.h"
 #include "rpc.pb.h"
 #include "util.h"
 

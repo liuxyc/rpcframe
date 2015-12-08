@@ -2,6 +2,7 @@
  * Copyright (c) 2014-2015, Xiaoyu Liu <liuxyc at gmail dot com>
  * All rights reserved.
  */
+#include "RpcServerConn.h"
 
 #include <errno.h>
 #include <sys/socket.h>  
@@ -9,9 +10,9 @@
 #include <fcntl.h>  
 #include <string.h>
 #include <unistd.h>
+
 #include <chrono>
 
-#include "RpcServerConn.h"
 #include "util.h"
 
 namespace rpcframe

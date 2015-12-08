@@ -2,6 +2,7 @@
  * Copyright (c) 2014-2015, Xiaoyu Liu <liuxyc at gmail dot com>
  * All rights reserved.
  */
+#include "RpcHttpServer.h"
 
 #include <stdio.h>  
 #include <stdlib.h>  
@@ -9,7 +10,6 @@
 #include <unistd.h>
 #include <sys/prctl.h>
 
-#include "RpcHttpServer.h"
 #include "IService.h"
 #include "RpcRespBroker.h"
 #include "RpcServerImpl.h"

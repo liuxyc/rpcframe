@@ -8,11 +8,11 @@
 #include "IService.h"
 #include "RpcDefs.h"
 
-class RpcServerImpl;
 
 namespace rpcframe
 {
 
+class RpcServerImpl;
 class RpcServer
 {
 public:

@@ -2,12 +2,12 @@
  * Copyright (c) 2014-2015, Xiaoyu Liu <liuxyc at gmail dot com>
  * All rights reserved.
  */
+#include "RpcEventLooper.h"
 
 #include <arpa/inet.h>  
 #include <fcntl.h>  
 #include <netdb.h>
 #include <netinet/tcp.h>  
-#include <sstream>
 #include <stdio.h>  
 #include <stdlib.h>  
 #include <string.h>  
@@ -18,7 +18,8 @@
 #include <unistd.h>
 #include <sys/prctl.h>
 
-#include "RpcEventLooper.h"
+#include <sstream>
+
 #include "RpcClientConn.h"
 #include "RpcClientWorker.h"
 #include "RpcClient.h"

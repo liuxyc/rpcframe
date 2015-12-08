@@ -2,6 +2,7 @@
  * Copyright (c) 2014-2015, Xiaoyu Liu <liuxyc at gmail dot com>
  * All rights reserved.
  */
+#include "RpcServer.h"
 
 #include <stdio.h>  
 #include <stdlib.h>  
@@ -9,8 +10,6 @@
 #include <unistd.h>
 
 #include "RpcServerImpl.h"
-#include "RpcServer.h"
-
 
 namespace rpcframe
 {
