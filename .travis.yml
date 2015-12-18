@@ -9,5 +9,5 @@ install:
  - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-4.8 90
  - wget https://github.com/google/protobuf/releases/download/v2.6.1/protobuf-2.6.1.tar.bz2
  - tar -xjvf protobuf-2.6.1.tar.bz2
- - cd protobuf-2.6.1 && ./configure --prefix=/usr && make && sudo make install
+ - cd protobuf-2.6.1 && ./configure --prefix=/usr && make && sudo make install && cd -
 script: scons
