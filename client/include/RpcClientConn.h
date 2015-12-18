@@ -14,7 +14,7 @@
 
 namespace rpcframe {
 
-typedef std::pair<int, response_pkg *> pkg_ret_t;
+typedef std::pair<int, std::shared_ptr<response_pkg> > pkg_ret_t;
 
 class RpcClientConn
 {

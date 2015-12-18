@@ -102,7 +102,10 @@ RpcServerImpl::RpcServerImpl(RpcServerConfig &cfg)
 }
 
 RpcServerImpl::~RpcServerImpl() {
-
+    stop();
+    for(auto rw: m_worker_vec) {
+        delete rw;
+    }
 }
 
 bool RpcServerImpl::addService(const std::string &name, IService *p_service)
@@ -331,15 +334,10 @@ void RpcServerImpl::onDataIn(const int fd) {
                 if ( !m_request_q.push(pkgret.second)) {
                     //queue fail, drop pkg
                     RPC_LOG(RPC_LOG_LEV::WARNING, "server queue fail, drop pkg");
-                    delete pkgret.second;
                 }
             }
         }  
     }
-}
-
-bool RpcServerImpl::pushReq(request_pkg *req_pkg) {
-    return m_request_q.push(req_pkg);
 }
 
 bool RpcServerImpl::start() {
@@ -457,14 +455,20 @@ void RpcServerImpl::pushResp(std::string conn_id, response_pkg *resp_pkg)
 }
 
 void RpcServerImpl::stop() {
+    if (m_stop) {
+      return;
+    }
     m_stop = true;
     m_http_server->stop();
+    delete m_http_server;
     for(auto rw: m_worker_vec) {
         rw->stop();
     }
     for (auto th: m_thread_vec) {
         th->join();
+        delete th;
     }
+    RPC_LOG(RPC_LOG_LEV::INFO, "RpcServer stoped");
 }
 
 };

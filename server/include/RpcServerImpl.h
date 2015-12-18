@@ -13,13 +13,14 @@
 #include "Queue.h"
 #include "IService.h"
 #include "RpcDefs.h"
+#include "RpcPackage.h"
 
 namespace rpcframe
 {
 
 class RpcServerConn;
-class request_pkg;
-class response_pkg;
+//class request_pkg;
+//class response_pkg;
 class RpcWorker;
 class IService;
 class RpcHttpServer;
@@ -56,7 +57,6 @@ public:
     void addConnection(int fd, RpcServerConn *conn);
     RpcServerConn *getConnection(int fd);
     void pushResp(std::string seqid, response_pkg *resp_pkg);
-    bool pushReq(request_pkg *req_pkg);
 
 private:
     bool startListen();
@@ -72,8 +72,8 @@ private:
     std::unordered_map<int, RpcServerConn *> m_conn_map;
     std::unordered_map<std::string, RpcServerConn *> m_conn_set;
     uint32_t m_seqid;
-    Queue<request_pkg *> m_request_q;
-    Queue<response_pkg *> m_response_q;
+    ReqQueue m_request_q;
+    RespQueue m_response_q;
     Queue<std::string> m_resp_conn_q;
     std::mutex m_mutex;
     int m_epoll_fd;

@@ -227,7 +227,7 @@ void RpcEventLooper::dealTimeoutCb() {
 }
 
 void RpcEventLooper::run() {
-    prctl(PR_SET_NAME, "Rpclooper", 0, 0, 0); 
+    prctl(PR_SET_NAME, "RpcClient", 0, 0, 0); 
     struct epoll_event events[_MAX_SOCKFD_COUNT];  
     while(1) {
         if (m_stop) {

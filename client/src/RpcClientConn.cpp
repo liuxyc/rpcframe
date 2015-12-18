@@ -139,9 +139,9 @@ pkg_ret_t RpcClientConn::getResponse()
         return pkg_ret_t(0, nullptr);
     }
     else {
-        response_pkg *p_rpk = m_rpk;
+        RespPkgPtr resp_pkg(m_rpk);
         m_rpk = nullptr;
-        return pkg_ret_t(0, p_rpk);
+        return pkg_ret_t(0, resp_pkg);
     }
 }
 

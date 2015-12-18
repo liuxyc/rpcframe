@@ -6,13 +6,14 @@
 #ifndef RPCFRAME_RPCSERVERCONN
 #define RPCFRAME_RPCSERVERCONN
 #include <mutex>
+#include <memory>
 
 #include "RpcPackage.h"
 #include "Queue.h"
 
 namespace rpcframe {
 
-typedef std::pair<int, request_pkg *> pkg_ret_t;
+typedef std::pair<int, std::shared_ptr<request_pkg> > pkg_ret_t;
 
 class RpcServerConn
 {

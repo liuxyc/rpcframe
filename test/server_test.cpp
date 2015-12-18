@@ -26,8 +26,10 @@ public:
         m_t = nullptr;
     };
     virtual ~MyService_async(){
-        delete m_t;
-    
+        if(m_t != nullptr) {
+          m_t->join();
+          delete m_t;
+        }
     };
 
     //method1
@@ -159,11 +161,12 @@ int main(int argc, char * argv[])
     //cfg.disableHttp();
     rpcframe::RpcServer rpcServer(cfg);
     MyService ms;
-    MyService_async ms_async;
+    MyService_async *ms_async = new MyService_async();
     //bind service_name to service instance
     rpcServer.addService("test_service", &ms);
-    rpcServer.addService("test_service_async", &ms_async);
+    rpcServer.addService("test_service_async", ms_async);
     g_server_handler = &rpcServer;
     rpcServer.start();
-    printf("RPCServer stoped\n");
+    delete ms_async;
+    printf("server_test stoped\n");
 }

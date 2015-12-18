@@ -149,7 +149,7 @@ pkg_ret_t RpcServerConn::getRequest()
         return pkg_ret_t(0, nullptr);
     }
     else {
-        request_pkg *p_rpk = m_rpk;
+        std::shared_ptr<request_pkg> p_rpk(m_rpk);
         m_rpk = nullptr;
         return pkg_ret_t(0, p_rpk);
     }

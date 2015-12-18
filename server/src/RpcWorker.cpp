@@ -48,9 +48,8 @@ void RpcWorker::run() {
         if (m_stop) {
             break;
         }
-        request_pkg *pkg = nullptr;
+        std::shared_ptr<request_pkg> pkg = nullptr;
         if (m_work_q->pop(pkg, 10)) {
-            std::unique_ptr<request_pkg> u_ptr(pkg);
             //must get request id from here
             RpcInnerReq req;
             if (!req.ParseFromArray(pkg->data, pkg->data_len)) {
