@@ -39,12 +39,6 @@ RpcServerConn::~RpcServerConn()
     close(m_fd);
     if (m_rpk != nullptr)
         delete m_rpk;
-    while(m_response_q.size() != 0) {
-        response_pkg *pkg = nullptr;
-        if (m_response_q.pop(pkg, 0)) {
-            delete pkg;
-        }
-    }
 }
 
 void RpcServerConn::reset()
@@ -166,7 +160,6 @@ int RpcServerConn::sendPkgLen()
     //to avoid take too much server resource, we disconnet!
     while(true) {
         if ( std::time(nullptr) - begin_tm > 1) {
-            delete m_sent_pkg;
             m_sent_pkg = nullptr;
             m_sent_len = 0;
             RPC_LOG(RPC_LOG_LEV::WARNING, "send data len timeout!");
@@ -183,7 +176,6 @@ int RpcServerConn::sendPkgLen()
             else {
                 RPC_LOG(RPC_LOG_LEV::ERROR, "send error! %s", strerror(errno));
                 is_connected = false;
-                delete m_sent_pkg;
                 m_sent_pkg = nullptr;
                 m_sent_len = 0;
                 return -1;
@@ -206,13 +198,11 @@ PkgIOStatus RpcServerConn::sendData()
                     MSG_NOSIGNAL | MSG_DONTWAIT);  
     if (slen <= 0) {
         if (slen == 0 || errno == EPIPE) {
-            delete m_sent_pkg;
             RPC_LOG(RPC_LOG_LEV::WARNING, "peer closed");
             return PkgIOStatus::FAIL;
         }
         if( errno != EAGAIN && errno != EINTR) {
             RPC_LOG(RPC_LOG_LEV::ERROR, "send data error! %s", strerror(errno));
-            delete m_sent_pkg;
             m_sent_pkg = nullptr;
             m_sent_len = 0;
             return PkgIOStatus::FAIL;
@@ -221,7 +211,6 @@ PkgIOStatus RpcServerConn::sendData()
     m_sent_len += slen;
     if (m_sent_pkg->data_len == m_sent_len) {
         //RPC_LOG(RPC_LOG_LEV::DEBUG, "full send %d", m_sent_len);
-        delete m_sent_pkg;
         m_sent_pkg = nullptr;
         m_sent_len = 0;
         return PkgIOStatus::FULL;
@@ -242,7 +231,7 @@ PkgIOStatus RpcServerConn::sendResponse()
         return sendData();
     }
     else {
-        response_pkg *pkg = nullptr;
+        RespPkgPtr pkg = nullptr;
         if (m_response_q.pop(pkg, 0)) {
             m_sent_len = 0;
             m_sent_pkg = pkg;

@@ -16,7 +16,7 @@ class RpcEventLooper;
 class RpcClientWorker
 {
 public:
-    RpcClientWorker(RpcEventLooper *ev);
+    explicit RpcClientWorker(RpcEventLooper *ev);
     ~RpcClientWorker();
     void stop();
     void run();

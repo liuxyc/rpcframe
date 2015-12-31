@@ -110,7 +110,7 @@ private:
 class RpcClientConfig
 {
 public:
-    RpcClientConfig(std::pair<const char *, int> &);
+    explicit RpcClientConfig(std::pair<const char *, int> &);
     ~RpcClientConfig();
     void setThreadNum(uint32_t thread_num);
     uint32_t getThreadNum();

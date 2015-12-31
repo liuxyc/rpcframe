@@ -28,7 +28,7 @@ public:
     int getFd() const ;
     bool isSending() const ;
 
-    Queue<response_pkg *> m_response_q;
+    RespQueue m_response_q;
     std::string m_seqid;
 
 private:
@@ -43,7 +43,7 @@ private:
     bool is_connected;
     std::mutex m_mutex;
     uint32_t m_sent_len;
-    response_pkg *m_sent_pkg;
+    RespPkgPtr m_sent_pkg;
     
 };
 };

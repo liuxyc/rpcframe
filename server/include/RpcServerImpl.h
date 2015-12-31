@@ -56,7 +56,7 @@ public:
     void removeConnection(int fd);
     void addConnection(int fd, RpcServerConn *conn);
     RpcServerConn *getConnection(int fd);
-    void pushResp(std::string seqid, response_pkg *resp_pkg);
+    void pushResp(std::string seqid, RespPkgPtr &resp_pkg);
 
 private:
     bool startListen();

@@ -430,14 +430,13 @@ RpcServerConn *RpcServerImpl::getConnection(int fd)
     return nullptr;
 }
 
-void RpcServerImpl::pushResp(std::string conn_id, response_pkg *resp_pkg)
+void RpcServerImpl::pushResp(std::string conn_id, RespPkgPtr &resp_pkg)
 {
     std::lock_guard<std::mutex> mlock(m_mutex);
     if (m_conn_set.find(conn_id) != m_conn_set.end()) {
         RpcServerConn *conn = m_conn_set[conn_id];
         if (!conn->m_response_q.push(resp_pkg)) {
             RPC_LOG(RPC_LOG_LEV::WARNING, "server resp queue fail, drop resp pkg");
-            delete resp_pkg;
             return;
         }
         m_resp_conn_q.push(conn_id);
@@ -449,7 +448,6 @@ void RpcServerImpl::pushResp(std::string conn_id, response_pkg *resp_pkg)
     }
     else {
         RPC_LOG(RPC_LOG_LEV::WARNING, "connection %s gone, drop resp", conn_id.c_str());
-        delete resp_pkg;
     }
     return;
 }

@@ -16,7 +16,7 @@ class RpcServerImpl;
 class RpcServer
 {
 public:
-    RpcServer(RpcServerConfig &cfg);
+    explicit RpcServer(RpcServerConfig &cfg);
     ~RpcServer();
 
     /**
