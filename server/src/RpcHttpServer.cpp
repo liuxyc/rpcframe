@@ -48,8 +48,7 @@ static int ev_handler(struct mg_connection *conn, enum mg_event ev) {
                 std::string method_name = url_string.substr(service_pos + 1, url_string.size());
                 IService *p_service = server->getService(service_name);
                 if (p_service != nullptr) {
-                    IRpcRespBroker *rpcbroker = new RpcRespBroker(server, "http_connection", "http_request",
-                                                                true, conn);
+                    IRpcRespBrokerPtr rpcbroker = std::make_shared<RpcRespBroker>(server, "http_connection", "http_request",true, conn);
                     std::string req_data(conn->content, conn->content_len);
                     std::string resp_data;
                     RpcStatus ret = p_service->runService(method_name, 
@@ -58,16 +57,13 @@ static int ev_handler(struct mg_connection *conn, enum mg_event ev) {
                                                                      rpcbroker);
                     switch (ret) {
                         case RpcStatus::RPC_SERVER_OK:
-                            delete rpcbroker;
                             sendHttpResp(conn, 200, resp_data);
                             break;
                         case RpcStatus::RPC_METHOD_NOTFOUND:
-                            delete rpcbroker;
                             RPC_LOG(RPC_LOG_LEV::WARNING, "Unknow method request #%s#", method_name.c_str());
                             sendHttpResp(conn, 404, std::string("Unknow method request:") + method_name);
                             break;
                         case RpcStatus::RPC_SERVER_FAIL:
-                            delete rpcbroker;
                             RPC_LOG(RPC_LOG_LEV::WARNING, "method call fail #%s#", method_name.c_str());
                             sendHttpResp(conn, 200, resp_data);
                             break;

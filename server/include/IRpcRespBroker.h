@@ -6,6 +6,7 @@
 #ifndef RPCFRAME_IRPCRESPBROKER
 #define RPCFRAME_IRPCRESPBROKER
 #include <string>
+#include <memory>
 
 namespace rpcframe {
 
@@ -39,6 +40,8 @@ public:
      */
     virtual bool isFromHttp() = 0;
 };
+
+typedef std::shared_ptr<IRpcRespBroker> IRpcRespBrokerPtr;
 
 };
 #endif

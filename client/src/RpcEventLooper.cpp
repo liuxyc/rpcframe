@@ -231,14 +231,14 @@ void RpcEventLooper::run() {
     struct epoll_event events[_MAX_SOCKFD_COUNT];  
     while(1) {
         if (m_stop) {
-            RPC_LOG(RPC_LOG_LEV::DEBUG, "RpcEventLooper stoped");
+            RPC_LOG(RPC_LOG_LEV::INFO, "RpcEventLooper stoped");
             removeConnection();
             break;
         }
 
         int nfds = epoll_wait(m_epoll_fd, events, _MAX_SOCKFD_COUNT, 1000);  
         if (m_stop) {
-            RPC_LOG(RPC_LOG_LEV::DEBUG, "RpcEventLooper stoped");
+            RPC_LOG(RPC_LOG_LEV::INFO, "RpcEventLooper stoped");
             removeConnection();
             break;
         }

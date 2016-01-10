@@ -23,41 +23,39 @@ public:
     MyService_async(){
         //to make your method to be callable, must write RPC_ADD_METHOD(your_class_name, your_method_name)
         RPC_ADD_METHOD(MyService_async, test_method_async)
-        m_t = nullptr;
     };
     virtual ~MyService_async(){
-        if(m_t != nullptr) {
-          m_t->join();
-          delete m_t;
+        for(auto th : m_t) {
+          th->join();
+          delete th;
         }
     };
 
     //method1
     rpcframe::RpcStatus test_method_async(const std::string &request_data, 
                                                      std::string &resp_data, 
-                                                     rpcframe::IRpcRespBroker *resp_broker) 
+                                                     rpcframe::IRpcRespBrokerPtr resp_broker) 
     {
         printf("test_method_async get %s\n", request_data.c_str());
         //make a async response
-        m_t = new std::thread([resp_broker](){
+        m_t.push_back(new std::thread([resp_broker](){
                 //must delete broker after call resp_broker->response, we use std::unique_ptr do it for us
-                std::unique_ptr<rpcframe::IRpcRespBroker> broker_ptr(resp_broker);
+                //std::unique_ptr<rpcframe::IRpcRespBroker> broker_ptr(resp_broker);
                 std::this_thread::sleep_for(std::chrono::seconds(5));
-                broker_ptr->response("my feedback async");
-                });
-        m_t->get_id();
+                resp_broker->response("my feedback async");
+                }));
         /*
            NOTICE:Don't delete resp_broker if you return rpcframe::RpcStatus::RPC_SERVER_OK, RcpServer will delete it for you.
 
            Return rpcframe::RpcStatus::RPC_SERVER_NONE, means you don't want RpcServer send response in mathod function immediatly
-           ,you can send the response by resp_broker later or not send ever(just delete resp_broker)
+           ,you can hold resp_broker and send the response by resp_broker later or not.
 
            Not send response will cause client side timeout or hang on a "no timeout call", but this is 
            reasonable if client didn't set callback(ONE_WAY call)
            */
         return rpcframe::RpcStatus::RPC_SERVER_NONE;
     };
-    std::thread *m_t;
+    std::vector<std::thread *> m_t;
 
 };
 
@@ -80,7 +78,7 @@ public:
     //method1
     rpcframe::RpcStatus test_method(const std::string &request_data, 
                                                std::string &resp_data, 
-                                               rpcframe::IRpcRespBroker *resp_broker) 
+                                               rpcframe::IRpcRespBrokerPtr resp_broker) 
     {
         //printf("my method get %s\n", request_data.c_str());
         resp_data = "my feedback";
@@ -100,7 +98,7 @@ public:
     //method2
     rpcframe::RpcStatus test_method1(const std::string &request_data, 
                                                 std::string &resp_data, 
-                                                rpcframe::IRpcRespBroker *resp_broker) 
+                                                rpcframe::IRpcRespBrokerPtr resp_broker) 
     {
         //printf("my method1 get %s\n", request_data.c_str());
         resp_data = "my feedback1";
@@ -114,7 +112,7 @@ public:
     //method3
     rpcframe::RpcStatus test_method2(const std::string &request_data, 
                                                 std::string &resp_data, 
-                                                rpcframe::IRpcRespBroker *resp_broker) 
+                                                rpcframe::IRpcRespBrokerPtr resp_broker) 
     {
         //printf("my method1 get %s\n", request_data.c_str());
         resp_data = std::string("my feedback3");
@@ -124,7 +122,7 @@ public:
     //method big resp
     rpcframe::RpcStatus test_method_big_resp(const std::string &request_data, 
                                                         std::string &resp_data, 
-                                                        rpcframe::IRpcRespBroker *resp_broker) 
+                                                        rpcframe::IRpcRespBrokerPtr resp_broker) 
     {
         //printf("my method1 get %s\n", request_data.c_str());
         resp_data = std::string(1024*1024*40, 'a');

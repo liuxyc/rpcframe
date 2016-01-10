@@ -66,7 +66,7 @@ void RpcWorker::run() {
             RpcInnerResp resp;
             resp.set_request_id(req.request_id());
             if (p_service != nullptr) {
-                IRpcRespBroker *rpcbroker = new RpcRespBroker(m_server, pkg->connection_id, req.request_id(),
+                IRpcRespBrokerPtr rpcbroker = std::make_shared<RpcRespBroker>(m_server, pkg->connection_id, req.request_id(),
                                                             (req.type() == RpcInnerReq::TWO_WAY), nullptr);
 
                 RpcStatus ret = p_service->runService(req.method_name(), 
@@ -76,14 +76,12 @@ void RpcWorker::run() {
                 resp.set_ret_val(static_cast<uint32_t>(ret));
                 switch (ret) {
                     case RpcStatus::RPC_SERVER_OK:
-                        delete rpcbroker;
                         if(req.type() == RpcInnerReq::HTTP) {
                             mg_connection *conn = (struct mg_connection *)pkg->http_conn;
                             sendHttpOk(conn, resp_data);
                         }
                         break;
                     case RpcStatus::RPC_METHOD_NOTFOUND:
-                        delete rpcbroker;
                         RPC_LOG(RPC_LOG_LEV::WARNING, "Unknow method request #%s#", req.method_name().c_str());
                         if(req.type() == RpcInnerReq::HTTP) {
                             mg_connection *conn = (struct mg_connection *)pkg->http_conn;
@@ -91,7 +89,6 @@ void RpcWorker::run() {
                         }
                         break;
                     case RpcStatus::RPC_SERVER_FAIL:
-                        delete rpcbroker;
                         RPC_LOG(RPC_LOG_LEV::WARNING, "method call fail #%s#", req.method_name().c_str());
                         if(req.type() == RpcInnerReq::HTTP) {
                             mg_connection *conn = (struct mg_connection *)pkg->http_conn;
