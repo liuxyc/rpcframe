@@ -132,22 +132,23 @@ void RpcWorker::run() {
 //FIXME:this code is not work!
 //mongoose is not thread safe, deal http request is not avaliable in RpcWorker
 void RpcWorker::sendHttpOk(mg_connection *conn, const std::string &resp) {
-    mg_send_header(conn, "Content-Type", "text/plain");
-    mg_send_header(conn, "Content-Length", std::to_string(resp.size()).c_str());
-    mg_send_header(conn, "Connection", "close");
-    mg_write(conn, "\r\n", 2);
-    mg_printf(conn, resp.c_str());
+    mg_printf(conn, "HTTP/1.1 %d\r\n", 200);
+    mg_printf(conn, "%s", "Content-Type: text/html\r\n");
+    mg_printf(conn, "Content-Length: %lu\r\n", resp.size());
+    mg_printf(conn, "%s", "Connection: close\r\n");
+    mg_printf(conn, "%s", "\r\n");
+    mg_send(conn, resp.c_str(), resp.size());
 }
 
 //FIXME:this code is not work!
 //mongoose is not thread safe, deal http request is not avaliable in RpcWorker
 void RpcWorker::sendHttpFail(mg_connection *conn, int status, const std::string &resp) {
-    mg_send_status(conn, status);
-    mg_send_header(conn, "Content-Type", "text/plain");
-    mg_send_header(conn, "Content-Length", std::to_string(resp.size()).c_str());
-    mg_send_header(conn, "Connection", "close");
-    mg_write(conn, "\r\n", 2);
-    mg_printf(conn, resp.c_str());
+    mg_printf(conn, "HTTP/1.1 %d\r\n", status);
+    mg_printf(conn, "%s", "Content-Type: text/html\r\n");
+    mg_printf(conn, "Content-Length: %lu\r\n", resp.size());
+    mg_printf(conn, "%s", "Connection: close\r\n");
+    mg_printf(conn, "%s", "\r\n");
+    mg_send(conn, resp.c_str(), resp.size());
 }
 
 };

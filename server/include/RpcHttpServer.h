@@ -20,7 +20,7 @@ typedef struct mg_server * mongoose_server_ptr;
 class mgthread_parameter
 {
 public:
-    mongoose_server_ptr mgserver;
+    struct mg_mgr *mgserver_mgr;
     RpcHttpServer *httpserver;
 };
 
@@ -44,7 +44,8 @@ private:
     std::atomic<bool> m_stop;
     int m_listen_port;
     int m_thread_num;
-    mgthread_parameter *m_servers;
+    mgthread_parameter m_mgserver;
+    struct mg_mgr m_mgr;
 };
 
 };

@@ -2,17 +2,18 @@ import os
 #gen rpcframe proto
 os.system("protoc --cpp_out=common/proto/ -Icommon/proto common/proto/rpc.proto")
 
-env = Environment(CCFLAGS = '-std=c++11 -g -Wall -O3')
-mongoose_env = Environment(CCFLAGS = '-g -Wall -DMONGOOSE_ENABLE_THREADS', CPPPATH = ['server/include/'])
+env = Environment(CCFLAGS = '-std=c++11 -g -Wall -O3 -DMG_ENABLE_THREADS')
+#mongoose_env = Environment(CCFLAGS = '-g -Wall -O3 -DMG_ENABLE_THREADS', CPPPATH = ['server/include/'])
 
-mongoose_obj = mongoose_env.Object(Glob('server/src/*.c'))
+#mongoose_obj = mongoose_env.Object(Glob('server/src/*.c'))
 
 #rpcframe static library
 rpcframe_src_files = Glob('server/src/*.cpp') 
+rpcframe_src_files.append(Glob('server/src/*.c')) 
 rpcframe_src_files.append(Glob('client/src/*.cpp'))
 rpcframe_src_files.append('common/proto/rpc.pb.cc')
 rpcframe_src_files.append(Glob('common/src/*.cpp'))
-env.StaticLibrary('rpcframe', rpcframe_src_files + mongoose_obj, 
+env.StaticLibrary('rpcframe', rpcframe_src_files,
     CPPPATH = ['server/include/', 'client/include', 'common/include', 'common/proto'],
     LIBS=['pthread'])
 
