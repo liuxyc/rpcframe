@@ -24,7 +24,7 @@
 #include "RpcPackage.h"
 #include "RpcWorker.h"
 #include "RpcHttpServer.h"
-#include "RpcStatusService.cpp"
+#include "RpcStatusService.h"
 
 #define RPC_MAX_SOCKFD_COUNT 65535 
 
