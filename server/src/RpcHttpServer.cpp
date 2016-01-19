@@ -4,6 +4,7 @@
  */
 #include "RpcHttpServer.h"
 
+#include <sstream>
 #include <stdio.h>  
 #include <stdlib.h>  
 #include <string.h>  
@@ -93,6 +94,16 @@ static void ev_handler(struct mg_connection *conn, int ev, void *ev_data) {
 
 void* process_proc(void* p_server)  
 {  
+    sigset_t set;
+    int s;
+    sigemptyset(&set);
+    sigaddset(&set, SIGINT);
+    s = pthread_sigmask(SIG_BLOCK, &set, NULL);
+    std::stringstream ss;
+    ss << std::this_thread::get_id();
+    if (s != 0) {
+        RPC_LOG(RPC_LOG_LEV::ERROR, "thread %s block SIGINT fail", ss.str().c_str());
+    }
     if (p_server == nullptr) {
         RPC_LOG(RPC_LOG_LEV::ERROR, "process_proc p_server nullptr");
         return nullptr;

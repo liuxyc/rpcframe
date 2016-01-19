@@ -24,6 +24,7 @@
 #include "RpcPackage.h"
 #include "RpcWorker.h"
 #include "RpcHttpServer.h"
+#include "RpcStatusService.cpp"
 
 #define RPC_MAX_SOCKFD_COUNT 65535 
 
@@ -38,8 +39,7 @@ RpcServerConfig::RpcServerConfig(std::pair<const char *, int> &endpoint)
 , m_http_port(8000)
 , m_http_thread_num(std::thread::hardware_concurrency())
 {
-    
-    
+
 }
 
 RpcServerConfig::~RpcServerConfig()
@@ -99,6 +99,8 @@ RpcServerImpl::RpcServerImpl(RpcServerConfig &cfg)
         m_http_server = new RpcHttpServer(cfg, this);
         m_http_server->start();
     }
+    RpcStatusService *ss = new RpcStatusService(this); 
+    m_service_map["status"] = ss;
 }
 
 RpcServerImpl::~RpcServerImpl() {
@@ -106,6 +108,7 @@ RpcServerImpl::~RpcServerImpl() {
     for(auto rw: m_worker_vec) {
         delete rw;
     }
+    delete m_service_map["status"];
 }
 
 bool RpcServerImpl::addService(const std::string &name, IService *p_service)

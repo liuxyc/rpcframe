@@ -4,6 +4,7 @@
  */
 #include "RpcWorker.h"
 
+#include <sstream>
 #include <stdio.h>  
 #include <stdlib.h>  
 #include <string.h>  
@@ -43,6 +44,16 @@ void RpcWorker::stop() {
 //need find new solution to replace the mg_* code
 //the new solution should support handle "conn" per thread
 void RpcWorker::run() {
+    sigset_t set;
+    int s;
+    sigemptyset(&set);
+    sigaddset(&set, SIGINT);
+    s = pthread_sigmask(SIG_BLOCK, &set, NULL);
+    std::stringstream ss;
+    ss << std::this_thread::get_id();
+    if (s != 0) {
+        RPC_LOG(RPC_LOG_LEV::ERROR, "thread %s block SIGINT fail", ss.str().c_str());
+    }
     prctl(PR_SET_NAME, "RpcSWorker", 0, 0, 0); 
     while(1) {
         if (m_stop) {

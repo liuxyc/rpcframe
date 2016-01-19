@@ -7,6 +7,7 @@
 #define RPCFRAME_ISERVICE
 #include <map>
 #include <string>
+#include <vector>
 
 #include "IRpcRespBroker.h"
 #include "RpcDefs.h"
@@ -30,7 +31,12 @@ namespace rpcframe {
         else { \
             return rpcframe::RpcStatus::RPC_METHOD_NOTFOUND;  \
         }  \
-    };
+    }; \
+    void getMethodNames(std::vector<std::string> &smap) { \
+        for(auto mmap: m_method_map) { \
+            smap.push_back(mmap.first); \
+        } \
+    }; 
 
 class IService
 {
@@ -49,6 +55,8 @@ public:
      * @return 
      */
     virtual RpcStatus runService(const std::string &method_name, const std::string &req_data, std::string &resp_data, IRpcRespBrokerPtr resp_broker) = 0;
+
+    virtual void getMethodNames(std::vector<std::string> &){};
 
 };
 

@@ -1,0 +1,68 @@
+/*
+ * Copyright (c) 2014-2015, Xiaoyu Liu <liuxyc at gmail dot com>
+ * All rights reserved.
+ */
+
+#ifndef RPCFRAME_RPCSTATUSSERVICE
+#define RPCFRAME_RPCSTATUSSERVICE
+#include <string>
+
+#include "IService.h"
+#include "RpcServerImpl.h"
+#include "RpcServerConn.h"
+
+namespace rpcframe {
+
+
+class RpcServerImpl;
+
+/**
+ * @brief RpcStatusService help server send the response in async
+ */
+class RpcStatusService: public IService
+{
+public:
+    //to make your method to be callable, must write REG_METHOD(your_class_name) here one time
+    REG_METHOD(RpcStatusService)
+
+    explicit RpcStatusService(RpcServerImpl *server) 
+    : m_rpc_server(server) {
+        RPC_ADD_METHOD(RpcStatusService, get_status);
+    };
+
+    RpcStatus get_status(const std::string &request_data, std::string &resp_data, IRpcRespBrokerPtr resp_broker) {
+        if (resp_broker->isFromHttp()) {
+            resp_data = "<html><body><h1>Running:" + std::to_string(!m_rpc_server->m_stop) + "</h1></br>";
+            resp_data += "<h1>Thread Num:" + std::to_string(m_rpc_server->m_thread_vec.size()) + "</h1>";
+            for(auto srv: m_rpc_server->m_service_map) {
+                resp_data += "service name:" + srv.first + "</br>";
+                std::vector<std::string> mnames;
+                srv.second->getMethodNames(mnames);
+                for (auto method: mnames) {
+                    resp_data += "&nbsp;&nbsp;&nbsp;&nbsp;method name:" + method + "</br>";
+                }
+            }
+            resp_data += "</br>";
+            for(auto conn: m_rpc_server->m_conn_set) {
+                resp_data += "conn id:" + conn.first + " fd:" + std::to_string(conn.second->getFd()) + "</br>";
+            }
+            resp_data += "<h1>Seqid:" + std::to_string(m_rpc_server->m_seqid) + "</h1>";
+            resp_data += "<h1>Req Q size:" + std::to_string(m_rpc_server->m_request_q.size()) + "</h1>";
+            resp_data += "<h1>Resp Q size:" + std::to_string(m_rpc_server->m_response_q.size()) + "</h1>";
+            resp_data += "<h1>epoll fd:" + std::to_string(m_rpc_server->m_epoll_fd) + "</h1>";
+            resp_data += "<h1>listening fd:" + std::to_string(m_rpc_server->m_listen_socket) + "</h1>";
+            resp_data += "</body></html>";
+        }
+        else {
+        }
+        return rpcframe::RpcStatus::RPC_SERVER_OK;
+    };
+
+    RpcStatusService(const RpcStatusService &) = delete;
+    RpcStatusService &operator=(const RpcStatusService &) = delete;
+private:
+    RpcServerImpl *m_rpc_server;
+};
+
+};
+#endif

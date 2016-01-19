@@ -24,11 +24,13 @@ class RpcServerConn;
 class RpcWorker;
 class IService;
 class RpcHttpServer;
+class RpcStatusService;
 
 typedef std::unordered_map<std::string, IService *> ServiceMap;
 
 class RpcServerImpl
 {
+    friend RpcStatusService;
 public:
     explicit RpcServerImpl(RpcServerConfig &cfg);
     ~RpcServerImpl();

@@ -9,7 +9,9 @@
 #include <string.h>  
 #include <unistd.h>
 #include <sys/prctl.h>
+#include <signal.h>
 #include <memory>
+#include <sstream>
 
 #include "RpcClientConn.h"
 #include "RpcDefs.h"
@@ -38,6 +40,16 @@ void RpcClientWorker::stop() {
 }
 
 void RpcClientWorker::run() {
+    sigset_t set;
+    int s;
+    sigemptyset(&set);
+    sigaddset(&set, SIGINT);
+    s = pthread_sigmask(SIG_BLOCK, &set, NULL);
+    std::stringstream ss;
+    ss << std::this_thread::get_id();
+    if (s != 0) {
+        RPC_LOG(RPC_LOG_LEV::ERROR, "thread %s block SIGINT fail", ss.str().c_str());
+    }
     prctl(PR_SET_NAME, "RpcClientWorker", 0, 0, 0); 
     while(1) {
         if (m_stop) {
