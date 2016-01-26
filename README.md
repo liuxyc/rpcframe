@@ -21,4 +21,6 @@ dependence：<br>
     Linux kernel > 2.6.30<br>
     Gcc > 4.8.2<br>
     libuuid<br>
+    protobuf-2.6.1<br>
+    gtest(for unittest)<br>
     SCons 2.3.1<br>
