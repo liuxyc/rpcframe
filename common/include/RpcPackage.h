@@ -15,6 +15,7 @@ namespace rpcframe
 enum class PkgIOStatus {
   FAIL = -1,
   PARTIAL = -2,
+  TIME_OUT = -3,
   FULL = 0,
 };
 
@@ -37,6 +38,8 @@ public:
     char *data;
     uint32_t data_len;
     void *http_conn;
+    std::chrono::system_clock::time_point gen_time;
+
     request_pkg(const request_pkg &) = delete;
     request_pkg &operator=(const request_pkg &) = delete;
 
@@ -57,6 +60,7 @@ public:
     };
     char *data;
     uint32_t data_len;
+    std::chrono::system_clock::time_point gen_time;
 
     response_pkg(const response_pkg &) = delete;
     response_pkg &operator=(const response_pkg&) = delete;

@@ -61,6 +61,11 @@ void RpcWorker::run() {
         }
         std::shared_ptr<request_pkg> pkg = nullptr;
         if (m_work_q->pop(pkg, 10)) {
+            std::chrono::system_clock::time_point out_q_timepoint = std::chrono::system_clock::now();
+            RPC_LOG(RPC_LOG_LEV::DEBUG, "req stay: %d ms",  std::chrono::duration_cast<std::chrono::milliseconds>( out_q_timepoint - pkg->gen_time ).count());
+            auto during = std::chrono::duration_cast<std::chrono::milliseconds>(out_q_timepoint - pkg->gen_time);
+            m_server->calcReqAvgTime(during.count());
+
             //must get request id from here
             RpcInnerReq req;
             if (!req.ParseFromArray(pkg->data, pkg->data_len)) {

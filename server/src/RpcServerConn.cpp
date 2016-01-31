@@ -144,12 +144,13 @@ pkg_ret_t RpcServerConn::getRequest()
     }
     else {
         std::shared_ptr<request_pkg> p_rpk(m_rpk);
+        //FIXME:
         m_rpk = nullptr;
         return pkg_ret_t(0, p_rpk);
     }
 }
 
-int RpcServerConn::sendPkgLen()
+PkgIOStatus RpcServerConn::sendPkgLen()
 {
     uint32_t pkg_len = m_sent_pkg->data_len;
     uint32_t nlen = htonl(pkg_len);
@@ -163,7 +164,7 @@ int RpcServerConn::sendPkgLen()
             m_sent_pkg = nullptr;
             m_sent_len = 0;
             RPC_LOG(RPC_LOG_LEV::WARNING, "send data len timeout!");
-            return -1;
+            return PkgIOStatus::TIME_OUT;
         }
         uint32_t len = total_len - sent_len;
         errno = 0;
@@ -178,7 +179,7 @@ int RpcServerConn::sendPkgLen()
                 is_connected = false;
                 m_sent_pkg = nullptr;
                 m_sent_len = 0;
-                return -1;
+                return PkgIOStatus::FAIL;
             }
         }
         sent_len += s_ret;
@@ -187,7 +188,7 @@ int RpcServerConn::sendPkgLen()
         }
 
     }
-    return 0;
+    return PkgIOStatus::FULL;
 }
 
 PkgIOStatus RpcServerConn::sendData()
@@ -235,9 +236,14 @@ PkgIOStatus RpcServerConn::sendResponse()
         if (m_response_q.pop(pkg, 0)) {
             m_sent_len = 0;
             m_sent_pkg = pkg;
-            if (sendPkgLen() == -1) {
+            std::chrono::system_clock::time_point out_q_timepoint = std::chrono::system_clock::now();
+            RPC_LOG(RPC_LOG_LEV::DEBUG, "resp stay: %d ms",  std::chrono::duration_cast<std::chrono::milliseconds>( out_q_timepoint - pkg->gen_time ).count());
+            //auto during = std::chrono::duration_cast<std::chrono::milliseconds>(out_q_timepoint - pkg->gen_time);
+            //m_server->calcReqAvgTime(during.count());
+            PkgIOStatus resp_header_status = sendPkgLen();
+            if (resp_header_status != PkgIOStatus::FULL) {
                 RPC_LOG(RPC_LOG_LEV::ERROR, "send pkg len failed");
-                return PkgIOStatus::FAIL;
+                return resp_header_status;
             }
             //RPC_LOG(RPC_LOG_LEV::DEBUG, "send len success");
             return sendData();

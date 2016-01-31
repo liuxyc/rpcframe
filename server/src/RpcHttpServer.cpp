@@ -126,7 +126,7 @@ RpcHttpServer::RpcHttpServer(RpcServerConfig &cfg, RpcServerImpl *server)
 , m_listen_port(cfg.getHttpPort())
 , m_thread_num(cfg.m_http_thread_num)
 {
-    
+    memset(&m_mgr, 0, sizeof(m_mgr));
 }
 
 RpcHttpServer::~RpcHttpServer() {

@@ -28,6 +28,19 @@ class RpcStatusService;
 
 typedef std::unordered_map<std::string, IService *> ServiceMap;
 
+class RpcMethodStatus 
+{
+public:
+    uint64_t total_call_nums = 0;
+    uint64_t timeout_call_nums = 0;
+    uint64_t avg_call_time = 0;  // unit: ms
+    uint64_t longest_call_time = 0;   // unit: ms
+
+
+};
+
+typedef std::unordered_map<std::string, RpcMethodStatus> MethodStatusMap;
+
 class RpcServerImpl
 {
     friend RpcStatusService;
@@ -59,6 +72,8 @@ public:
     void addConnection(int fd, RpcServerConn *conn);
     RpcServerConn *getConnection(int fd);
     void pushResp(std::string seqid, RespPkgPtr &resp_pkg);
+    void calcReqAvgTime(uint64_t);
+    void calcRespAvgTime(uint64_t);
 
 private:
     bool startListen();
@@ -71,6 +86,7 @@ private:
     std::vector<std::thread *> m_thread_vec;
     std::vector<RpcWorker *> m_worker_vec;
     ServiceMap m_service_map;
+    MethodStatusMap m_methodstatus_map;
     std::unordered_map<int, RpcServerConn *> m_conn_map;
     std::unordered_map<std::string, RpcServerConn *> m_conn_set;
     uint32_t m_seqid;
@@ -83,6 +99,13 @@ private:
     int m_resp_ev_fd;
     std::atomic<bool> m_stop;
     RpcHttpServer *m_http_server;
+
+
+    uint64_t avg_req_wait_time;
+    uint64_t avg_resp_wait_time;
+    uint64_t total_req_num;
+    uint64_t total_resp_num;
+    std::mutex m_stat_mutex;
     
 };
 

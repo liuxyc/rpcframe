@@ -34,7 +34,7 @@ public:
 private:
     bool readPkgLen(uint32_t &pkg_len);
     PkgIOStatus readPkgData();
-    int sendPkgLen();
+    PkgIOStatus sendPkgLen();
     PkgIOStatus sendData();
     int m_fd;
     uint32_t m_cur_left_len;

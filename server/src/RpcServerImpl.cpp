@@ -18,6 +18,7 @@
 #include <sys/prctl.h>
 
 #include <thread>
+#include <chrono>
 
 #include "RpcServerConn.h"
 #include "util.h"
@@ -88,6 +89,10 @@ RpcServerImpl::RpcServerImpl(RpcServerConfig &cfg)
 , m_resp_ev_fd(-1)
 , m_stop(false)
 , m_http_server(nullptr)
+, avg_req_wait_time(0)
+, avg_resp_wait_time(0)
+, total_req_num(0)
+, total_resp_num(0)
 {
     for(uint32_t i = 0; i < m_cfg.getThreadNum(); ++i) {
         RpcWorker *rw = new RpcWorker(&m_request_q, this);
@@ -117,6 +122,7 @@ bool RpcServerImpl::addService(const std::string &name, IService *p_service)
         return false;
     }
     m_service_map[name] = p_service;
+    m_methodstatus_map.emplace(name, RpcMethodStatus());
     return true;
 }
 
@@ -333,6 +339,7 @@ void RpcServerImpl::onDataIn(const int fd) {
         else 
         {  
             if (pkgret.second != nullptr) {
+                pkgret.second->gen_time = std::chrono::system_clock::now();
                 //got a full request, put to worker queue
                 if ( !m_request_q.push(pkgret.second)) {
                     //queue fail, drop pkg
@@ -438,6 +445,7 @@ void RpcServerImpl::pushResp(std::string conn_id, RespPkgPtr &resp_pkg)
     std::lock_guard<std::mutex> mlock(m_mutex);
     if (m_conn_set.find(conn_id) != m_conn_set.end()) {
         RpcServerConn *conn = m_conn_set[conn_id];
+        resp_pkg->gen_time = std::chrono::system_clock::now();
         if (!conn->m_response_q.push(resp_pkg)) {
             RPC_LOG(RPC_LOG_LEV::WARNING, "server resp queue fail, drop resp pkg");
             return;
@@ -471,5 +479,37 @@ void RpcServerImpl::stop() {
     }
     RPC_LOG(RPC_LOG_LEV::INFO, "RpcServer stoped");
 }
+
+void RpcServerImpl::calcReqAvgTime(uint64_t req_time)
+{
+    //TODO:spin lock
+    std::lock_guard<std::mutex> mlock(m_stat_mutex);
+    if (avg_req_wait_time == 0) {
+        avg_req_wait_time = req_time;
+    }
+    else {
+        avg_req_wait_time = ((avg_req_wait_time * total_req_num) + req_time) / (total_req_num + 1);
+        ++total_req_num;
+    }
+    RPC_LOG(RPC_LOG_LEV::DEBUG, "avg req wait: %d ms", avg_req_wait_time);
+}
+
+
+void RpcServerImpl::calcRespAvgTime(uint64_t resp_time)
+{
+    //TODO:spin lock
+    std::lock_guard<std::mutex> mlock(m_stat_mutex);
+    if (avg_resp_wait_time == 0) {
+        avg_resp_wait_time = resp_time;
+    }
+    else {
+        avg_resp_wait_time = ((avg_resp_wait_time * total_resp_num) + resp_time) / (total_resp_num + 1);
+        ++total_resp_num;
+    }
+    RPC_LOG(RPC_LOG_LEV::DEBUG, "avg resp wait: %d ms", avg_resp_wait_time);
+
+}
+
+
 
 };
