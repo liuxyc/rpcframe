@@ -1,4 +1,7 @@
-# rpcframe [![Build Status](https://travis-ci.org/liuxyc/rpcframe.svg?branch=master)](https://travis-ci.org/liuxyc/rpcframe)
+# rpcframe
+[![Build Status](https://travis-ci.org/liuxyc/rpcframe.svg?branch=master)](https://travis-ci.org/liuxyc/rpcframe)
+[![Cov Status](https://scan.coverity.com/projects/7717/badge.svg)](https://scan.coverity.com/projects/liuxyc-rpcframe)
+
 rpcframe is a simple rpc framework writen in C++11. It support Client side sync/async timeout call and Server side async response.<br>
 The rpc interface is simple, it send and receive std::string as raw data.<br>
 ## Client side interface: <br>
@@ -18,4 +21,6 @@ dependence：<br>
     Linux kernel > 2.6.30<br>
     Gcc > 4.8.2<br>
     libuuid<br>
+    protobuf-2.6.1<br>
+    gtest(for unittest)<br>
     SCons 2.3.1<br>
