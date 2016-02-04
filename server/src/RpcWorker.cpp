@@ -70,10 +70,6 @@ void RpcWorker::run() {
             RpcInnerReq req;
             if (!req.ParseFromArray(pkg->data, pkg->data_len)) {
                 RPC_LOG(RPC_LOG_LEV::ERROR, "parse internal pkg fail");
-                if(req.type() == RpcInnerReq::HTTP) {
-                    mg_connection *conn = (struct mg_connection *)pkg->http_conn;
-                    sendHttpFail(conn, 500, "");
-                }
                 continue;
             }
 
@@ -92,24 +88,12 @@ void RpcWorker::run() {
                 resp.set_ret_val(static_cast<uint32_t>(ret));
                 switch (ret) {
                     case RpcStatus::RPC_SERVER_OK:
-                        if(req.type() == RpcInnerReq::HTTP) {
-                            mg_connection *conn = (struct mg_connection *)pkg->http_conn;
-                            sendHttpOk(conn, resp_data);
-                        }
                         break;
                     case RpcStatus::RPC_METHOD_NOTFOUND:
                         RPC_LOG(RPC_LOG_LEV::WARNING, "Unknow method request #%s#", req.method_name().c_str());
-                        if(req.type() == RpcInnerReq::HTTP) {
-                            mg_connection *conn = (struct mg_connection *)pkg->http_conn;
-                            sendHttpFail(conn, 404, std::string("Unknow method request:") + req.method_name());
-                        }
                         break;
                     case RpcStatus::RPC_SERVER_FAIL:
                         RPC_LOG(RPC_LOG_LEV::WARNING, "method call fail #%s#", req.method_name().c_str());
-                        if(req.type() == RpcInnerReq::HTTP) {
-                            mg_connection *conn = (struct mg_connection *)pkg->http_conn;
-                            sendHttpOk(conn, resp_data);
-                        }
                         break;
                     case RpcStatus::RPC_SERVER_NONE:
                         continue;
@@ -121,10 +105,6 @@ void RpcWorker::run() {
             else {
                 resp.set_ret_val(static_cast<uint32_t>(RpcStatus::RPC_SRV_NOTFOUND));
                 RPC_LOG(RPC_LOG_LEV::WARNING, "Unknow service request #%s#", req.service_name().c_str());
-                if(req.type() == RpcInnerReq::HTTP) {
-                    mg_connection *conn = (struct mg_connection *)pkg->http_conn;
-                    sendHttpFail(conn, 404, std::string("Unknow service request:") + req.service_name());
-                }
             }
             if (req.type() == RpcInnerReq::TWO_WAY) {
                 resp.set_data(resp_data);
@@ -143,28 +123,6 @@ void RpcWorker::run() {
             //RPC_LOG(RPC_LOG_LEV::DEBUG, "thread: %lu, no data", std::this_thread::get_id());
         }
     }
-}
-
-//FIXME:this code is not work!
-//mongoose is not thread safe, deal http request is not avaliable in RpcWorker
-void RpcWorker::sendHttpOk(mg_connection *conn, const std::string &resp) {
-    mg_printf(conn, "HTTP/1.1 %d\r\n", 200);
-    mg_printf(conn, "%s", "Content-Type: text/html\r\n");
-    mg_printf(conn, "Content-Length: %lu\r\n", resp.size());
-    mg_printf(conn, "%s", "Connection: close\r\n");
-    mg_printf(conn, "%s", "\r\n");
-    mg_send(conn, resp.c_str(), resp.size());
-}
-
-//FIXME:this code is not work!
-//mongoose is not thread safe, deal http request is not avaliable in RpcWorker
-void RpcWorker::sendHttpFail(mg_connection *conn, int status, const std::string &resp) {
-    mg_printf(conn, "HTTP/1.1 %d\r\n", status);
-    mg_printf(conn, "%s", "Content-Type: text/html\r\n");
-    mg_printf(conn, "Content-Length: %lu\r\n", resp.size());
-    mg_printf(conn, "%s", "Connection: close\r\n");
-    mg_printf(conn, "%s", "\r\n");
-    mg_send(conn, resp.c_str(), resp.size());
 }
 
 };
