@@ -28,7 +28,7 @@ RpcWorker::RpcWorker(ReqQueue *workqueue, RpcServerImpl *server)
 , m_server(server)
 , m_stop(false)
 {
-
+    m_thread = new std::thread(&RpcWorker::run, this);
 }
 
 RpcWorker::~RpcWorker() {
@@ -37,6 +37,7 @@ RpcWorker::~RpcWorker() {
 
 void RpcWorker::stop() {
     m_stop = true;
+    m_thread->join();
 }
 
 //FIXME:any HTTP related code is not work!
@@ -61,10 +62,9 @@ void RpcWorker::run() {
         }
         std::shared_ptr<request_pkg> pkg = nullptr;
         if (m_work_q->pop(pkg, 10)) {
-            std::chrono::system_clock::time_point out_q_timepoint = std::chrono::system_clock::now();
-            RPC_LOG(RPC_LOG_LEV::DEBUG, "req stay: %d ms",  std::chrono::duration_cast<std::chrono::milliseconds>( out_q_timepoint - pkg->gen_time ).count());
-            auto during = std::chrono::duration_cast<std::chrono::milliseconds>(out_q_timepoint - pkg->gen_time);
-            m_server->calcReqAvgTime(during.count());
+            auto during = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - pkg->gen_time);
+            m_server->calcReqQTime(during.count());
+            RPC_LOG(RPC_LOG_LEV::DEBUG, "req stay: %d ms", during.count());
 
             //must get request id from here
             RpcInnerReq req;
@@ -81,10 +81,14 @@ void RpcWorker::run() {
                 IRpcRespBrokerPtr rpcbroker = std::make_shared<RpcRespBroker>(m_server, pkg->connection_id, req.request_id(),
                                                             (req.type() == RpcInnerReq::TWO_WAY), nullptr);
 
+                std::chrono::system_clock::time_point begin_call_timepoint = std::chrono::system_clock::now();
                 RpcStatus ret = p_service->runService(req.method_name(), 
                                                                  req.data(), 
                                                                  resp_data, 
                                                                  rpcbroker);
+                during = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - begin_call_timepoint);
+                m_server->calcCallTime(during.count());
+                RPC_LOG(RPC_LOG_LEV::DEBUG, "call take: %d ms", during.count());
                 resp.set_ret_val(static_cast<uint32_t>(ret));
                 switch (ret) {
                     case RpcStatus::RPC_SERVER_OK:

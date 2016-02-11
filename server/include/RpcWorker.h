@@ -6,6 +6,7 @@
 #ifndef RPCFRAME_RPCWORKER
 #define RPCFRAME_RPCWORKER
 #include <atomic>
+#include <thread>
 
 #include "Queue.h"
 #include "IService.h"
@@ -31,6 +32,7 @@ private:
     ReqQueue *m_work_q;
     RpcServerImpl *m_server;
     std::atomic<bool> m_stop;
+    std::thread *m_thread;
     
 };
 

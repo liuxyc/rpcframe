@@ -57,6 +57,8 @@ public:
      * @return 
      */
     bool addService(const std::string &name, IService *);
+    bool addWorkers(const uint32_t numbers);
+    bool removeWorkers(const uint32_t numbers);
     IService *getService(const std::string &name);
 
     /**
@@ -72,8 +74,9 @@ public:
     void addConnection(int fd, RpcServerConn *conn);
     RpcServerConn *getConnection(int fd);
     void pushResp(std::string seqid, RespPkgPtr &resp_pkg);
-    void calcReqAvgTime(uint64_t);
-    void calcRespAvgTime(uint64_t);
+    void calcReqQTime(uint64_t);
+    void calcRespQTime(uint64_t);
+    void calcCallTime(uint64_t);
 
 private:
     bool startListen();
@@ -83,7 +86,6 @@ private:
     void onDataIn(const int fd);
 
     RpcServerConfig m_cfg;
-    std::vector<std::thread *> m_thread_vec;
     std::vector<RpcWorker *> m_worker_vec;
     ServiceMap m_service_map;
     MethodStatusMap m_methodstatus_map;
@@ -103,8 +105,11 @@ private:
 
     uint64_t avg_req_wait_time;
     uint64_t avg_resp_wait_time;
+    uint64_t avg_call_time;
+    uint64_t max_call_time;
     uint64_t total_req_num;
     uint64_t total_resp_num;
+    uint64_t total_call_num;
     std::mutex m_stat_mutex;
     
 };

@@ -91,15 +91,13 @@ RpcServerImpl::RpcServerImpl(RpcServerConfig &cfg)
 , m_http_server(nullptr)
 , avg_req_wait_time(0)
 , avg_resp_wait_time(0)
+, avg_call_time(0)
+, max_call_time(0)
 , total_req_num(0)
 , total_resp_num(0)
+, total_call_num(0)
 {
-    for(uint32_t i = 0; i < m_cfg.getThreadNum(); ++i) {
-        RpcWorker *rw = new RpcWorker(&m_request_q, this);
-        std::thread *th = new std::thread(&RpcWorker::run, rw);
-        m_thread_vec.push_back(th);
-        m_worker_vec.push_back(rw);
-    }
+    addWorkers(m_cfg.getThreadNum());
     if (cfg.getHttpPort() != -1) {
         m_http_server = new RpcHttpServer(cfg, this);
         m_http_server->start();
@@ -114,6 +112,33 @@ RpcServerImpl::~RpcServerImpl() {
         delete rw;
     }
     delete m_service_map["status"];
+}
+
+bool RpcServerImpl::addWorkers(const uint32_t numbers) 
+{
+    for(uint32_t i = 0; i < numbers; ++i) {
+        try {
+            RpcWorker *rw = new RpcWorker(&m_request_q, this);
+            m_worker_vec.push_back(rw);
+        } catch (...) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool RpcServerImpl::removeWorkers(const uint32_t numbers)
+{
+    if (numbers > m_worker_vec.size() || m_worker_vec.size() == 0) {
+        return false;
+    }
+    for(uint32_t i = 0; i < numbers; ++i) {
+        auto last_worker = m_worker_vec.rbegin();
+        (*last_worker)->stop();
+        delete *last_worker;
+        m_worker_vec.pop_back();
+    }
+    return true;
 }
 
 bool RpcServerImpl::addService(const std::string &name, IService *p_service)
@@ -470,17 +495,11 @@ void RpcServerImpl::stop() {
     m_stop = true;
     m_http_server->stop();
     delete m_http_server;
-    for(auto rw: m_worker_vec) {
-        rw->stop();
-    }
-    for (auto th: m_thread_vec) {
-        th->join();
-        delete th;
-    }
+    removeWorkers(m_worker_vec.size());
     RPC_LOG(RPC_LOG_LEV::INFO, "RpcServer stoped");
 }
 
-void RpcServerImpl::calcReqAvgTime(uint64_t req_time)
+void RpcServerImpl::calcReqQTime(uint64_t req_time)
 {
     //TODO:spin lock
     std::lock_guard<std::mutex> mlock(m_stat_mutex);
@@ -495,7 +514,7 @@ void RpcServerImpl::calcReqAvgTime(uint64_t req_time)
 }
 
 
-void RpcServerImpl::calcRespAvgTime(uint64_t resp_time)
+void RpcServerImpl::calcRespQTime(uint64_t resp_time)
 {
     //TODO:spin lock
     std::lock_guard<std::mutex> mlock(m_stat_mutex);
@@ -510,6 +529,23 @@ void RpcServerImpl::calcRespAvgTime(uint64_t resp_time)
 
 }
 
+void RpcServerImpl::calcCallTime(uint64_t call_time)
+{
+    //TODO:spin lock
+    std::lock_guard<std::mutex> mlock(m_stat_mutex);
+    if (avg_call_time == 0) {
+        avg_call_time = call_time;
+    }
+    else {
+        avg_call_time = ((avg_call_time * total_call_num) + call_time) / (total_call_num + 1);
+        ++total_call_num;
+    }
+    if(call_time > max_call_time) {
+        max_call_time = call_time;
+    }
+    RPC_LOG(RPC_LOG_LEV::DEBUG, "avg call time: %d ms", avg_call_time);
+
+}
 
 
 };
