@@ -38,7 +38,7 @@ static void ev_handler(struct mg_connection *conn, int ev, void *ev_data) {
         {
             std::string url_string(hm->uri.p, hm->uri.len);
             if (url_string[0] != '/') {
-                mg_printf(conn, "Invalid Request URI [%s]", hm->uri.p);  
+                mg_printf(conn, "Invalid Request URI [%s]", url_string.c_str());  
                 mg_send_head(conn, 500, 0, NULL);
             }
             RpcServerImpl *server = (RpcServerImpl *)conn->user_data;
@@ -83,7 +83,7 @@ static void ev_handler(struct mg_connection *conn, int ev, void *ev_data) {
                 }
             }
             else {
-                mg_printf(conn, "Invalid Request URI [%s]", hm->uri.p);  
+                mg_printf(conn, "Invalid Request URI [%s]", url_string.c_str());  
             }
         }
         default: 

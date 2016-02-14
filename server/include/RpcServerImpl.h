@@ -19,8 +19,6 @@ namespace rpcframe
 {
 
 class RpcServerConn;
-//class request_pkg;
-//class response_pkg;
 class RpcWorker;
 class IService;
 class RpcHttpServer;
@@ -35,8 +33,6 @@ public:
     uint64_t timeout_call_nums = 0;
     uint64_t avg_call_time = 0;  // unit: ms
     uint64_t longest_call_time = 0;   // unit: ms
-
-
 };
 
 typedef std::unordered_map<std::string, RpcMethodStatus> MethodStatusMap;

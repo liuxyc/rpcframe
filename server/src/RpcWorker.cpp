@@ -32,7 +32,7 @@ RpcWorker::RpcWorker(ReqQueue *workqueue, RpcServerImpl *server)
 }
 
 RpcWorker::~RpcWorker() {
-
+  delete m_thread;
 }
 
 void RpcWorker::stop() {
