@@ -40,10 +40,6 @@ void RpcWorker::stop() {
     m_thread->join();
 }
 
-//FIXME:any HTTP related code is not work!
-//mongoose is not thread safe, deal http request is not avaliable in RpcWorker
-//need find new solution to replace the mg_* code
-//the new solution should support handle "conn" per thread
 void RpcWorker::run() {
     sigset_t set;
     int s;

@@ -22,13 +22,11 @@ class RpcWorker
 {
 public:
     RpcWorker(ReqQueue *workqueue, RpcServerImpl *server);
+    RpcWorker &operator=(const RpcWorker &worker) = delete;
     ~RpcWorker();
     void stop();
     void run();
 private:
-    void sendHttpOk(mg_connection *conn, const std::string &resp);
-    void sendHttpFail(mg_connection *conn, int status, const std::string &resp);
-
     ReqQueue *m_work_q;
     RpcServerImpl *m_server;
     std::atomic<bool> m_stop;

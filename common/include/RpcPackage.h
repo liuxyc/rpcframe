@@ -26,7 +26,6 @@ public:
     : connection_id(conn_id)
     , data(nullptr)
     , data_len(size)
-    , http_conn(nullptr)
     {
         data = new char[size];
     };
@@ -37,7 +36,6 @@ public:
     std::string connection_id;
     char *data;
     uint32_t data_len;
-    void *http_conn;
     std::chrono::system_clock::time_point gen_time;
 
     request_pkg(const request_pkg &) = delete;

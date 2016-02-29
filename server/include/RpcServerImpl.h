@@ -42,6 +42,7 @@ class RpcServerImpl
     friend RpcStatusService;
 public:
     explicit RpcServerImpl(RpcServerConfig &cfg);
+    RpcServerImpl &operator=(const RpcServerConfig &cfg) = delete;
     ~RpcServerImpl();
 
     /**

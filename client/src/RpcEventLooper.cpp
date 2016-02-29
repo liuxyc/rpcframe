@@ -129,12 +129,12 @@ RpcStatus RpcEventLooper::sendReq(
     }
     //gen readable request_id 
     std::stringstream ssm;
-    ssm << std::to_string((int)getpid())
+    ssm << (int)getpid()
         << "_" << std::this_thread::get_id() 
         << "_" << m_conn->getFd() 
         << "_" << std::time(nullptr)
         << "_" << m_host_ip
-        << "_" << std::to_string(m_req_seqid);
+        << "_" << m_req_seqid;
     m_mutex.unlock();
     req_id = ssm.str();
     std::time_t tm_id;
