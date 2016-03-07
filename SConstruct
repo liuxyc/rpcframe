@@ -37,7 +37,7 @@ server_test_src = Split('test/server_test.cpp')
 env.Program('server_test', server_test_src, 
     LDFLAGS=[''], 
     LIBS=['rpcframe', 'pthread', 'protobuf'], 
-    #LIBS=['rpcframe', 'pthread', 'protobuf'], 
+    #LIBS=['rpcframe', 'pthread', 'protobuf', 'profiler'], 
     #LINKFLAGS=['-Wl,--no-as-needed'],
     LIBPATH = ['.'], 
     CPPPATH = ['output/include/'])

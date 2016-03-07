@@ -153,8 +153,9 @@ bool RpcServerImpl::addService(const std::string &name, IService *p_service)
 
 IService *RpcServerImpl::getService(const std::string &name)
 {
-    if (m_service_map.find(name) != m_service_map.end()) {
-        return m_service_map[name];
+    auto service_iter = m_service_map.find(name);
+    if (service_iter != m_service_map.end()) {
+        return service_iter->second;
     }
     else {
         return nullptr;
@@ -234,8 +235,9 @@ bool RpcServerImpl::startListen() {
 }
 
 void RpcServerImpl::onDataOut(const int fd) {
-    if (m_conn_map.find(fd) != m_conn_map.end()) {
-        RpcServerConn *conn = m_conn_map[fd];
+    auto conn_iter = m_conn_map.find(fd);
+    if (conn_iter != m_conn_map.end()) {
+        RpcServerConn *conn = conn_iter->second;
         PkgIOStatus sent_ret = conn->sendResponse();
         if (sent_ret == PkgIOStatus::FAIL ) {
             removeConnection(fd);
@@ -442,10 +444,11 @@ void RpcServerImpl::removeConnection(int fd)
 {
     std::lock_guard<std::mutex> mlock(m_mutex);
     epoll_ctl(m_epoll_fd, EPOLL_CTL_DEL, fd, nullptr);
-    if (m_conn_map.find(fd) != m_conn_map.end()) {
-        m_conn_set.erase(m_conn_map[fd]->m_seqid);
-        delete m_conn_map[fd];
-        m_conn_map.erase(fd);
+    auto conn_iter = m_conn_map.find(fd);
+    if (conn_iter != m_conn_map.end()) {
+        m_conn_set.erase(conn_iter->second->m_seqid);
+        delete conn_iter->second;
+        m_conn_map.erase(conn_iter);
     }
 }
 
@@ -459,8 +462,9 @@ void RpcServerImpl::addConnection(int fd, RpcServerConn *conn)
 RpcServerConn *RpcServerImpl::getConnection(int fd)
 {
     std::lock_guard<std::mutex> mlock(m_mutex);
-    if( m_conn_map.find(fd) != m_conn_map.end()) {
-        return m_conn_map[fd];
+    auto conn_iter = m_conn_map.find(fd);
+    if( conn_iter != m_conn_map.end()) {
+        return conn_iter->second;
     }
     return nullptr;
 }
@@ -468,8 +472,9 @@ RpcServerConn *RpcServerImpl::getConnection(int fd)
 void RpcServerImpl::pushResp(std::string conn_id, RespPkgPtr &resp_pkg)
 {
     std::lock_guard<std::mutex> mlock(m_mutex);
-    if (m_conn_set.find(conn_id) != m_conn_set.end()) {
-        RpcServerConn *conn = m_conn_set[conn_id];
+    auto conn_iter = m_conn_set.find(conn_id);
+    if (conn_iter != m_conn_set.end()) {
+        RpcServerConn *conn = conn_iter->second;
         resp_pkg->gen_time = std::chrono::system_clock::now();
         if (!conn->m_response_q.push(resp_pkg)) {
             RPC_LOG(RPC_LOG_LEV::WARNING, "server resp queue fail, drop resp pkg");

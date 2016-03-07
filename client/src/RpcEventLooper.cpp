@@ -181,8 +181,9 @@ RpcStatus RpcEventLooper::sendReq(
 
 std::shared_ptr<RpcClientCallBack> RpcEventLooper::getCb(const std::string &req_id) {
     std::lock_guard<std::mutex> mlock(m_mutex);
-    if (m_cb_map.find(req_id) != m_cb_map.end()) {
-        return m_cb_map[req_id];
+    auto cb_iter = m_cb_map.find(req_id);
+    if ( cb_iter != m_cb_map.end()) {
+        return cb_iter->second;
     }
     else {
         return nullptr;
@@ -202,15 +203,16 @@ void RpcEventLooper::dealTimeoutCb() {
                 cb_timer_it != m_cb_timer_map.end();) {
             auto cur_it = cb_timer_it++;
             std::string reqid = cur_it->second;
-            if (m_cb_map.find(reqid) != m_cb_map.end()) { 
-                std::shared_ptr<RpcClientCallBack> cb = m_cb_map[reqid];
+            auto cb_iter = m_cb_map.find(reqid);
+            if (cb_iter != m_cb_map.end()) { 
+                std::shared_ptr<RpcClientCallBack> cb = cb_iter->second;
                 if(cb != nullptr) {
                     std::time_t tm = cur_it->first;
                     if(std::time(nullptr) > tm) {
                         //found a timeout cb
                         //RPC_LOG(RPC_LOG_LEV::WARNING, "%s timeout", cb->getReqId().c_str());
                         cb->callback_safe(RpcStatus::RPC_CB_TIMEOUT, "");
-                        m_cb_map.erase(reqid);
+                        m_cb_map.erase(cb_iter);
                     }
                     else {
                         //got item not timeout, stop search
