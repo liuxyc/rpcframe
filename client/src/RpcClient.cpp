@@ -48,21 +48,18 @@ RpcClient::RpcClient(RpcClientConfig &cfg, const std::string &service_name)
 , m_isConnected(false)
 , m_fd(-1)
 , m_servicename(service_name)
+, m_ev(new RpcEventLooper(this, cfg.getThreadNum()))
 {
-    m_ev = new RpcEventLooper(this, cfg.getThreadNum());
-    std::thread *th = new std::thread(&RpcEventLooper::run, m_ev);
-    m_thread_vec.push_back(th);
+    m_thread_vec.emplace_back(new std::thread(&RpcEventLooper::run, m_ev));
 
 }
 
 RpcClient::~RpcClient() {
     RPC_LOG(RPC_LOG_LEV::DEBUG, "~RpcClient()");
     m_ev->stop();
-    for(auto th: m_thread_vec) {
+    for(auto &th: m_thread_vec) {
         th->join();
-        delete th;
     }
-    delete m_ev;
 
 }
 

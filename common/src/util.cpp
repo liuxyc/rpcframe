@@ -47,7 +47,7 @@ bool getHostIpByName(std::string &str_ip, const char *hname) {
 std::vector<std::string> log_level_map = {"DEBUG", "INFO", "WARNING", "ERROR", "FATAL"};
 
 void RPC_LOG(RPC_LOG_LEV level, const char *format, ... ){
-  char logbuf[4096];
+  char logbuf[4096] = {0};
   va_list arglist;
   va_start( arglist, format );
   vsprintf(logbuf, format, arglist );

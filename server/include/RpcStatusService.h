@@ -62,6 +62,7 @@ public:
             resp_data += "</body></html>";
         }
         else {
+          //TODO: JSON?
         }
         return rpcframe::RpcStatus::RPC_SERVER_OK;
     };

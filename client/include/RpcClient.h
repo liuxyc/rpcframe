@@ -165,7 +165,7 @@ private:
     RpcEventLooper *m_ev;
     std::mutex m_mutex;
 
-    std::vector<std::thread *> m_thread_vec;
+    std::vector<std::unique_ptr<std::thread>> m_thread_vec;
 };
 
 };

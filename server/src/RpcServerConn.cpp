@@ -115,7 +115,7 @@ PkgIOStatus RpcServerConn::readPkgData()
     }
     else {
         m_cur_left_len = m_cur_left_len - rev_size;
-        //RPC_LOG(RPC_LOG_LEV::DEBUG, " half pkg got %d need %d more", rev_size, m_cur_left_len);
+        //RPC_LOG(RPC_LOG_LEV::DEBUG, " half pkg got %d/%d need %d more", rev_size, m_cur_pkg_size, m_cur_left_len);
         return PkgIOStatus::PARTIAL;
     }
 }
