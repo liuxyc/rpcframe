@@ -513,8 +513,8 @@ void RpcServerImpl::calcReqQTime(uint64_t req_time)
     }
     else {
         avg_req_wait_time = ((avg_req_wait_time * total_req_num) + req_time) / (total_req_num + 1);
-        ++total_req_num;
     }
+    ++total_req_num;
     RPC_LOG(RPC_LOG_LEV::DEBUG, "avg req wait: %d ms", avg_req_wait_time);
 }
 
@@ -528,8 +528,8 @@ void RpcServerImpl::calcRespQTime(uint64_t resp_time)
     }
     else {
         avg_resp_wait_time = ((avg_resp_wait_time * total_resp_num) + resp_time) / (total_resp_num + 1);
-        ++total_resp_num;
     }
+    ++total_resp_num;
     RPC_LOG(RPC_LOG_LEV::DEBUG, "avg resp wait: %d ms", avg_resp_wait_time);
 
 }
@@ -543,8 +543,8 @@ void RpcServerImpl::calcCallTime(uint64_t call_time)
     }
     else {
         avg_call_time = ((avg_call_time * total_call_num) + call_time) / (total_call_num + 1);
-        ++total_call_num;
     }
+    ++total_call_num;
     if(call_time > max_call_time) {
         max_call_time = call_time;
     }

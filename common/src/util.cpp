@@ -7,11 +7,11 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <sys/time.h>
 
 #include <ctime>
 #include <thread>
 #include <sstream>
-
 
 namespace rpcframe {
 
@@ -52,12 +52,12 @@ void RPC_LOG(RPC_LOG_LEV level, const char *format, ... ){
   va_start( arglist, format );
   vsprintf(logbuf, format, arglist );
   va_end( arglist );
+  struct timeval tm;
+  gettimeofday(&tm, nullptr);
   std::stringstream log_ss;
   log_ss << "[";
-  log_ss << log_level_map[(int)level];
-  log_ss << " ";
-  log_ss << std::time(nullptr);
-  log_ss << " ";
+  log_ss << log_level_map[(int)level] << " ";
+  log_ss << tm.tv_sec << "." << tm.tv_usec * 1000 << " ";
   log_ss << std::hex << std::this_thread::get_id();
   log_ss << "] ";
   log_ss << logbuf;

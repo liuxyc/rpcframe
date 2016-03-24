@@ -114,7 +114,7 @@ void* process_proc(void* p_server)
     RpcHttpServer *http_server = static_cast<RpcHttpServer *>(mptr->httpserver);
     while(!http_server->isStop())
     {  
-        mg_mgr_poll(mgr, 500);
+        mg_mgr_poll(mgr, 5);
     }  
     mg_mgr_free(mgr);
     return nullptr;  
