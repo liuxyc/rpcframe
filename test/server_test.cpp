@@ -17,9 +17,6 @@
 class MyService_async: public rpcframe::IService
 {
 public:
-    //to make your method to be callable, must write REG_METHOD(your_class_name) here one time
-    REG_METHOD(MyService_async)
-
     MyService_async(){
         //to make your method to be callable, must write RPC_ADD_METHOD(your_class_name, your_method_name)
         RPC_ADD_METHOD(MyService_async, test_method_async)
@@ -31,7 +28,6 @@ public:
         }
     };
 
-    //method1
     rpcframe::RpcStatus test_method_async(const std::string &request_data, 
                                                      std::string &resp_data, 
                                                      rpcframe::IRpcRespBrokerPtr resp_broker) 
@@ -63,9 +59,6 @@ public:
 class MyService: public rpcframe::IService
 {
 public:
-    //to make your method to be callable, must write REG_METHOD(your_class_name) here one time
-    REG_METHOD(MyService)
-
     MyService(){
         //to make your method to be callable, must write RPC_ADD_METHOD(your_class_name, your_method_name)
         RPC_ADD_METHOD(MyService, test_method)

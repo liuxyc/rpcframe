@@ -51,10 +51,7 @@ static void ev_handler(struct mg_connection *conn, int ev, void *ev_data) {
                     IRpcRespBrokerPtr rpcbroker = std::make_shared<RpcRespBroker>(server, "http_connection", "http_request",true, conn);
                     std::string req_data(hm->body.p, hm->body.len);
                     std::string resp_data;
-                    RpcStatus ret = p_service->runService(method_name, 
-                                                                     req_data, 
-                                                                     resp_data, 
-                                                                     rpcbroker);
+                    RpcStatus ret = p_service->runMethod(method_name, req_data, resp_data, rpcbroker);
                     switch (ret) {
                         case RpcStatus::RPC_SERVER_OK:
                             sendHttpResp(conn, 200, resp_data);

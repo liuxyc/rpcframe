@@ -78,10 +78,7 @@ void RpcWorker::run() {
                                                             (req.type() == RpcInnerReq::TWO_WAY), nullptr);
 
                 std::chrono::system_clock::time_point begin_call_timepoint = std::chrono::system_clock::now();
-                RpcStatus ret = p_service->runService(req.method_name(), 
-                                                                 req.data(), 
-                                                                 resp_data, 
-                                                                 rpcbroker);
+                RpcStatus ret = p_service->runMethod(req.method_name(), req.data(), resp_data, rpcbroker);
                 during = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - begin_call_timepoint);
                 m_server->calcCallTime(during.count());
                 RPC_LOG(RPC_LOG_LEV::DEBUG, "call take: %d ms", during.count());

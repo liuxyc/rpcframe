@@ -14,49 +14,36 @@
 
 namespace rpcframe {
 
-#define RPC_ADD_METHOD(class_name, method_name) m_method_map[#method_name] = &class_name::method_name;
-
-#define REG_METHOD(class_name) \
-    typedef rpcframe::RpcStatus (class_name::*METHOD_FUNC)(const std::string &, std::string &, rpcframe::IRpcRespBrokerPtr ); \
-    std::map<std::string, METHOD_FUNC> m_method_map; \
-    rpcframe::RpcStatus runService(const std::string &method_name, \
-                          const std::string &request_data, \
-                          std::string &resp_data, \
-                          rpcframe::IRpcRespBrokerPtr resp_broker) \
-    { \
-        if (m_method_map.find(method_name) != m_method_map.end()) { \
-            METHOD_FUNC p_fun = m_method_map[method_name]; \
-            return (this->*p_fun)(request_data, resp_data, resp_broker); \
-        }  \
-        else { \
-            return rpcframe::RpcStatus::RPC_METHOD_NOTFOUND;  \
-        }  \
-    }; \
-    void getMethodNames(std::vector<std::string> &smap) { \
-        for(auto mmap: m_method_map) { \
-            smap.push_back(mmap.first); \
-        } \
-    }; 
+#define RPC_ADD_METHOD(class_name, method_name) m_method_map[#method_name] = std::bind(&class_name::method_name, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
 
 class IService
 {
+    typedef std::function<rpcframe::RpcStatus(const std::string &, std::string &, rpcframe::IRpcRespBrokerPtr)> RPC_FUNC_T;
 public:
     IService() {};
     virtual ~IService() {};
     
-    /**
-     * @brief 
-     *
-     * @param method_name
-     * @param request_data
-     * @param resp_data
-     * @param resp_broker if you return S_NONE, you need to delete resp_broker after call resp_broker->pushResp() yourself.
-     *
-     * @return 
-     */
-    virtual RpcStatus runService(const std::string &method_name, const std::string &req_data, std::string &resp_data, IRpcRespBrokerPtr resp_broker) = 0;
+    rpcframe::RpcStatus runMethod(const std::string &method_name, 
+                          const std::string &req_data, 
+                          std::string &resp_data, 
+                          rpcframe::IRpcRespBrokerPtr resp_broker) 
+    { 
+        if (m_method_map.find(method_name) != m_method_map.end()) { 
+            RPC_FUNC_T p_fun = m_method_map[method_name]; 
+            return p_fun(req_data, resp_data, resp_broker); 
+        }  
+        else { 
+            return rpcframe::RpcStatus::RPC_METHOD_NOTFOUND;  
+        }  
+    }; 
 
-    virtual void getMethodNames(std::vector<std::string> &){};
+    void getMethodNames(std::vector<std::string> &smap) { 
+        for(auto mmap: m_method_map) { 
+            smap.push_back(mmap.first); 
+     
+        };
+    };
+    std::map<std::string, RPC_FUNC_T> m_method_map; 
 
 };
 
