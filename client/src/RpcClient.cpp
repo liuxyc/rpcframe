@@ -50,7 +50,7 @@ RpcClient::RpcClient(RpcClientConfig &cfg, const std::string &service_name)
 , m_servicename(service_name)
 , m_ev(new RpcEventLooper(this, cfg.getThreadNum()))
 {
-    m_thread_vec.emplace_back(new std::thread(&RpcEventLooper::run, m_ev));
+    m_thread_vec.emplace_back(new std::thread(&RpcEventLooper::run, m_ev.get()));
 
 }
 

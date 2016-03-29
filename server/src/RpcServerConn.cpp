@@ -150,47 +150,6 @@ pkg_ret_t RpcServerConn::getRequest()
     }
 }
 
-PkgIOStatus RpcServerConn::sendPkgLen()
-{
-    uint32_t pkg_len = m_sent_pkg->data_len;
-    uint32_t nlen = htonl(pkg_len);
-    std::time_t begin_tm = std::time(nullptr);
-    uint32_t total_len = sizeof(nlen);
-    uint32_t sent_len = 0;
-    //NOTE:if send resp len takes over 1 second, the network is too slow, 
-    //to avoid take too much server resource, we disconnet!
-    while(true) {
-        if ( std::time(nullptr) - begin_tm > 1) {
-            m_sent_pkg = nullptr;
-            m_sent_len = 0;
-            RPC_LOG(RPC_LOG_LEV::WARNING, "send data len timeout!");
-            return PkgIOStatus::TIME_OUT;
-        }
-        uint32_t len = total_len - sent_len;
-        errno = 0;
-        int s_ret = send(m_fd, ((char *)&nlen) + sent_len, len, MSG_NOSIGNAL | MSG_DONTWAIT);
-        if( s_ret <= 0 )
-        {
-            if( errno == EAGAIN || errno == EINTR) {
-                continue;
-            }
-            else {
-                RPC_LOG(RPC_LOG_LEV::ERROR, "send error! %s", strerror(errno));
-                is_connected = false;
-                m_sent_pkg = nullptr;
-                m_sent_len = 0;
-                return PkgIOStatus::FAIL;
-            }
-        }
-        sent_len += s_ret;
-        if (sent_len == total_len) {
-            break;
-        }
-
-    }
-    return PkgIOStatus::FULL;
-}
-
 PkgIOStatus RpcServerConn::sendData()
 {
     int slen = send(m_fd, 
@@ -240,12 +199,6 @@ PkgIOStatus RpcServerConn::sendResponse()
             RPC_LOG(RPC_LOG_LEV::DEBUG, "resp stay: %d ms",  std::chrono::duration_cast<std::chrono::milliseconds>( out_q_timepoint - pkg->gen_time ).count());
             //auto during = std::chrono::duration_cast<std::chrono::milliseconds>(out_q_timepoint - pkg->gen_time);
             //m_server->calcReqAvgTime(during.count());
-            PkgIOStatus resp_header_status = sendPkgLen();
-            if (resp_header_status != PkgIOStatus::FULL) {
-                RPC_LOG(RPC_LOG_LEV::ERROR, "send pkg len failed");
-                return resp_header_status;
-            }
-            //RPC_LOG(RPC_LOG_LEV::DEBUG, "send len success");
             return sendData();
         }
         return PkgIOStatus::PARTIAL;

@@ -164,42 +164,17 @@ RpcStatus RpcClientConn::sendReq(
     else {
         req.set_type(RpcInnerReq::TWO_WAY);
     }
-    std::string out_data;
-    req.SerializeToString(&out_data);
-    uint32_t pkg_len = out_data.length();
-    uint32_t nlen = htonl(pkg_len);
-
-    std::time_t begin_tm = std::time(nullptr);
-    uint32_t total_len = sizeof(nlen);
-    uint32_t sent_len = 0;
-    while(true) {
-        if (timeout > 0 && 
-            std::time(nullptr) - begin_tm > timeout) {
-            RPC_LOG(RPC_LOG_LEV::WARNING, "send data len timeout!");
-            return RpcStatus::RPC_SEND_TIMEOUT;
-        }
-        uint32_t len = total_len - sent_len;
-        int s_ret = send(m_fd, ((char *)&nlen) + sent_len, len, MSG_NOSIGNAL | MSG_DONTWAIT);
-        if( s_ret <= 0 )
-        {
-            if( errno == EAGAIN || errno == EINTR) {
-                continue;
-            }
-            else {
-                RPC_LOG(RPC_LOG_LEV::ERROR, "send error! %s", strerror(errno));
-                is_connected = false;
-                return RpcStatus::RPC_SEND_FAIL;
-            }
-        }
-        sent_len += s_ret;
-        if (sent_len == total_len) {
-            break;
-        }
-
+    int pkg_len = req.ByteSize();
+    uint32_t hdr = htonl(pkg_len);
+    std::unique_ptr<char[]> out_data(new char[pkg_len + sizeof(pkg_len)]);
+    memcpy((void *)(out_data.get()), (const void *)(&hdr), sizeof(pkg_len));
+    if (!req.SerializeToArray((void *)(out_data.get() + sizeof(pkg_len)), pkg_len)) {
+      RPC_LOG(RPC_LOG_LEV::ERROR, "Serialize req data fail");
     }
 
-    total_len = out_data.length();
-    sent_len = 0;
+    std::time_t begin_tm = std::time(nullptr);
+    uint32_t total_len = pkg_len + sizeof(pkg_len);
+    uint32_t sent_len = 0;
     while(true) {
         if (timeout > 0 &&
             std::time(nullptr) - begin_tm > timeout) {
@@ -208,7 +183,7 @@ RpcStatus RpcClientConn::sendReq(
         }
         uint32_t len = total_len - sent_len;
         errno = 0;
-        int s_ret = send(m_fd, out_data.c_str() + sent_len, len, MSG_NOSIGNAL | MSG_DONTWAIT);
+        int s_ret = send(m_fd, out_data.get() + sent_len, len, MSG_NOSIGNAL | MSG_DONTWAIT);
         if( s_ret <= 0)
         {
             if( errno == EAGAIN || errno == EINTR) {

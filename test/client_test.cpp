@@ -60,7 +60,6 @@ int main()
     if (rpcframe::RpcStatus::RPC_SRV_NOTFOUND == client_wrong_srv.call("test_method_big_resp_unknow", "unknow", resp_wrong_data, 2)) {
         printf("call unknow serivce back\n");
     }
-
     int conn_cnt = 1;
     pkg_cnt = 5000;
     //fast async/sync call
@@ -72,20 +71,17 @@ int main()
                                                                 10, 
                                                                 std::make_shared<my_CB>()))
             {
-                printf("send fail\n");
+                perror("send fail\n");
             }
-            
-            /*
-             *std::string resp_data;
-             *rpcframe::RpcStatus ret_st = 
-             *        client.call("test_method2", "aaaaaaabbbbbbbbccccccc", resp_data, 3);
-             *if (rpcframe::RpcStatus::RPC_CB_OK == ret_st) {
-             *    //printf("test_method2 back %s\n", resp_data.c_str());
-             *}
-             *else {
-             *    printf("test_method2 call fail %d\n", ret_st);
-             *}
-             */
+            std::string resp_data;
+            rpcframe::RpcStatus ret_st = 
+                    client.call("test_method2", "aaaaaaabbbbbbbbccccccc", resp_data, 3);
+            if (rpcframe::RpcStatus::RPC_SERVER_OK == ret_st) {
+                //printf("test_method2 back %s\n", resp_data.c_str());
+            }
+            else {
+                printf("test_method2 call fail %d\n", ret_st);
+            }
         }
     }
 
@@ -150,7 +146,7 @@ int main()
             client2.async_call("test_method", std::string(len, '*'), 3, nullptr);
         }
     }
-
+    
     //send request to async server
     //server will send response in aync way, client side not aware of that.
     rpcframe::RpcClient client_call_async_server(ccfg, "test_service_async");
@@ -159,8 +155,9 @@ int main()
     //so we set timeout = 10 seconds
     client_call_async_server.async_call("test_method_async", std::string(23, '*'), 10, pCB);
     client_call_async_server.async_call("test_method_async", std::string(20, '*'), 10, nullptr);
-    client_call_async_server.call("test_method_async", std::string(10, '*'), resp_data, 10);
+    client_call_async_server.call("test_method_async", std::string(10, '*'), resp_data, 100);
     printf("async server back: %s\n", resp_data.c_str());
+
     sleep(10);
     for(uint32_t i = 0; i < 1000; ++i) {
         std::random_device rd;
@@ -180,7 +177,6 @@ int main()
         }
         client.async_call("test_method2", std::string(len, '*'), 4, nullptr);
     }
-    sleep(10);
     return 0;
 }
 

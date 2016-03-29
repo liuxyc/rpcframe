@@ -26,6 +26,7 @@
 #include "RpcWorker.h"
 #include "RpcHttpServer.h"
 #include "RpcStatusService.h"
+#include "rpc.pb.h"
 
 #define RPC_MAX_SOCKFD_COUNT 65535 
 
@@ -469,28 +470,39 @@ RpcServerConn *RpcServerImpl::getConnection(int fd)
     return nullptr;
 }
 
-void RpcServerImpl::pushResp(std::string conn_id, RespPkgPtr &resp_pkg)
+void RpcServerImpl::pushResp(std::string conn_id, RpcInnerResp &resp)
 {
+  //NOTICE: memory fragments
+  //make whole package(include header) here
+  int pkg_len = resp.ByteSize();
+  RespPkgPtr resp_pkg = RespPkgPtr(new response_pkg(pkg_len + sizeof(pkg_len)));
+  uint32_t hdr = htonl(pkg_len);
+  memcpy((void *)(resp_pkg->data), (const void *)(&hdr), sizeof(pkg_len));
+  if(!resp.SerializeToArray(resp_pkg->data + sizeof(pkg_len), resp_pkg->data_len - sizeof(pkg_len))) {
+    RPC_LOG(RPC_LOG_LEV::ERROR, "serialize innernal pkg fail");
+  }
+  else {
     std::lock_guard<std::mutex> mlock(m_mutex);
     auto conn_iter = m_conn_set.find(conn_id);
     if (conn_iter != m_conn_set.end()) {
-        RpcServerConn *conn = conn_iter->second;
-        resp_pkg->gen_time = std::chrono::system_clock::now();
-        if (!conn->m_response_q.push(resp_pkg)) {
-            RPC_LOG(RPC_LOG_LEV::WARNING, "server resp queue fail, drop resp pkg");
-            return;
-        }
-        m_resp_conn_q.push(conn_id);
+      RpcServerConn *conn = conn_iter->second;
+      resp_pkg->gen_time = std::chrono::system_clock::now();
+      if (!conn->m_response_q.push(resp_pkg)) {
+        RPC_LOG(RPC_LOG_LEV::WARNING, "server resp queue fail, drop resp pkg");
+        return;
+      }
+      m_resp_conn_q.push(conn_id);
 
-        eventfd_t resp_cnt = 1;
-        if( eventfd_write(m_resp_ev_fd, resp_cnt) == -1) {
-            RPC_LOG(RPC_LOG_LEV::ERROR, "write resp event fd fail");
-        }
+      eventfd_t resp_cnt = 1;
+      if( eventfd_write(m_resp_ev_fd, resp_cnt) == -1) {
+        RPC_LOG(RPC_LOG_LEV::ERROR, "write resp event fd fail");
+      }
     }
     else {
-        RPC_LOG(RPC_LOG_LEV::WARNING, "connection %s gone, drop resp", conn_id.c_str());
+      RPC_LOG(RPC_LOG_LEV::WARNING, "connection %s gone, drop resp", conn_id.c_str());
     }
-    return;
+  }
+  return;
 }
 
 void RpcServerImpl::stop() {
@@ -506,49 +518,55 @@ void RpcServerImpl::stop() {
 
 void RpcServerImpl::calcReqQTime(uint64_t req_time)
 {
-    //TODO:spin lock
+  //TODO:spin lock
+  {
     std::lock_guard<std::mutex> mlock(m_stat_mutex);
     if (avg_req_wait_time == 0) {
-        avg_req_wait_time = req_time;
+      avg_req_wait_time = req_time;
     }
     else {
-        avg_req_wait_time = ((avg_req_wait_time * total_req_num) + req_time) / (total_req_num + 1);
+      avg_req_wait_time = ((avg_req_wait_time * total_req_num) + req_time) / (total_req_num + 1);
     }
     ++total_req_num;
-    RPC_LOG(RPC_LOG_LEV::DEBUG, "avg req wait: %d ms", avg_req_wait_time);
+  }
+  RPC_LOG(RPC_LOG_LEV::DEBUG, "avg req wait: %d ms", avg_req_wait_time);
 }
 
 
 void RpcServerImpl::calcRespQTime(uint64_t resp_time)
 {
-    //TODO:spin lock
+  //TODO:spin lock
+  {
     std::lock_guard<std::mutex> mlock(m_stat_mutex);
     if (avg_resp_wait_time == 0) {
-        avg_resp_wait_time = resp_time;
+      avg_resp_wait_time = resp_time;
     }
     else {
-        avg_resp_wait_time = ((avg_resp_wait_time * total_resp_num) + resp_time) / (total_resp_num + 1);
+      avg_resp_wait_time = ((avg_resp_wait_time * total_resp_num) + resp_time) / (total_resp_num + 1);
     }
     ++total_resp_num;
-    RPC_LOG(RPC_LOG_LEV::DEBUG, "avg resp wait: %d ms", avg_resp_wait_time);
+  }
+  RPC_LOG(RPC_LOG_LEV::DEBUG, "avg resp wait: %d ms", avg_resp_wait_time);
 
 }
 
 void RpcServerImpl::calcCallTime(uint64_t call_time)
 {
-    //TODO:spin lock
+  //TODO:spin lock
+  {
     std::lock_guard<std::mutex> mlock(m_stat_mutex);
     if (avg_call_time == 0) {
-        avg_call_time = call_time;
+      avg_call_time = call_time;
     }
     else {
-        avg_call_time = ((avg_call_time * total_call_num) + call_time) / (total_call_num + 1);
+      avg_call_time = ((avg_call_time * total_call_num) + call_time) / (total_call_num + 1);
     }
     ++total_call_num;
     if(call_time > max_call_time) {
-        max_call_time = call_time;
+      max_call_time = call_time;
     }
-    RPC_LOG(RPC_LOG_LEV::DEBUG, "avg call time: %d ms", avg_call_time);
+  }
+  RPC_LOG(RPC_LOG_LEV::DEBUG, "avg call time: %d ms", avg_call_time);
 
 }
 

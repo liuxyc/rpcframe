@@ -162,7 +162,7 @@ private:
     bool m_isConnected;
     int m_fd;
     std::string m_servicename;
-    RpcEventLooper *m_ev;
+    std::unique_ptr<RpcEventLooper> m_ev;
     std::mutex m_mutex;
 
     std::vector<std::unique_ptr<std::thread>> m_thread_vec;

@@ -23,6 +23,7 @@ class RpcWorker;
 class IService;
 class RpcHttpServer;
 class RpcStatusService;
+class RpcInnerResp;
 
 typedef std::unordered_map<std::string, IService *> ServiceMap;
 
@@ -70,7 +71,7 @@ public:
     void removeConnection(int fd);
     void addConnection(int fd, RpcServerConn *conn);
     RpcServerConn *getConnection(int fd);
-    void pushResp(std::string seqid, RespPkgPtr &resp_pkg);
+    void pushResp(std::string seqid, RpcInnerResp &resp);
     void calcReqQTime(uint64_t);
     void calcRespQTime(uint64_t);
     void calcCallTime(uint64_t);

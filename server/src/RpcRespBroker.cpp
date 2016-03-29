@@ -48,11 +48,9 @@ bool RpcRespBroker::response(const std::string &resp_data) {
             resp.set_request_id(m_req_id);
             resp.set_ret_val(static_cast<uint32_t>(RpcStatus::RPC_SERVER_OK));
             resp.set_data(resp_data);
-            RespPkgPtr resp_pkg = RespPkgPtr(new response_pkg(resp.ByteSize()));
-            resp.SerializeToArray(resp_pkg->data, resp_pkg->data_len);
 
             //put response to connection queue
-            m_server->pushResp(m_conn_id, resp_pkg);
+            m_server->pushResp(m_conn_id, resp);
         }
     }
     else {

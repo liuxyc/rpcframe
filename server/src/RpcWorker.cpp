@@ -108,15 +108,8 @@ void RpcWorker::run() {
             }
             if (req.type() == RpcInnerReq::TWO_WAY) {
                 resp.set_data(resp_data);
-                //NOTICE: memory fragments
-                RespPkgPtr resp_pkg = RespPkgPtr(new response_pkg(resp.ByteSize()));
-                if(!resp.SerializeToArray(resp_pkg->data, resp_pkg->data_len)) {
-                    RPC_LOG(RPC_LOG_LEV::ERROR, "serialize innernal pkg fail");
-                }
-                else {
-                    //put response to connection queue, max worker throughput
-                    m_server->pushResp(pkg->connection_id, resp_pkg);
-                }
+                //put response to connection queue, max worker throughput
+                m_server->pushResp(pkg->connection_id, resp);
             }
         } 
         else {
