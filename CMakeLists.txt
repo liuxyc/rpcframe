@@ -1,21 +1,22 @@
-#项目名称  
 PROJECT(rpcframe)  
-#声明要求的最小版本  
-cmake_minimum_required(VERSION 3.0)  
+cmake_minimum_required(VERSION 2.8)  
 
 SET(SERVER_DIR ${PROJECT_SOURCE_DIR}/server)
 SET(CLIENT_DIR ${PROJECT_SOURCE_DIR}/client)
 SET(COMMON_DIR ${PROJECT_SOURCE_DIR}/common)
 SET(TEST_DIR ${PROJECT_SOURCE_DIR}/test)
+SET(OUTPUT_DIR ${PROJECT_SOURCE_DIR}/output)
+SET(PROTO_DIR ${PROJECT_SOURCE_DIR}/common/proto)
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -g -Wall -O3")  
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -Wall -O3")  
 
-#添加参与编译的子目录 我理解为：添加下一个CMakeLists.txt  
-EXECUTE_PROCESS(COMMAND protoc -I=${COMMON_DIR}/proto --cpp_out=${COMMON_DIR}/proto 
-  ${COMMON_DIR}/proto/rpc.proto
-  WORKING_DIRECTORY  ${COMMON_DIR}/proto)
+EXECUTE_PROCESS(
+  COMMAND rm -f ${PROTO_DIR}/*.cc ${PROTO_DIR}/*.h
+  COMMAND protoc -I=${PROTO_DIR} --cpp_out=${PROTO_DIR}
+  ${PROTO_DIR}/rpc.proto
+  WORKING_DIRECTORY  ${PROTO_DIR})
 
-FILE(GLOB rpcframe_src ${SERVER_DIR}/src/*.cpp ${CLIENT_DIR}/src/*.cpp ${COMMON_DIR}/src/*.cpp ${COMMON_DIR}/proto/*.cc)
+FILE(GLOB rpcframe_src ${SERVER_DIR}/src/*.cpp ${CLIENT_DIR}/src/*.cpp ${COMMON_DIR}/src/*.cpp ${PROTO_DIR}/*.cc)
 SET(mongoose_src ${SERVER_DIR}/src/mongoose.c)
 
 SET_SOURCE_FILES_PROPERTIES(${rpcframe_src} PROPERTIES 
@@ -27,32 +28,31 @@ SET_SOURCE_FILES_PROPERTIES(${mongoose_src} PROPERTIES
   COMPILE_DEFINITIONS MG_ENABLE_THREADS
 )
 
-#一定要包含main.cpp 包含的"*.h"文件  
 INCLUDE_DIRECTORIES(  
   ${CLIENT_DIR}/include
   ${SERVER_DIR}/include
   ${COMMON_DIR}/include
   ${COMMON_DIR}/proto
   )  
-#库文件路径  
+
 LINK_DIRECTORIES(  
   /usr/src/gtest
   )  
 
 ADD_LIBRARY(rpcframe STATIC ${rpcframe_src} ${mongoose_src})
 
-SET(PUB_HDR ${CLIENT_DIR}/include/RpcClient.h common/include/RpcDefs.h ${SERVER_DIR}/include/RpcServer.h ${SERVER_DIR}/include/IRpcRespBroker.h)
+SET(PUB_HDR ${CLIENT_DIR}/include/RpcClient.h ${COMMON_DIR}/include/RpcDefs.h ${SERVER_DIR}/include/RpcServer.h ${SERVER_DIR}/include/IRpcRespBroker.h)
 
 ADD_CUSTOM_COMMAND(TARGET rpcframe
   PRE_BUILD
-  COMMAND rm -rf ${PROJECT_SOURCE_DIR}/output
+  COMMAND rm -rf ${OUTPUT_DIR}
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
   )
 ADD_CUSTOM_COMMAND(TARGET rpcframe
   POST_BUILD
-  COMMAND mkdir -p ${PROJECT_SOURCE_DIR}/output/include ${PROJECT_SOURCE_DIR}/output/lib
-  COMMAND cp -arf ${PUB_HDR} ${PROJECT_SOURCE_DIR}/output/include
-  COMMAND cp -arf ${PROJECT_SOURCE_DIR}/librpcframe.a ${PROJECT_SOURCE_DIR}/output/lib
+  COMMAND mkdir -p ${OUTPUT_DIR}/include ${OUTPUT_DIR}/lib
+  COMMAND cp -arf ${PUB_HDR} ${OUTPUT_DIR}/include
+  COMMAND cp -arf $<TARGET_FILE:rpcframe> ${OUTPUT_DIR}/lib
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
   )
 
