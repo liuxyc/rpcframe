@@ -30,8 +30,8 @@ public:
     virtual ~RpcClientBlocker() {};
 
     std::pair<RpcStatus, std::string> wait() {
-        std::unique_lock<std::mutex> lk(m_mutex);
-        m_resp_data = "";
+        std::unique_lock<std::mutex> lk(m_blocker_mutex);
+        //NOTICE: don't touch m_resp_data here, because m_resp_data may already fulfilled
         if (!m_done) {
              std::cv_status ret = m_cv.wait_for(lk, std::chrono::seconds(m_timeout));
              if (ret == std::cv_status::timeout) {
@@ -43,7 +43,7 @@ public:
     }
 
     virtual void callback(const RpcStatus status, const std::string &response_data) {
-        std::unique_lock<std::mutex> lk(m_mutex);
+        std::unique_lock<std::mutex> lk(m_blocker_mutex);
         m_resp_data = response_data;
         m_cb_st = status;
         m_done = true;
@@ -59,7 +59,7 @@ public:
     }
 
 private:
-    std::mutex m_mutex;
+    std::mutex m_blocker_mutex;
     std::condition_variable m_cv;
     std::atomic<bool> m_done;
     std::string m_resp_data;

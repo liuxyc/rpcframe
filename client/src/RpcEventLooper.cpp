@@ -190,6 +190,18 @@ std::shared_ptr<RpcClientCallBack> RpcEventLooper::getCb(const std::string &req_
     }
 }
 
+void RpcEventLooper::waitAllCBDone(uint32_t timeout) {
+    while(timeout) {
+      {
+        std::lock_guard<std::mutex> mlock(m_mutex);
+        if(m_cb_map.empty()) {
+          break;
+        }
+      }
+      sleep(1);
+    }
+}
+
 void RpcEventLooper::removeCb(const std::string &req_id) {
     std::lock_guard<std::mutex> mlock(m_mutex);
     m_cb_map.erase(req_id);

@@ -154,6 +154,8 @@ public:
 
     const RpcClientConfig &getConfig();
 
+    void waitAllCBDone(uint32_t timeout);
+
     RpcClient(const RpcClient &) = delete;
     RpcClient &operator=(const RpcClient &) = delete;
 

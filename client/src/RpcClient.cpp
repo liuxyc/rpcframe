@@ -98,4 +98,8 @@ RpcStatus RpcClient::async_call(const std::string &method_name, const std::strin
     return m_ev->sendReq(m_servicename, method_name, request_data, cb_obj, req_id);
 }
 
+void RpcClient::waitAllCBDone(uint32_t timeout) 
+{
+  m_ev->waitAllCBDone(timeout);
+}
 };

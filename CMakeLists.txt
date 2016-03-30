@@ -66,4 +66,4 @@ ADD_EXECUTABLE(server_test ${TEST_DIR}/server_test.cpp)
 TARGET_LINK_LIBRARIES(server_test rpcframe protobuf pthread)
 
 ADD_EXECUTABLE(client_test ${TEST_DIR}/client_test.cpp)
-TARGET_LINK_LIBRARIES(client_test rpcframe protobuf pthread)
+TARGET_LINK_LIBRARIES(client_test rpcframe protobuf pthread gtest gtest_main)

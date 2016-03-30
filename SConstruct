@@ -27,7 +27,7 @@ Clean('', './output')
 #client_test
 client_test_src = Split('test/client_test.cpp')
 env.Program('client_test', client_test_src, 
-    LIBS=['rpcframe'],
+    LIBS=['rpcframe', 'gtest', 'gtest_main'],
     LIBPATH = ['.'], 
     CPPPATH = ['output/include/'])
 

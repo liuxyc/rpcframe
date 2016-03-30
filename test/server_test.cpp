@@ -61,16 +61,16 @@ class MyService: public rpcframe::IService
 public:
     MyService(){
         //to make your method to be callable, must write RPC_ADD_METHOD(your_class_name, your_method_name)
-        RPC_ADD_METHOD(MyService, test_method)
-        RPC_ADD_METHOD(MyService, test_method1)
-        RPC_ADD_METHOD(MyService, test_method2)
+        RPC_ADD_METHOD(MyService, test_method_5sec_delay)
+        RPC_ADD_METHOD(MyService, test_method_random_delay)
+        RPC_ADD_METHOD(MyService, test_method_fast_return)
         RPC_ADD_METHOD(MyService, test_method_big_resp)
         m_cnt = 0;
     };
     virtual ~MyService(){};
 
     //method1
-    rpcframe::RpcStatus test_method(const std::string &request_data, 
+    rpcframe::RpcStatus test_method_5sec_delay(const std::string &request_data, 
                                                std::string &resp_data, 
                                                rpcframe::IRpcRespBrokerPtr resp_broker) 
     {
@@ -83,19 +83,19 @@ public:
         //make timeout
         std::this_thread::sleep_for(std::chrono::seconds(5));
         if (resp_broker->isFromHttp()) {
-            resp_data = "<html><body><h1>this response for http</h1></body></html>";
+            resp_data = "<html><body><h1>this response for http 5 secs delay</h1></body></html>";
         }
 
         return rpcframe::RpcStatus::RPC_SERVER_OK;
     };
 
     //method2
-    rpcframe::RpcStatus test_method1(const std::string &request_data, 
+    rpcframe::RpcStatus test_method_random_delay(const std::string &request_data, 
                                                 std::string &resp_data, 
                                                 rpcframe::IRpcRespBrokerPtr resp_broker) 
     {
         //printf("my method1 get %s\n", request_data.c_str());
-        resp_data = "my feedback1";
+        resp_data = "my feedback_random_delay";
         //generate 0-5 seconds delay
         std::random_device rd;
         uint32_t t = rd() % 5;
@@ -104,12 +104,11 @@ public:
     };
 
     //method3
-    rpcframe::RpcStatus test_method2(const std::string &request_data, 
+    rpcframe::RpcStatus test_method_fast_return(const std::string &request_data, 
                                                 std::string &resp_data, 
                                                 rpcframe::IRpcRespBrokerPtr resp_broker) 
     {
-        //printf("my method1 get %s\n", request_data.c_str());
-        resp_data = std::string("my feedback3");
+        resp_data = std::string("my feedback");
         return rpcframe::RpcStatus::RPC_SERVER_OK;
     };
 
@@ -153,12 +152,11 @@ int main(int argc, char * argv[])
     //cfg.disableHttp();
     rpcframe::RpcServer rpcServer(cfg);
     MyService ms;
-    MyService_async *ms_async = new MyService_async();
+    std::unique_ptr<MyService_async> ms_async(new MyService_async());
     //bind service_name to service instance
     rpcServer.addService("test_service", &ms);
-    rpcServer.addService("test_service_async", ms_async);
+    rpcServer.addService("test_service_async", ms_async.get());
     g_server_handler = &rpcServer;
     rpcServer.start();
-    delete ms_async;
     printf("server_test stoped\n");
 }

@@ -35,6 +35,7 @@ public:
     std::shared_ptr<RpcClientCallBack> getCb(const std::string &req_id);
     void removeCb(const std::string &req_id);
     void dealTimeoutCb();
+    void waitAllCBDone(uint32_t timeout);
     RespQueue m_response_q;
 
     RpcEventLooper(const RpcEventLooper &) = delete;
