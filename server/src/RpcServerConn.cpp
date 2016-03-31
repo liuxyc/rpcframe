@@ -18,7 +18,7 @@
 namespace rpcframe
 {
 
-RpcServerConn::RpcServerConn(int fd, uint32_t seqid)
+RpcServerConn::RpcServerConn(int fd, uint32_t seqid, uint32_t max_req_size)
 : m_fd(fd)
 , m_cur_left_len(0)
 , m_cur_pkg_size(0)
@@ -26,6 +26,7 @@ RpcServerConn::RpcServerConn(int fd, uint32_t seqid)
 , is_connected(true)
 , m_sent_len(0)
 , m_sent_pkg(nullptr)
+, MAX_REQ_LIMIT_BYTE(max_req_size)
 {
     //generate a connection id, this id used for track and identify RpcServerConn instance
     m_seqid = std::to_string(std::time(nullptr)) + "_";
@@ -131,8 +132,16 @@ pkg_ret_t RpcServerConn::getRequest()
             return pkg_ret_t(0, nullptr);
         }
         //RPC_LOG(RPC_LOG_LEV::DEBUG, "pkg len is %d", m_cur_pkg_size);
+        if(m_cur_pkg_size > MAX_REQ_LIMIT_BYTE) {
+          RPC_LOG(RPC_LOG_LEV::WARNING, "request %s too large %llu > %llu", m_seqid.c_str(), m_cur_pkg_size, MAX_REQ_LIMIT_BYTE);
+          return pkg_ret_t(-1, nullptr);
+        }
         //TODO: may produce many memory fragment here
         m_rpk = new request_pkg(m_cur_pkg_size, m_seqid);
+        if (m_rpk == nullptr) {
+          RPC_LOG(RPC_LOG_LEV::ERROR, "malloc request fail %s, size %llu", m_seqid.c_str(), m_cur_pkg_size);
+          return pkg_ret_t(-1, nullptr);
+        }
         m_cur_left_len = m_cur_pkg_size;
     }
     PkgIOStatus data_ret = readPkgData();

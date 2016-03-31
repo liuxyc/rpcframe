@@ -20,6 +20,7 @@ RpcClientConfig::RpcClientConfig(std::pair<const char *, int> &endpoint)
 , m_hostname(endpoint.first)
 , m_port(endpoint.second)
 , m_connect_timeout(3)
+, m_max_req_size(1024 * 1024 * 128)
 {
     
     
@@ -35,6 +36,12 @@ void RpcClientConfig::setThreadNum(uint32_t thread_num)
     if (thread_num > 0) {
         m_thread_num = thread_num;
     }
+}
+
+void RpcClientConfig::setMaxReqPkgSize(uint32_t max_req_size)
+{
+  m_max_req_size = max_req_size;
+
 }
 
 uint32_t RpcClientConfig::getThreadNum()
@@ -75,9 +82,6 @@ RpcStatus RpcClient::call(const std::string &method_name, const std::string &req
         std::pair<RpcStatus, std::string> ret_p = rb->wait();
         response_data = ret_p.second;
         ret_st = ret_p.first;
-    }
-    else {
-        ret_st = RpcStatus::RPC_SEND_FAIL;
     }
     m_ev->removeCb(req_id);
     

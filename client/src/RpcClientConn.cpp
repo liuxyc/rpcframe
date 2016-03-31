@@ -10,7 +10,6 @@
 #include <string.h>
 #include <sys/socket.h>  
 #include <unistd.h>
-#include <uuid/uuid.h>
 
 #include "rpc.pb.h"
 #include "util.h"

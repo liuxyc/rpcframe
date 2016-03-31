@@ -13,7 +13,7 @@ rpcframe_src_files.append(Glob('client/src/*.cpp'))
 rpcframe_src_files.append('common/proto/rpc.pb.cc')
 rpcframe_src_files.append(Glob('common/src/*.cpp'))
 env.SharedLibrary('rpcframe', rpcframe_src_files + mongoose_obj,
-    CPPPATH = ['server/include/', 'client/include', 'common/include', 'common/proto'], LIBS=['pthread', 'uuid', 'protobuf'])
+    CPPPATH = ['server/include/', 'client/include', 'common/include', 'common/proto'], LIBS=['pthread', 'protobuf'])
     
 
 env.Install('./output/include/', 'client/include/RpcClient.h')

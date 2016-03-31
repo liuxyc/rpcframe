@@ -113,12 +113,14 @@ public:
     explicit RpcClientConfig(std::pair<const char *, int> &);
     ~RpcClientConfig();
     void setThreadNum(uint32_t thread_num);
+    void setMaxReqPkgSize(uint32_t max_req_size);
     uint32_t getThreadNum();
 
     uint32_t m_thread_num;
     std::string m_hostname;
     int m_port;
     int m_connect_timeout;
+    uint32_t m_max_req_size;
 };
 
 //NOTICE: start/stop RpcClient is heavy, keep the instance as long as possiable

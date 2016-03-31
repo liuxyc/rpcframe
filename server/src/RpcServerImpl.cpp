@@ -38,6 +38,7 @@ RpcServerConfig::RpcServerConfig(std::pair<const char *, int> &endpoint)
 , m_hostname(endpoint.first)
 , m_port(endpoint.second)
 , m_max_conn_num(1024 * 10)
+, m_max_req_size(1024 * 1024 * 128)
 , m_http_port(8000)
 , m_http_thread_num(std::thread::hardware_concurrency())
 {
@@ -64,6 +65,11 @@ uint32_t RpcServerConfig::getThreadNum()
 void RpcServerConfig::setMaxConnection(uint32_t max_conn_num)
 {
     m_max_conn_num = max_conn_num;
+}
+
+void RpcServerConfig::setMaxReqPkgSize(uint32_t max_req_size)
+{
+    m_max_req_size = max_req_size;
 }
 
 void RpcServerConfig::enableHttp(int port, int thread_num)
@@ -346,7 +352,7 @@ void RpcServerImpl::onAccept() {
         ev.data.fd = new_client_socket;
         epoll_ctl(m_epoll_fd, EPOLL_CTL_ADD, new_client_socket, &ev);  
         m_seqid++;
-        addConnection(new_client_socket, new RpcServerConn(new_client_socket, m_seqid));
+        addConnection(new_client_socket, new RpcServerConn(new_client_socket, m_seqid, m_cfg.m_max_req_size));
         RPC_LOG(RPC_LOG_LEV::INFO, "new_client_socket: %d", new_client_socket);  
     }
 }
@@ -529,7 +535,7 @@ void RpcServerImpl::calcReqQTime(uint64_t req_time)
     }
     ++total_req_num;
   }
-  RPC_LOG(RPC_LOG_LEV::DEBUG, "avg req wait: %d ms", avg_req_wait_time);
+  RPC_LOG(RPC_LOG_LEV::DEBUG, "avg req wait: %llu ms", avg_req_wait_time);
 }
 
 
@@ -546,7 +552,7 @@ void RpcServerImpl::calcRespQTime(uint64_t resp_time)
     }
     ++total_resp_num;
   }
-  RPC_LOG(RPC_LOG_LEV::DEBUG, "avg resp wait: %d ms", avg_resp_wait_time);
+  RPC_LOG(RPC_LOG_LEV::DEBUG, "avg resp wait: %llu ms", avg_resp_wait_time);
 
 }
 
@@ -566,7 +572,7 @@ void RpcServerImpl::calcCallTime(uint64_t call_time)
       max_call_time = call_time;
     }
   }
-  RPC_LOG(RPC_LOG_LEV::DEBUG, "avg call time: %d ms", avg_call_time);
+  RPC_LOG(RPC_LOG_LEV::DEBUG, "avg call time: %llu ms", avg_call_time);
 
 }
 

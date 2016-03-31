@@ -18,7 +18,7 @@ typedef std::pair<int, std::shared_ptr<request_pkg> > pkg_ret_t;
 class RpcServerConn
 {
 public:
-    RpcServerConn(int fd, uint32_t seqid);
+    RpcServerConn(int fd, uint32_t seqid, uint32_t max_req_size);
     ~RpcServerConn();
 
     pkg_ret_t getRequest();
@@ -43,6 +43,7 @@ private:
     std::mutex m_mutex;
     uint32_t m_sent_len;
     RespPkgPtr m_sent_pkg;
+    const uint32_t MAX_REQ_LIMIT_BYTE;
     
 };
 };

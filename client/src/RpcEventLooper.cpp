@@ -38,7 +38,6 @@ RpcEventLooper::RpcEventLooper(RpcClient *client, int thread_num)
 , m_fd(-1)
 , m_conn(nullptr)
 , m_req_seqid(0)
-, MAX_REQ_LIMIT_BYTE(100 * 1024 * 1024)
 , m_thread_num(thread_num)
 {
     if(!getHostIp(m_host_ip)) {
@@ -113,9 +112,9 @@ RpcStatus RpcEventLooper::sendReq(
         std::shared_ptr<RpcClientCallBack> cb_obj, 
         std::string &req_id) {
 
-    if (request_data.length() >= MAX_REQ_LIMIT_BYTE) {
+    if (request_data.length() > m_client->getConfig().m_max_req_size) {
         RPC_LOG(RPC_LOG_LEV::ERROR, "send data too large %lu", request_data.length());
-        return RpcStatus::RPC_SEND_FAIL;
+        return RpcStatus::RPC_REQ_TOO_LARGE;
     }
     m_mutex.lock();
     if (m_conn == nullptr) {

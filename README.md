@@ -28,7 +28,6 @@ Dependence：
 
      Linux kernel > 2.6.30
      Gcc > 4.8.2
-     libuuid
      protobuf-2.6.1
      gtest(for unittest)
      SCons 2.3.1 / CMake 2.8

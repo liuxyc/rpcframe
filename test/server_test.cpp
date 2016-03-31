@@ -65,11 +65,11 @@ public:
         RPC_ADD_METHOD(MyService, test_method_random_delay)
         RPC_ADD_METHOD(MyService, test_method_fast_return)
         RPC_ADD_METHOD(MyService, test_method_big_resp)
+        RPC_ADD_METHOD(MyService, test_method_echo)
         m_cnt = 0;
     };
     virtual ~MyService(){};
 
-    //method1
     rpcframe::RpcStatus test_method_5sec_delay(const std::string &request_data, 
                                                std::string &resp_data, 
                                                rpcframe::IRpcRespBrokerPtr resp_broker) 
@@ -89,7 +89,6 @@ public:
         return rpcframe::RpcStatus::RPC_SERVER_OK;
     };
 
-    //method2
     rpcframe::RpcStatus test_method_random_delay(const std::string &request_data, 
                                                 std::string &resp_data, 
                                                 rpcframe::IRpcRespBrokerPtr resp_broker) 
@@ -103,7 +102,6 @@ public:
         return rpcframe::RpcStatus::RPC_SERVER_OK;
     };
 
-    //method3
     rpcframe::RpcStatus test_method_fast_return(const std::string &request_data, 
                                                 std::string &resp_data, 
                                                 rpcframe::IRpcRespBrokerPtr resp_broker) 
@@ -112,13 +110,20 @@ public:
         return rpcframe::RpcStatus::RPC_SERVER_OK;
     };
 
-    //method big resp
     rpcframe::RpcStatus test_method_big_resp(const std::string &request_data, 
                                                         std::string &resp_data, 
                                                         rpcframe::IRpcRespBrokerPtr resp_broker) 
     {
         //printf("my method1 get %s\n", request_data.c_str());
         resp_data = std::string(1024*1024*40, 'a');
+        return rpcframe::RpcStatus::RPC_SERVER_OK;
+    };
+
+    rpcframe::RpcStatus test_method_echo(const std::string &request_data, 
+                                                        std::string &resp_data, 
+                                                        rpcframe::IRpcRespBrokerPtr resp_broker) 
+    {
+        resp_data = request_data;
         return rpcframe::RpcStatus::RPC_SERVER_OK;
     };
 
