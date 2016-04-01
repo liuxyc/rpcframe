@@ -41,7 +41,13 @@ LINK_DIRECTORIES(
 
 ADD_LIBRARY(rpcframe STATIC ${rpcframe_src} ${mongoose_src})
 
-SET(PUB_HDR ${CLIENT_DIR}/include/RpcClient.h ${COMMON_DIR}/include/RpcDefs.h ${SERVER_DIR}/include/RpcServer.h ${SERVER_DIR}/include/IRpcRespBroker.h)
+SET(PUB_HDR 
+  ${CLIENT_DIR}/include/RpcClient.h 
+  ${COMMON_DIR}/include/RpcDefs.h 
+  ${SERVER_DIR}/include/RpcServer.h 
+  ${SERVER_DIR}/include/RpcServerConfig.h 
+  ${SERVER_DIR}/include/IService.h 
+  ${SERVER_DIR}/include/IRpcRespBroker.h)
 
 ADD_CUSTOM_COMMAND(TARGET rpcframe
   PRE_BUILD
@@ -59,8 +65,8 @@ ADD_CUSTOM_COMMAND(TARGET rpcframe
 #INSTALL (${PUB_HDR} PUBLIC_HEADER DESTINATION include)
 #INSTALL (${PROJECT_SOURCE_DIR}/librpcframe.a ARCHIVE DESTINATION lib)
 
-ADD_EXECUTABLE(queue_test ${TEST_DIR}/queue_test.cpp)
-TARGET_LINK_LIBRARIES(queue_test rpcframe gtest gtest_main protobuf pthread)
+ADD_EXECUTABLE(common_test ${TEST_DIR}/common_test.cpp)
+TARGET_LINK_LIBRARIES(common_test rpcframe gtest gtest_main protobuf pthread)
 
 ADD_EXECUTABLE(server_test ${TEST_DIR}/server_test.cpp)
 TARGET_LINK_LIBRARIES(server_test rpcframe protobuf pthread)

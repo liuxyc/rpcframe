@@ -470,9 +470,8 @@ void RpcServerImpl::stop() {
 
 void RpcServerImpl::calcReqQTime(uint64_t req_time)
 {
-  //TODO:spin lock
   {
-    std::lock_guard<std::mutex> mlock(m_stat_mutex);
+    std::lock_guard<SpinLock> mlock(m_stat_lock);
     if (avg_req_wait_time == 0) {
       avg_req_wait_time = req_time;
     }
@@ -487,9 +486,8 @@ void RpcServerImpl::calcReqQTime(uint64_t req_time)
 
 void RpcServerImpl::calcRespQTime(uint64_t resp_time)
 {
-  //TODO:spin lock
   {
-    std::lock_guard<std::mutex> mlock(m_stat_mutex);
+    std::lock_guard<SpinLock> mlock(m_stat_lock);
     if (avg_resp_wait_time == 0) {
       avg_resp_wait_time = resp_time;
     }
@@ -504,9 +502,8 @@ void RpcServerImpl::calcRespQTime(uint64_t resp_time)
 
 void RpcServerImpl::calcCallTime(uint64_t call_time)
 {
-  //TODO:spin lock
   {
-    std::lock_guard<std::mutex> mlock(m_stat_mutex);
+    std::lock_guard<SpinLock> mlock(m_stat_lock);
     if (avg_call_time == 0) {
       avg_call_time = call_time;
     }

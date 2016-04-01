@@ -1,5 +1,6 @@
 #include "gtest/gtest.h"
 #include "Queue.h"
+#include "SpinLock.h"
 #include <thread>
 
 TEST(QueueTest, full)
@@ -73,4 +74,26 @@ TEST(QueueTest, thread)
     tp2.join();
 
     EXPECT_EQ((size_t)0, q_t.size());
+}
+
+
+TEST(SpinLockTest, thread)
+{
+    rpcframe::SpinLock sp_lock;
+    uint32_t number = 0;
+
+    auto thread_func = [&sp_lock, &number](){
+        for(int i = 0; i < 100000; ++i) {
+          std::lock_guard<rpcframe::SpinLock> lg(sp_lock);
+          number++;
+        }
+    };
+    std::vector<std::thread> th_vec;
+    for(auto i = 0; i < 10; ++i) {
+      th_vec.emplace_back(thread_func);
+    }
+    for(auto &th: th_vec) {
+      th.join();
+    }
+    EXPECT_EQ(number, 1000000);
 }

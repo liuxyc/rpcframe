@@ -11,6 +11,7 @@
 #include <thread>
 
 #include "Queue.h"
+#include "SpinLock.h"
 #include "RpcDefs.h"
 #include "RpcPackage.h"
 #include "RpcServerConfig.h"
@@ -109,7 +110,7 @@ private:
     uint64_t total_req_num;
     uint64_t total_resp_num;
     uint64_t total_call_num;
-    std::mutex m_stat_mutex;
+    SpinLock m_stat_lock;
     
 };
 

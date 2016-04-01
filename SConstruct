@@ -19,6 +19,7 @@ env.SharedLibrary('rpcframe', rpcframe_src_files + mongoose_obj,
 env.Install('./output/include/', 'client/include/RpcClient.h')
 env.Install('./output/include/', 'common/include/RpcDefs.h')
 env.Install('./output/include/', 'server/include/RpcServer.h')
+env.Install('./output/include/', 'server/include/RpcServerConfig.h')
 env.Install('./output/include/', 'server/include/IRpcRespBroker.h')
 env.Install('./output/include/', 'server/include/IService.h')
 env.Install('./output/lib/', 'librpcframe.so')
@@ -27,8 +28,8 @@ Clean('', './output')
 #client_test
 client_test_src = Split('test/client_test.cpp')
 env.Program('client_test', client_test_src, 
-    LIBS=['rpcframe', 'gtest', 'gtest_main'],
-    LIBPATH = ['.'], 
+    LIBS=['rpcframe', 'gtest', 'gtest_main', 'pthread'],
+    LIBPATH = ['.', '/usr/src/gtest'], 
     CPPPATH = ['output/include/'])
 
 
@@ -42,8 +43,8 @@ env.Program('server_test', server_test_src,
     LIBPATH = ['.'], 
     CPPPATH = ['output/include/'])
 
-#queue_test
-env.Program('queue_test', 'test/queue_test.cpp', 
+#common
+env.Program('common_test', 'test/common_test.cpp', 
     LIBS=['rpcframe', 'gtest_main', 'gtest', 'pthread'], \
     LIBPATH=['.', '/usr/src/gtest'], 
     CPPPATH=['common/include'])
