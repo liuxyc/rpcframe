@@ -79,7 +79,7 @@ RpcStatus RpcClient::call(const std::string &method_name, const std::string &req
     std::string req_id;
     RpcStatus ret_st = m_ev->sendReq(m_servicename, method_name, request_data, rb, req_id);
     if (ret_st == RpcStatus::RPC_SEND_OK) {
-        std::pair<RpcStatus, std::string> ret_p = rb->wait();
+        std::pair<RpcStatus, std::string> ret_p = rb->wait(req_id);
         response_data = ret_p.second;
         ret_st = ret_p.first;
     }
@@ -90,11 +90,6 @@ RpcStatus RpcClient::call(const std::string &method_name, const std::string &req
 
 RpcStatus RpcClient::async_call(const std::string &method_name, const std::string &request_data, uint32_t timeout, std::shared_ptr<RpcClientCallBack> cb_obj) {
     std::string req_id;
-    int test_heap = 0;
-    if ((long)&test_heap < (long)(cb_obj.get())) {
-        RPC_LOG(RPC_LOG_LEV::ERROR, "[ERROR]please alloc cb_obj from heap!!!\n");
-        return RpcStatus::RPC_SEND_FAIL;
-    }
     if (cb_obj != nullptr) {
         cb_obj->setTimeout(timeout);
     }

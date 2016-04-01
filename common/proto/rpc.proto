@@ -8,7 +8,8 @@ message RpcInnerReq {
         TWO_WAY = 1;
     }
     required RPC_TYPE type = 4;
-    required bytes data = 5;
+    required uint32 timeout = 5;
+    required bytes data = 6;
 }
 
 message RpcInnerResp {

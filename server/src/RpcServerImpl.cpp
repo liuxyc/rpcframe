@@ -298,7 +298,7 @@ void RpcServerImpl::onAccept() {
         ev.data.fd = new_client_socket;
         epoll_ctl(m_epoll_fd, EPOLL_CTL_ADD, new_client_socket, &ev);  
         m_seqid++;
-        addConnection(new_client_socket, new RpcServerConn(new_client_socket, m_seqid, m_cfg.m_max_req_size));
+        addConnection(new_client_socket, new RpcServerConn(new_client_socket, m_seqid, this));
         RPC_LOG(RPC_LOG_LEV::INFO, "new_client_socket: %d", new_client_socket);  
     }
 }
@@ -522,5 +522,9 @@ void RpcServerImpl::calcCallTime(uint64_t call_time)
 
 }
 
+const RpcServerConfig *RpcServerImpl::getConfig()
+{
+  return &m_cfg;
+}
 
 };

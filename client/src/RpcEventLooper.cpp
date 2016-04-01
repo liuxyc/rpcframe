@@ -69,6 +69,8 @@ void RpcEventLooper::stop() {
     m_stop = true;
     for(int i = 0; i < m_thread_num; ++i) {
         m_worker_vec[i]->stop();
+    }
+    for(int i = 0; i < m_thread_num; ++i) {
         m_thread_vec[i]->join();
         delete m_worker_vec[i];
         delete m_thread_vec[i];
@@ -364,10 +366,15 @@ int RpcEventLooper::noBlockConnect(int sockfd, const char* hostname, int port, i
     timeout.tv_sec = timeoutv;
     timeout.tv_usec = 0;
     ret = ::select(sockfd+1, nullptr, &writefds, nullptr, &timeout);
-    if(ret <= 0) { 
+    if(ret <= 0) {
+      if(ret == 0) { 
         RPC_LOG(RPC_LOG_LEV::ERROR, "connect %s time out", hostname);
         close(sockfd);
         return -1;
+      }
+      else {
+        RPC_LOG(RPC_LOG_LEV::ERROR, "select connect host %s error:%s", hostname, strerror(errno));
+      }
     }
     if(!FD_ISSET(sockfd, &writefds)) {
         RPC_LOG(RPC_LOG_LEV::ERROR, "no events on sockfd found");

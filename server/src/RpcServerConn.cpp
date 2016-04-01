@@ -14,11 +14,13 @@
 #include <chrono>
 
 #include "util.h"
+#include "RpcServerImpl.h"
+#include "RpcServerConfig.h"
 
 namespace rpcframe
 {
 
-RpcServerConn::RpcServerConn(int fd, uint32_t seqid, uint32_t max_req_size)
+RpcServerConn::RpcServerConn(int fd, uint32_t seqid, RpcServerImpl *server)
 : m_fd(fd)
 , m_cur_left_len(0)
 , m_cur_pkg_size(0)
@@ -26,7 +28,8 @@ RpcServerConn::RpcServerConn(int fd, uint32_t seqid, uint32_t max_req_size)
 , is_connected(true)
 , m_sent_len(0)
 , m_sent_pkg(nullptr)
-, MAX_REQ_LIMIT_BYTE(max_req_size)
+, MAX_REQ_LIMIT_BYTE(server->getConfig()->m_max_req_size)
+, m_server(server)
 {
     //generate a connection id, this id used for track and identify RpcServerConn instance
     m_seqid = std::to_string(std::time(nullptr)) + "_";
@@ -206,8 +209,11 @@ PkgIOStatus RpcServerConn::sendResponse()
             m_sent_pkg = pkg;
             std::chrono::system_clock::time_point out_q_timepoint = std::chrono::system_clock::now();
             RPC_LOG(RPC_LOG_LEV::DEBUG, "resp stay: %d ms",  std::chrono::duration_cast<std::chrono::milliseconds>( out_q_timepoint - pkg->gen_time ).count());
-            //auto during = std::chrono::duration_cast<std::chrono::milliseconds>(out_q_timepoint - pkg->gen_time);
-            //m_server->calcReqAvgTime(during.count());
+            auto during = std::chrono::duration_cast<std::chrono::milliseconds>(out_q_timepoint - pkg->gen_time);
+            if( during.count() < 0) {
+              during = during.zero();
+            }
+            m_server->calcRespQTime(during.count());
             return sendData();
         }
         return PkgIOStatus::PARTIAL;

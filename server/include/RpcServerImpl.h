@@ -76,6 +76,7 @@ public:
     void calcReqQTime(uint64_t);
     void calcRespQTime(uint64_t);
     void calcCallTime(uint64_t);
+    const RpcServerConfig *getConfig();
 
 private:
     bool startListen();
@@ -100,7 +101,6 @@ private:
     int m_resp_ev_fd;
     std::atomic<bool> m_stop;
     RpcHttpServer *m_http_server;
-
 
     uint64_t avg_req_wait_time;
     uint64_t avg_resp_wait_time;

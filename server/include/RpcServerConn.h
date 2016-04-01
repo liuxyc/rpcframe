@@ -15,10 +15,12 @@ namespace rpcframe {
 
 typedef std::pair<int, std::shared_ptr<request_pkg> > pkg_ret_t;
 
+class RpcServerImpl;
+
 class RpcServerConn
 {
 public:
-    RpcServerConn(int fd, uint32_t seqid, uint32_t max_req_size);
+    RpcServerConn(int fd, uint32_t seqid, RpcServerImpl *server);
     ~RpcServerConn();
 
     pkg_ret_t getRequest();
@@ -44,6 +46,7 @@ private:
     uint32_t m_sent_len;
     RespPkgPtr m_sent_pkg;
     const uint32_t MAX_REQ_LIMIT_BYTE;
+    RpcServerImpl *m_server;
     
 };
 };

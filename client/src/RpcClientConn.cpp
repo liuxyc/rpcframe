@@ -156,6 +156,7 @@ RpcStatus RpcClientConn::sendReq(
     req.set_method_name(method_name);
 
     req.set_request_id(reqid);
+    req.set_timeout(timeout);
     req.set_data(request_data);
     if (is_oneway) {
         req.set_type(RpcInnerReq::ONE_WAY);

@@ -27,21 +27,42 @@ bool getHostIp(std::string &str_ip) {
 }
 
 bool getHostIpByName(std::string &str_ip, const char *hname) {
-    struct hostent *hent;
-    hent = gethostbyname(hname);
-    if(hent == nullptr) {
-        RPC_LOG(RPC_LOG_LEV::ERROR, "gethostbyname error %s", strerror(errno));
-        return false;
-    }
-
-    //RPC_LOG(RPC_LOG_LEV::DEBUG, "hostname: %s/naddress list: ", hent->h_name);
-    //get first hostname ip
-    char *c_ip = inet_ntoa(*(struct in_addr*)(hent->h_addr_list[0]));
-    if(c_ip != nullptr) {
-        str_ip.assign(c_ip);
-        return true;
-    }
+  int len = 1024;
+  char *buf = (char *)malloc(len);
+  if(buf == nullptr) {
     return false;
+  }
+  int rc, err;
+  struct hostent hbuf;
+  struct hostent *result;
+
+  while ((rc = gethostbyname_r(hname, &hbuf, buf, 1024, &result, &err)) == ERANGE) {
+    /* expand buf */
+    len *= 2;
+    char *tmp = (char *)realloc(buf, len);
+    if (nullptr == tmp) {
+      free(buf);
+      return false;
+    }else{
+      buf = tmp;
+    }
+  }
+  if (0 != rc || nullptr == result) {
+    RPC_LOG(RPC_LOG_LEV::ERROR, "gethostbyname error %s", strerror(errno));
+    free(buf);
+    return false;
+  }
+
+  //RPC_LOG(RPC_LOG_LEV::DEBUG, "hostname: %s/naddress list: ", result->h_name);
+  //get first hostname ip
+  char *c_ip = inet_ntoa(*(struct in_addr*)(result->h_addr_list[0]));
+  if(c_ip != nullptr) {
+    str_ip.assign(c_ip);
+    free(buf);
+    return true;
+  }
+  free(buf);
+  return false;
 }
 
 std::vector<std::string> log_level_map = {"DEBUG", "INFO", "WARNING", "ERROR", "FATAL"};

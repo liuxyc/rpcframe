@@ -22,6 +22,7 @@ class RpcWorker
 public:
     RpcWorker(ReqQueue *workqueue, RpcServerImpl *server);
     RpcWorker &operator=(const RpcWorker &worker) = delete;
+    RpcWorker(const RpcWorker &worker) = delete;
     ~RpcWorker();
     void stop();
     void run();

@@ -35,6 +35,17 @@ public:
         ASSERT_TRUE(status == rpcframe::RpcStatus::RPC_CB_TIMEOUT || status == rpcframe::RpcStatus::RPC_SERVER_OK);
     }
 };
+class succ_disconn_CB : public rpcframe::RpcClientCallBack 
+{
+public:
+    succ_disconn_CB()
+    {};
+    virtual ~succ_disconn_CB() {};
+
+    virtual void callback(const rpcframe::RpcStatus status, const std::string &response_data) {
+        ASSERT_TRUE(status == rpcframe::RpcStatus::RPC_DISCONNECTED || status == rpcframe::RpcStatus::RPC_SERVER_OK);
+    }
+};
 class srv_notfound_CB : public rpcframe::RpcClientCallBack 
 {
 public:
@@ -72,7 +83,7 @@ public:
 class match_size_CB : public rpcframe::RpcClientCallBack 
 {
 public:
-    match_size_CB(size_t size)
+    explicit match_size_CB(size_t size)
     : m_size(size)
     {};
     virtual ~match_size_CB() {};
@@ -293,3 +304,55 @@ TEST(ClientTest, server_asyc_back)
 
 }
 
+TEST(ClientTest, concurrent_conn)
+{
+  auto thread_func = [](){
+    auto endp = std::make_pair("127.0.0.1", 8801);
+    rpcframe::RpcClientConfig ccfg(endp);
+    std::shared_ptr<succ_disconn_CB> pCB(new succ_disconn_CB());
+    pCB->setShared(true);
+    ccfg.setThreadNum(1);
+    for(auto i = 0; i < 10; ++i) {
+      rpcframe::RpcClient client(ccfg, "test_service");
+      ASSERT_EQ(rpcframe::RpcStatus::RPC_SEND_OK, client.async_call("test_method_fast_return", std::string(23, '*'), 10, pCB));
+      std::string resp_data;
+      rpcframe::RpcStatus ret_st = client.call("test_method_echo", std::string(10, '*'), resp_data, 20);
+      ASSERT_TRUE(ret_st == rpcframe::RpcStatus::RPC_DISCONNECTED || ret_st == rpcframe::RpcStatus::RPC_SERVER_OK);
+    }
+  };
+
+  std::vector<std::thread> thread_vec;
+  for(auto i = 0; i < 100; ++i) {
+    thread_vec.emplace_back(thread_func);
+  }
+
+  for(auto &th: thread_vec) {
+    th.join();
+  }
+}
+
+TEST(ClientTest, concurrent_req)
+{
+  auto endp = std::make_pair("127.0.0.1", 8801);
+  rpcframe::RpcClientConfig ccfg(endp);
+  std::shared_ptr<success_CB> pCB(new success_CB());
+  pCB->setShared(true);
+  ccfg.setThreadNum(4);
+  rpcframe::RpcClient client(ccfg, "test_service");
+  auto thread_func = [&client, &pCB](){
+    for(auto i = 0; i < 100; ++i) {
+      ASSERT_EQ(rpcframe::RpcStatus::RPC_SEND_OK, client.async_call("test_method_fast_return", std::string(23, '*'), 10, pCB));
+      std::string resp_data;
+      rpcframe::RpcStatus ret_st = client.call("test_method_echo", std::string(10, '*'), resp_data, 20);
+      ASSERT_TRUE(ret_st == rpcframe::RpcStatus::RPC_DISCONNECTED || ret_st == rpcframe::RpcStatus::RPC_SERVER_OK);
+    }
+  };
+
+  std::vector<std::thread> thread_vec;
+  for(auto i = 0; i < 100; ++i) {
+    thread_vec.emplace_back(thread_func);
+  }
+  for(auto &th: thread_vec) {
+    th.join();
+  }
+}
