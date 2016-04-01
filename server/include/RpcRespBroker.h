@@ -8,7 +8,7 @@
 #include <string>
 
 #include "IRpcRespBroker.h"
-#include "mongoose.h"
+class mg_connection;
 
 namespace rpcframe {
 

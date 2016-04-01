@@ -11,9 +11,9 @@
 #include <thread>
 
 #include "Queue.h"
-#include "IService.h"
 #include "RpcDefs.h"
 #include "RpcPackage.h"
+#include "RpcServerConfig.h"
 
 namespace rpcframe
 {
@@ -24,6 +24,7 @@ class IService;
 class RpcHttpServer;
 class RpcStatusService;
 class RpcInnerResp;
+class RpcServerConfig;
 
 typedef std::unordered_map<std::string, IService *> ServiceMap;
 

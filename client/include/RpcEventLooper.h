@@ -12,6 +12,7 @@
 #include <memory>
 #include <thread>
 #include <ctime>
+
 #include "Queue.h"
 #include "RpcDefs.h"
 #include "RpcPackage.h"

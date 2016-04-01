@@ -26,23 +26,9 @@ public:
     rpcframe::RpcStatus runMethod(const std::string &method_name, 
                           const std::string &req_data, 
                           std::string &resp_data, 
-                          rpcframe::IRpcRespBrokerPtr resp_broker) 
-    { 
-        if (m_method_map.find(method_name) != m_method_map.end()) { 
-            RPC_FUNC_T p_fun = m_method_map[method_name]; 
-            return p_fun(req_data, resp_data, resp_broker); 
-        }  
-        else { 
-            return rpcframe::RpcStatus::RPC_METHOD_NOTFOUND;  
-        }  
-    }; 
+                          rpcframe::IRpcRespBrokerPtr resp_broker);
 
-    void getMethodNames(std::vector<std::string> &smap) { 
-        for(auto mmap: m_method_map) { 
-            smap.push_back(mmap.first); 
-     
-        };
-    };
+    void getMethodNames(std::vector<std::string> &smap);
     std::map<std::string, RPC_FUNC_T> m_method_map; 
 
 };

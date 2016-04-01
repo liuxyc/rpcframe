@@ -9,7 +9,6 @@
 #include <thread>
 
 #include "Queue.h"
-#include "IService.h"
 #include "RpcPackage.h"
 
 struct mg_connection;

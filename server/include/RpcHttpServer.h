@@ -13,7 +13,9 @@ namespace rpcframe
 {
 
 class RpcServerImpl;
+class RpcServerConfig;
 class RpcHttpServer;
+
 
 typedef struct mg_server * mongoose_server_ptr;
 

@@ -3,8 +3,6 @@
  * All rights reserved.
  */
 
-#include "RpcServer.h"
-#include "IService.h"
 #include <chrono>
 #include <random>
 #include <memory>
@@ -13,6 +11,8 @@
 
 #include <signal.h>
 #include <cstring>
+
+#include "RpcServer.h"
 
 class MyService_async: public rpcframe::IService
 {

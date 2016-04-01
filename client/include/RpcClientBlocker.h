@@ -12,7 +12,6 @@
 
 #include "Queue.h"
 #include "RpcPackage.h"
-#include "RpcClient.h"
 
 namespace rpcframe
 {

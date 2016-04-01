@@ -11,8 +11,8 @@
 
 #include "RpcPackage.h"
 #include "RpcServerImpl.h"
-#include "IService.h"
 #include "rpc.pb.h"
+#include "mongoose.h"
 
 namespace rpcframe
 {
