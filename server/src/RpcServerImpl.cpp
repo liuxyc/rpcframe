@@ -196,6 +196,8 @@ void RpcServerImpl::onDataOut(const int fd) {
             removeConnection(fd);
         }
         else if ( sent_ret == PkgIOStatus::PARTIAL ){
+            //partial data sent or there is no data to send
+            //FIXME: seprarte return status for 'no data sent'?
             //RPC_LOG(RPC_LOG_LEV::DEBUG, "OUT sent partial to %d", fd);
         }
         else {
@@ -204,7 +206,7 @@ void RpcServerImpl::onDataOut(const int fd) {
             struct epoll_event event_mod;  
             memset(&event_mod, 0, sizeof(event_mod));
             event_mod.data.fd = fd;
-            event_mod.events = EPOLLIN;
+            event_mod.events = EPOLLIN | EPOLLET;
             epoll_ctl(m_epoll_fd, EPOLL_CTL_MOD, event_mod.data.fd, &event_mod);
         }
     }
@@ -236,9 +238,10 @@ bool RpcServerImpl::onDataOutEvent() {
     }
 
     if (m_resp_conn_q.pop(connid, 0)) {
-        if (m_conn_set.find(connid) != m_conn_set.end()) {
+        auto conn_iter = m_conn_set.find(connid);
+        if (conn_iter != m_conn_set.end()) {
             //we have resp data to send
-            RpcServerConn *conn = m_conn_set[connid];
+            RpcServerConn *conn = conn_iter->second;
             //RPC_LOG(RPC_LOG_LEV::DEBUG, "conn %s resp queue len %lu", 
                     //conn->m_seqid.c_str(), 
                     //conn->m_response_q.size());
@@ -252,7 +255,7 @@ bool RpcServerImpl::onDataOutEvent() {
                 //until this resp send finish
                 struct epoll_event ev;  
                 memset(&ev, 0, sizeof(ev));
-                ev.events = EPOLLIN | EPOLLOUT;
+                ev.events = EPOLLIN | EPOLLOUT | EPOLLET;
                 ev.data.fd = conn->getFd();
                 epoll_ctl(m_epoll_fd, EPOLL_CTL_MOD, ev.data.fd, &ev);  
             }
@@ -262,7 +265,7 @@ bool RpcServerImpl::onDataOutEvent() {
                 struct epoll_event event_mod;  
                 memset(&event_mod, 0, sizeof(event_mod));
                 event_mod.data.fd = conn->getFd();
-                event_mod.events = EPOLLIN;
+                event_mod.events = EPOLLIN | EPOLLET;
                 epoll_ctl(m_epoll_fd, EPOLL_CTL_MOD, event_mod.data.fd, &event_mod);
             }
         }
@@ -294,7 +297,7 @@ void RpcServerImpl::onAccept() {
         //fcntl(new_client_socket, F_SETFL, fcntl(new_client_socket, F_GETFL) | O_NONBLOCK);
         struct epoll_event ev;  
         memset(&ev, 0, sizeof(ev));
-        ev.events = EPOLLIN ;
+        ev.events = EPOLLIN | EPOLLET;
         ev.data.fd = new_client_socket;
         epoll_ctl(m_epoll_fd, EPOLL_CTL_ADD, new_client_socket, &ev);  
         m_seqid++;

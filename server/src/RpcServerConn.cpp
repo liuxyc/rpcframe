@@ -70,24 +70,40 @@ bool RpcServerConn::readPkgLen(uint32_t &pkg_len)
     }
     int data = 0;
     errno = 0;
-    int rev_size = recv(m_fd, (char *)&data, 4, 0);  
-    if (rev_size <= 0) {
+    int left_size = sizeof(data);
+    char *data_ptr = (char *)&data;
+    while(1) {
+      int rev_size = recv(m_fd, data_ptr + (sizeof(data) - left_size), left_size, 0);  
+      if (rev_size <= 0) {
         if (rev_size != 0) {
-            RPC_LOG(RPC_LOG_LEV::ERROR, "try recv pkg len error %s", strerror(errno));
+          RPC_LOG(RPC_LOG_LEV::ERROR, "try recv pkg len error %s", strerror(errno));
         }
         if( errno == EAGAIN || errno == EINTR) {
+          //ET trigger case
+          //will continue until we read the full package length
+          RPC_LOG(RPC_LOG_LEV::DEBUG, "recv data too small %d, try again", rev_size);
         }
         else {
-            return false;
+          return false;
         }
-    }
-    if( rev_size < 4 )  
-    {  
-        RPC_LOG(RPC_LOG_LEV::ERROR, "recv data too small %d, close connection: %d", rev_size, m_fd);
+      }
+      left_size -= rev_size;
+      if(left_size == 0) {
+        pkg_len = ntohl(data);
+        return true;
+      }
+      if( left_size > 0 )
+      {  
+        RPC_LOG(RPC_LOG_LEV::DEBUG, "recv data too small %d, try againi %d left", rev_size, left_size);
+        continue;
+      }  
+      if( left_size < 0 )
+      {  
+        RPC_LOG(RPC_LOG_LEV::DEBUG, "recv wrong hdr %d, close fd %d", rev_size, m_fd);
         return false;
-    }  
-    pkg_len = ntohl(data);
-    return true;
+      }  
+    }
+    return false;
 }
 
 PkgIOStatus RpcServerConn::readPkgData()
@@ -101,26 +117,33 @@ PkgIOStatus RpcServerConn::readPkgData()
         return PkgIOStatus::FAIL;
     }
     errno = 0;
-    int rev_size = recv(m_fd, m_rpk->data + (m_cur_pkg_size - m_cur_left_len), m_cur_left_len, 0);  
-    if (rev_size <= 0) {
-        if( errno == EAGAIN || errno == EINTR) {
-            return PkgIOStatus::PARTIAL;
+    while(1) {
+      int rev_size = recv(m_fd, m_rpk->data + (m_cur_pkg_size - m_cur_left_len), m_cur_left_len, 0);  
+      if (rev_size <= 0) {
+        if( errno == EAGAIN) {
+          //for ET case
+          m_cur_left_len -= rev_size;
+          return PkgIOStatus::PARTIAL;
+        }
+        else if(  errno == EINTR ) {
         }
         else {
-            RPC_LOG(RPC_LOG_LEV::ERROR, "recv pkg error %s", strerror(errno));
-            return PkgIOStatus::FAIL;
+          RPC_LOG(RPC_LOG_LEV::ERROR, "recv pkg error %s", strerror(errno));
+          return PkgIOStatus::FAIL;
         }
-    }
-    if ((uint32_t)rev_size == m_cur_left_len) {
+      }
+      if ((uint32_t)rev_size == m_cur_left_len) {
         //RPC_LOG(RPC_LOG_LEV::DEBUG, "got full pkg");
         m_cur_left_len = 0;
         m_cur_pkg_size = 0;
         return PkgIOStatus::FULL;
-    }
-    else {
-        m_cur_left_len = m_cur_left_len - rev_size;
+      }
+      else {
+        m_cur_left_len -= rev_size;
         //RPC_LOG(RPC_LOG_LEV::DEBUG, " half pkg got %d/%d need %d more", rev_size, m_cur_pkg_size, m_cur_left_len);
+        //NOTICE:consider as EAGAIN
         return PkgIOStatus::PARTIAL;
+      }
     }
 }
 
@@ -164,33 +187,46 @@ pkg_ret_t RpcServerConn::getRequest()
 
 PkgIOStatus RpcServerConn::sendData()
 {
+  while(1) {
+    int data_to_send = m_sent_pkg->data_len - m_sent_len;
     int slen = send(m_fd, 
-                    m_sent_pkg->data + m_sent_len, 
-                    m_sent_pkg->data_len - m_sent_len, 
-                    MSG_NOSIGNAL | MSG_DONTWAIT);  
+        m_sent_pkg->data + m_sent_len, 
+        data_to_send, 
+        MSG_NOSIGNAL | MSG_DONTWAIT);  
+    //for <= 0 cases
     if (slen <= 0) {
-        if (slen == 0 || errno == EPIPE) {
-            RPC_LOG(RPC_LOG_LEV::WARNING, "peer closed");
-            return PkgIOStatus::FAIL;
-        }
-        if( errno != EAGAIN && errno != EINTR) {
-            RPC_LOG(RPC_LOG_LEV::ERROR, "send data error! %s", strerror(errno));
-            m_sent_pkg = nullptr;
-            m_sent_len = 0;
-            return PkgIOStatus::FAIL;
-        }
+      if (errno == EAGAIN) {
+        //ET trigger case
+        m_sent_len += slen;
+        return PkgIOStatus::PARTIAL;
+      }
+      if (slen == 0 || errno == EPIPE) {
+        RPC_LOG(RPC_LOG_LEV::WARNING, "peer closed");
+        return PkgIOStatus::FAIL;
+      }
+      if( errno == EINTR) {
+        m_sent_len += slen;
+        continue;
+      }
+      else {
+        RPC_LOG(RPC_LOG_LEV::ERROR, "send data error! %s", strerror(errno));
+        return PkgIOStatus::FAIL;
+      }
     }
+    //for > 0 case
     m_sent_len += slen;
     if (m_sent_pkg->data_len == m_sent_len) {
-        //RPC_LOG(RPC_LOG_LEV::DEBUG, "full send %d", m_sent_len);
-        m_sent_pkg = nullptr;
-        m_sent_len = 0;
-        return PkgIOStatus::FULL;
+      //RPC_LOG(RPC_LOG_LEV::DEBUG, "full send %d", m_sent_len);
+      m_sent_pkg = nullptr;
+      m_sent_len = 0;
+      return PkgIOStatus::FULL;
     }
     else {
-        //RPC_LOG(RPC_LOG_LEV::DEBUG, "left send %d", m_sent_pkg->data_len - m_sent_len);
-        return PkgIOStatus::PARTIAL;
+      //RPC_LOG(RPC_LOG_LEV::DEBUG, "left send %d", m_sent_pkg->data_len - m_sent_len);
+      //NOTICE:consider as EAGAIN
+      return PkgIOStatus::PARTIAL;
     }
+  }
 }
 
 PkgIOStatus RpcServerConn::sendResponse()
@@ -216,8 +252,8 @@ PkgIOStatus RpcServerConn::sendResponse()
             m_server->calcRespQTime(during.count());
             return sendData();
         }
-        return PkgIOStatus::PARTIAL;
     }
+    return PkgIOStatus::PARTIAL;
 }
 
 bool RpcServerConn::isSending() const {

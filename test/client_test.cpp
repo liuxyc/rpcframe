@@ -33,6 +33,9 @@ public:
 
     virtual void callback(const rpcframe::RpcStatus status, const std::string &response_data) {
         ASSERT_TRUE(status == rpcframe::RpcStatus::RPC_CB_TIMEOUT || status == rpcframe::RpcStatus::RPC_SERVER_OK);
+        if(status == rpcframe::RpcStatus::RPC_CB_TIMEOUT) {
+          printf("async call timeout\n");
+        }
     }
 };
 class succ_disconn_CB : public rpcframe::RpcClientCallBack 
@@ -117,12 +120,12 @@ TEST(ClientTest, big_resp)
 
   rpcframe::RpcClient client(ccfg, "test_service");
   //async with big resp
-  int pkg_cnt = 2;
+  int pkg_cnt = 200;
   for (int pcnt = 0; pcnt < pkg_cnt; ++pcnt) {
-    ASSERT_EQ(rpcframe::RpcStatus::RPC_SEND_OK, client.async_call("test_method_big_resp", "req big async", 10, pCB));
+    ASSERT_EQ(rpcframe::RpcStatus::RPC_SEND_OK, client.async_call("test_method_big_resp", "req big async", 50, pCB));
   }
   std::string resp;
-  ASSERT_EQ(rpcframe::RpcStatus::RPC_SERVER_OK, client.call("test_method_big_resp", "req big sync", resp, 10));
+  ASSERT_EQ(rpcframe::RpcStatus::RPC_SERVER_OK, client.call("test_method_big_resp", "req big sync", resp, 50));
   ASSERT_EQ(resp.size(), 1024*1024*40);
   client.waitAllCBDone(5);
 }
