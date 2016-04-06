@@ -10,6 +10,8 @@
 #include "IService.h"
 #include "RpcServerImpl.h"
 #include "RpcServerConn.h"
+#include "RpcServerConfig.h"
+#include <unistd.h>
 
 namespace rpcframe {
 
@@ -32,14 +34,18 @@ public:
         resp_data = "<html><body><h1>Server Status:<h1>";
         resp_data += "<h3>Pid:" + std::to_string(getpid()) + "</h3>";
         resp_data += "<h3>Running:" + std::to_string(!m_rpc_server->m_stop) + "</h3>";
-        resp_data += "<h3>Worker Num:" + std::to_string(m_rpc_server->m_worker_vec.size()) + "</h3>";
+        resp_data += "<h3>Worker num:" + std::to_string(m_rpc_server->m_worker_vec.size()) + "</h3>";
         resp_data += "<h3>Max conn limit:" + std::to_string(m_rpc_server->m_cfg.m_max_conn_num) + "</h3>";
+        resp_data += "<h3>Rejected conn num:" + std::to_string(m_rpc_server->rejected_conn) + "</h3>";
+        resp_data += "<h3>Current conn num:" + std::to_string(m_rpc_server->m_conn_map.size()) + "</h3>";
         for(auto conn: m_rpc_server->m_conn_set) {
-          resp_data += "conn id:" + conn.first + " fd:" + std::to_string(conn.second->getFd()) + "</br>";
+          resp_data += "&nbsp;&nbsp;conn id:" + conn.first + " fd:" + std::to_string(conn.second->getFd()) + "</br>";
         }
         resp_data += "<h3>Seqid:" + std::to_string(m_rpc_server->m_seqid) + "</h3>";
         resp_data += "<h3>Req Q size:" + std::to_string(m_rpc_server->m_request_q.size()) + "</h3>";
+        resp_data += "<h3>Req InQueue fail num:" + std::to_string(m_rpc_server->req_inqueue_fail) + "</h3>";
         resp_data += "<h3>Resp Q size:" + std::to_string(m_rpc_server->m_response_q.size()) + "</h3>";
+        resp_data += "<h3>Resp InQueue fail num:" + std::to_string(m_rpc_server->resp_inqueue_fail) + "</h3>";
         resp_data += "<h3>Total Req num:" + std::to_string(m_rpc_server->total_req_num) + "</h3>";
         resp_data += "<h3>Total Resp num:" + std::to_string(m_rpc_server->total_resp_num) + "</h3>";
         resp_data += "<h3>Total Call num:" + std::to_string(m_rpc_server->total_call_num) + "</h3>";

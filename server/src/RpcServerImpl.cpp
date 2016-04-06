@@ -28,6 +28,7 @@
 #include "RpcStatusService.h"
 #include "IService.h"
 #include "rpc.pb.h"
+#include "RpcServerConfig.h"
 
 #define RPC_MAX_SOCKFD_COUNT 65535 
 
@@ -37,6 +38,7 @@ namespace rpcframe
 RpcServerImpl::RpcServerImpl(RpcServerConfig &cfg)
 : m_cfg(cfg)
 , m_seqid(0)
+, m_request_q(cfg.m_max_req_qsize)
 , m_epoll_fd(-1)
 , m_listen_socket(-1)
 , m_resp_ev_fd(-1)
@@ -49,6 +51,9 @@ RpcServerImpl::RpcServerImpl(RpcServerConfig &cfg)
 , total_req_num(0)
 , total_resp_num(0)
 , total_call_num(0)
+, rejected_conn(0)
+, req_inqueue_fail(0)
+, resp_inqueue_fail(0)
 {
     addWorkers(m_cfg.getThreadNum());
     if (cfg.getHttpPort() != -1) {
@@ -192,10 +197,10 @@ void RpcServerImpl::onDataOut(const int fd) {
     if (conn_iter != m_conn_map.end()) {
         RpcServerConn *conn = conn_iter->second;
         PkgIOStatus sent_ret = conn->sendResponse();
-        if (sent_ret == PkgIOStatus::FAIL ) {
+        if (sent_ret == PkgIOStatus::FAIL) {
             removeConnection(fd);
         }
-        else if ( sent_ret == PkgIOStatus::PARTIAL ){
+        else if (sent_ret == PkgIOStatus::PARTIAL){
             //partial data sent or there is no data to send
             //FIXME: seprarte return status for 'no data sent'?
             //RPC_LOG(RPC_LOG_LEV::DEBUG, "OUT sent partial to %d", fd);
@@ -280,21 +285,20 @@ void RpcServerImpl::onAccept() {
     int len = sizeof(remote_addr);  
     int new_client_socket = accept(m_listen_socket, 
             (sockaddr *)&remote_addr, 
-            (socklen_t*)&len );  
-    if ( new_client_socket < 0 ) {  
+            (socklen_t*)&len);  
+    if (new_client_socket < 0) {  
         RPC_LOG(RPC_LOG_LEV::ERROR, "accept fail %s, new_client_socket: %d", 
                 strerror(errno), new_client_socket);  
     }  
     else {
-        if( m_conn_set.size() >= m_cfg.m_max_conn_num) {
-            RPC_LOG(RPC_LOG_LEV::ERROR, "conn number reach limit %d, close %d", m_cfg.m_max_conn_num, 
+        if(m_conn_set.size() >= m_cfg.m_max_conn_num) {
+            RPC_LOG(RPC_LOG_LEV::ERROR, "conn number reach limit %d, close %d", (uint32_t)m_cfg.m_max_conn_num, 
                     new_client_socket);  
             ::close(new_client_socket);
+            ++rejected_conn;
         }
         setSocketKeepAlive(new_client_socket);
-        //NOTICE:do not use O_NONBLOCK, because we assume the first recv of pkglen 
-        // must have 4 bytes at least
-        //fcntl(new_client_socket, F_SETFL, fcntl(new_client_socket, F_GETFL) | O_NONBLOCK);
+        fcntl(new_client_socket, F_SETFL, fcntl(new_client_socket, F_GETFL) | O_NONBLOCK);
         struct epoll_event ev;  
         memset(&ev, 0, sizeof(ev));
         ev.events = EPOLLIN | EPOLLET;
@@ -327,6 +331,7 @@ void RpcServerImpl::onDataIn(const int fd) {
                 if ( !m_request_q.push(pkgret.second)) {
                     //queue fail, drop pkg
                     RPC_LOG(RPC_LOG_LEV::WARNING, "server queue fail, drop pkg");
+                    ++req_inqueue_fail;
                 }
             }
         }  
@@ -345,7 +350,7 @@ bool RpcServerImpl::start() {
             if( m_stop ) {
               break;
             }
-            RPC_LOG(RPC_LOG_LEV::ERROR, "epoll_pwait");
+            RPC_LOG(RPC_LOG_LEV::ERROR, "epoll_wait");
         }
         for (int i = 0; i < nfds; i++)  
         {  
@@ -444,6 +449,7 @@ void RpcServerImpl::pushResp(std::string conn_id, RpcInnerResp &resp)
       resp_pkg->gen_time = std::chrono::system_clock::now();
       if (!conn->m_response_q.push(resp_pkg)) {
         RPC_LOG(RPC_LOG_LEV::WARNING, "server resp queue fail, drop resp pkg");
+        ++resp_inqueue_fail;
         return;
       }
       m_resp_conn_q.push(conn_id);

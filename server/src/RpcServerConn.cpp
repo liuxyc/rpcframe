@@ -75,15 +75,18 @@ bool RpcServerConn::readPkgLen(uint32_t &pkg_len)
     while(1) {
       int rev_size = recv(m_fd, data_ptr + (sizeof(data) - left_size), left_size, 0);  
       if (rev_size <= 0) {
-        if (rev_size != 0) {
-          RPC_LOG(RPC_LOG_LEV::ERROR, "try recv pkg len error %s", strerror(errno));
-        }
         if( errno == EAGAIN || errno == EINTR) {
           //ET trigger case
           //will continue until we read the full package length
           RPC_LOG(RPC_LOG_LEV::DEBUG, "recv data too small %d, try again", rev_size);
         }
         else {
+          if (rev_size == 0) {
+            //RPC_LOG(RPC_LOG_LEV::WARNING, "Peer disconected");
+          }
+          else {
+            RPC_LOG(RPC_LOG_LEV::ERROR, "try recv pkg len error %s, need recv %d:%d", strerror(errno), left_size, rev_size);
+          }
           return false;
         }
       }
@@ -94,7 +97,7 @@ bool RpcServerConn::readPkgLen(uint32_t &pkg_len)
       }
       if( left_size > 0 )
       {  
-        RPC_LOG(RPC_LOG_LEV::DEBUG, "recv data too small %d, try againi %d left", rev_size, left_size);
+        RPC_LOG(RPC_LOG_LEV::DEBUG, "recv data too small %d, try again %d left", rev_size, left_size);
         continue;
       }  
       if( left_size < 0 )

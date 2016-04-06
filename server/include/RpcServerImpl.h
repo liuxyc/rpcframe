@@ -14,7 +14,7 @@
 #include "SpinLock.h"
 #include "RpcDefs.h"
 #include "RpcPackage.h"
-#include "RpcServerConfig.h"
+//#include "RpcServerConfig.h"
 
 namespace rpcframe
 {
@@ -86,7 +86,7 @@ private:
     void onAccept();
     void onDataIn(const int fd);
 
-    RpcServerConfig m_cfg;
+    RpcServerConfig &m_cfg;
     std::vector<RpcWorker *> m_worker_vec;
     ServiceMap m_service_map;
     MethodStatusMap m_methodstatus_map;
@@ -110,8 +110,10 @@ private:
     uint64_t total_req_num;
     uint64_t total_resp_num;
     uint64_t total_call_num;
+    uint64_t rejected_conn;
+    uint64_t req_inqueue_fail;
+    uint64_t resp_inqueue_fail;
     SpinLock m_stat_lock;
-    
 };
 
 };

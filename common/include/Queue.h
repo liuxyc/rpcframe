@@ -74,6 +74,11 @@ public:
     {
     
     };
+
+    void setMaxSize(uint32_t max_size) {
+      m_max_q_len = max_size;
+    };
+
     Queue(const Queue&) = delete;            // disable copying
     Queue& operator=(const Queue&) = delete; // disable assignment
 

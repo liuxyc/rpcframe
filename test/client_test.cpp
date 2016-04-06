@@ -191,6 +191,7 @@ TEST(ClientTest, small_echo_call)
   //fast async/sync call
   rpcframe::RpcClient newclient(ccfg, "test_service");
   for (int pcnt = 1; pcnt <= pkg_cnt; ++pcnt) {
+    ccfg.setMaxReqPkgSize(pcnt);
     ASSERT_EQ(rpcframe::RpcStatus::RPC_SEND_OK, newclient.async_call("test_method_echo", 
           std::string(pcnt, 'c'), 
           10, 
@@ -203,7 +204,7 @@ TEST(ClientTest, small_echo_call)
   newclient.waitAllCBDone(5);
 }
 
-TEST(ClientTest, huge_req)
+TEST(ClientTest, hugesize_req)
 {
   auto endp = std::make_pair("localhost", 8801);
   rpcframe::RpcClientConfig ccfg(endp);

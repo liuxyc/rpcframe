@@ -9,6 +9,7 @@
 #include <set>
 #include <string>
 #include <stdint.h>
+#include <atomic>
 
 namespace rpcframe
 {
@@ -21,6 +22,7 @@ public:
     uint32_t getThreadNum();
     void setMaxConnection(uint32_t max_conn_num);
     void setMaxReqPkgSize(uint32_t max_req_size);
+    void setMaxReqQSize(uint32_t max_req_qsize);
     void enableHttp(int port, int thread_num);
     void disableHttp();
     int getHttpPort();
@@ -28,10 +30,11 @@ public:
     uint32_t m_thread_num;
     std::string m_hostname;
     int m_port;
-    uint32_t m_max_conn_num;
-    uint32_t m_max_req_size;
+    std::atomic<uint32_t> m_max_conn_num;
+    std::atomic<uint32_t> m_max_req_size;
     int m_http_port;
     int m_http_thread_num;
+    std::atomic<uint32_t> m_max_req_qsize;
 };
 
 };

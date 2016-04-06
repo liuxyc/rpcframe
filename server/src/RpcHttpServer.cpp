@@ -14,6 +14,7 @@
 #include "IService.h"
 #include "RpcRespBroker.h"
 #include "RpcServerImpl.h"
+#include "RpcServerConfig.h"
 #include "RpcPackage.h"
 #include "rpc.pb.h"
 #include "util.h"

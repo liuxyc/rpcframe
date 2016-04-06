@@ -19,7 +19,9 @@ TEST(QueueTest, full)
     }
 
     EXPECT_FALSE(q_t.pop(a, 10));
-    EXPECT_FALSE(q_t.pop(a, 10));
+    std::time_t begin = std::time(nullptr);
+    EXPECT_FALSE(q_t.pop(a, 1000));
+    EXPECT_TRUE((std::time(nullptr) - begin >= 1));
     EXPECT_FALSE(q_t.pop(a, 0));
 }
 
@@ -31,6 +33,9 @@ TEST(QueueTest, block)
     q_t.push(3);
     EXPECT_FALSE(q_t.push(4, 10));
     EXPECT_EQ((size_t)3, q_t.size());
+    q_t.setMaxSize(4);
+    EXPECT_TRUE(q_t.push(4, 10));
+    EXPECT_EQ((size_t)4, q_t.size());
     EXPECT_FALSE(q_t.push(4, 10));
     EXPECT_FALSE(q_t.push(4, 0));
     int a = -1;
