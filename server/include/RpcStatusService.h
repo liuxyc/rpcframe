@@ -11,6 +11,7 @@
 #include "RpcServerImpl.h"
 #include "RpcServerConn.h"
 #include "RpcServerConfig.h"
+#include "IRpcRespBroker.h"
 #include <unistd.h>
 
 namespace rpcframe {
@@ -27,6 +28,12 @@ public:
     explicit RpcStatusService(RpcServerImpl *server) 
     : m_rpc_server(server) {
         RPC_ADD_METHOD(RpcStatusService, get_status);
+        //not static get_status call, hack m_status to nullptr
+        auto st = m_method_map.find("get_status");
+        if(st != m_method_map.end()) {
+          delete st->second.m_status;
+          st->second.m_status = nullptr;
+        }
     };
     
     RpcStatus get_status(const std::string &request_data, std::string &resp_data, IRpcRespBrokerPtr resp_broker) {
@@ -52,16 +59,25 @@ public:
         resp_data += "<h3>Avg Req wait time:" + std::to_string(m_rpc_server->avg_req_wait_time) + "ms</h3>";
         resp_data += "<h3>Avg Resp wait time:" + std::to_string(m_rpc_server->avg_resp_wait_time) + "ms</h3>";
         resp_data += "<h3>Avg Call time:" + std::to_string(m_rpc_server->avg_call_time) + "ms</h3>";
-        resp_data += "<h3>Max Call time:" + std::to_string(m_rpc_server->max_call_time) + "ms</h3>";
+        resp_data += "<h3>Longest Call time:" + std::to_string(m_rpc_server->max_call_time) + "ms</h3>";
         resp_data += "<h3>epoll fd:" + std::to_string(m_rpc_server->m_epoll_fd) + "</h3>";
         resp_data += "<h3>Rpc listening on port:" + std::to_string(m_rpc_server->m_cfg.m_port) + " fd:" + std::to_string(m_rpc_server->m_listen_socket) + "</h3>";
         resp_data += "<h1>Service Status</h1>";
         for(auto srv: m_rpc_server->m_service_map) {
-          resp_data += "service name:" + srv.first + "</br>";
+          resp_data += "<h2>service name:" + srv.first + "<h2>";
           std::vector<std::string> mnames;
-          srv.second->getMethodNames(mnames);
-          for (auto method: mnames) {
-            resp_data += "&nbsp;&nbsp;&nbsp;&nbsp;method name:" + method + "</br>";
+          for (auto &method: srv.second->m_method_map) {
+            resp_data += "<h3>&nbsp;&nbsp;method name:" + method.first + "</h3>";
+            if(method.second.m_status) {
+              resp_data += "&nbsp;&nbsp;&nbsp;&nbsp;Total Call num:" + std::to_string(method.second.m_status->total_call_nums) + "</br>";
+              resp_data += "&nbsp;&nbsp;&nbsp;&nbsp;Timeout Call num:" + std::to_string(method.second.m_status->timeout_call_nums) + "</br>";
+              resp_data += "&nbsp;&nbsp;&nbsp;&nbsp;Avg Call time:" + std::to_string(method.second.m_status->avg_call_time) + "ms</br>";
+              resp_data += "&nbsp;&nbsp;&nbsp;&nbsp;Longest Call time:" + std::to_string(method.second.m_status->longest_call_time) + "ms</br>";
+              resp_data += "&nbsp;&nbsp;&nbsp;&nbsp;Call from http num:" + std::to_string(method.second.m_status->call_from_http_num) + "</br>";
+            }
+            else {
+              resp_data += "&nbsp;&nbsp;&nbsp;&nbsp;Method Status is nullptr</br>";
+            }
           }
         }
         resp_data += "</br>";

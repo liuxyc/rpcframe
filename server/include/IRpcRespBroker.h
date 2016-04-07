@@ -41,7 +41,6 @@ public:
     virtual bool isFromHttp() = 0;
 };
 
-typedef std::shared_ptr<IRpcRespBroker> IRpcRespBrokerPtr;
 
 };
 #endif

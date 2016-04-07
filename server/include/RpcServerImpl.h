@@ -29,17 +29,6 @@ class RpcServerConfig;
 
 typedef std::unordered_map<std::string, IService *> ServiceMap;
 
-class RpcMethodStatus 
-{
-public:
-    uint64_t total_call_nums = 0;
-    uint64_t timeout_call_nums = 0;
-    uint64_t avg_call_time = 0;  // unit: ms
-    uint64_t longest_call_time = 0;   // unit: ms
-};
-
-typedef std::unordered_map<std::string, RpcMethodStatus> MethodStatusMap;
-
 class RpcServerImpl
 {
     friend RpcStatusService;
@@ -89,7 +78,6 @@ private:
     RpcServerConfig &m_cfg;
     std::vector<RpcWorker *> m_worker_vec;
     ServiceMap m_service_map;
-    MethodStatusMap m_methodstatus_map;
     std::unordered_map<int, RpcServerConn *> m_conn_map;
     std::unordered_map<std::string, RpcServerConn *> m_conn_set;
     uint32_t m_seqid;

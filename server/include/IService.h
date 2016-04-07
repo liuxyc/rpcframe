@@ -9,28 +9,28 @@
 #include <string>
 #include <vector>
 
-#include "IRpcRespBroker.h"
 #include "RpcDefs.h"
+#include "IRpcRespBroker.h"
+#include "RpcMethod.h"
 
 namespace rpcframe {
 
-#define RPC_ADD_METHOD(class_name, method_name) m_method_map[#method_name] = std::bind(&class_name::method_name, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+#define RPC_ADD_METHOD(class_name, method_name) \
+  /*std::move VS RVO ...*/ \
+  m_method_map.emplace(#method_name, rpcframe::RpcMethod(std::bind(&class_name::method_name, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3))); \
 
 class IService
 {
-    typedef std::function<rpcframe::RpcStatus(const std::string &, std::string &, rpcframe::IRpcRespBrokerPtr)> RPC_FUNC_T;
 public:
     IService() {};
     virtual ~IService() {};
-    
-    rpcframe::RpcStatus runMethod(const std::string &method_name, 
-                          const std::string &req_data, 
-                          std::string &resp_data, 
-                          rpcframe::IRpcRespBrokerPtr resp_broker);
 
-    void getMethodNames(std::vector<std::string> &smap);
-    std::map<std::string, RPC_FUNC_T> m_method_map; 
+    RpcStatus runMethod(const std::string &method_name, 
+        const std::string &req_data, 
+        std::string &resp_data, 
+        IRpcRespBrokerPtr resp_broker, RpcMethodStatusPtr &method_status);
 
+    std::map<std::string, RpcMethod> m_method_map; 
 };
 
 };

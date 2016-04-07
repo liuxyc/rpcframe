@@ -5,8 +5,8 @@
 
 #ifndef RPCFRAME_RPCSERVER
 #define RPCFRAME_RPCSERVER
-#include "IService.h"
 #include "RpcDefs.h"
+#include "IService.h"
 #include "RpcServerConfig.h"
 
 namespace rpcframe

@@ -105,7 +105,6 @@ bool RpcServerImpl::addService(const std::string &name, IService *p_service)
         return false;
     }
     m_service_map[name] = p_service;
-    m_methodstatus_map.emplace(name, RpcMethodStatus());
     return true;
 }
 
@@ -525,7 +524,6 @@ void RpcServerImpl::calcCallTime(uint64_t call_time)
     }
   }
   RPC_LOG(RPC_LOG_LEV::DEBUG, "avg call time: %llu ms", avg_call_time);
-
 }
 
 const RpcServerConfig *RpcServerImpl::getConfig()

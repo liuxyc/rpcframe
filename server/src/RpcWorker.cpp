@@ -63,7 +63,6 @@ void RpcWorker::run() {
               during = during.zero();
             }
             m_server->calcReqQTime(during.count());
-            RPC_LOG(RPC_LOG_LEV::DEBUG, "req stay: %d ms", during.count());
 
             //must get request id from here
             RpcInnerReq req;
@@ -71,6 +70,7 @@ void RpcWorker::run() {
                 RPC_LOG(RPC_LOG_LEV::ERROR, "parse internal pkg fail");
                 continue;
             }
+            RPC_LOG(RPC_LOG_LEV::DEBUG, "req %s:%s stay: %d ms", req.request_id().c_str(), req.method_name().c_str(), during.count());
             std::string resp_data;
             IService *p_service = m_server->getService(req.service_name());
             RpcInnerResp resp;
@@ -82,17 +82,24 @@ void RpcWorker::run() {
                     (req.type() == RpcInnerReq::TWO_WAY), nullptr);
 
                 std::chrono::system_clock::time_point begin_call_timepoint = std::chrono::system_clock::now();
-                RpcStatus ret = p_service->runMethod(req.method_name(), req.data(), resp_data, rpcbroker);
+                RpcMethodStatusPtr method_status = nullptr;
+                RpcStatus ret = p_service->runMethod(req.method_name(), req.data(), resp_data, rpcbroker, method_status);
                 during = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - begin_call_timepoint);
-                if (during.count() < 0) {
-                  during = during.zero();
-                }
-                m_server->calcCallTime(during.count());
-                RPC_LOG(RPC_LOG_LEV::DEBUG, "call take: %llu ms", during.count());
-                auto timeout_during = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now() - pkg->gen_time);
-                if (req.timeout() > 0 && timeout_during.count() > req.timeout()) {
-                  RPC_LOG(RPC_LOG_LEV::WARNING, "req %s should already timeout on client %d->%d, will not response", req.request_id().c_str(), timeout_during.count(), req.timeout());
-                  continue;
+                if(method_status) {
+                  if (during.count() < 0) {
+                    during = during.zero();
+                  }
+                  m_server->calcCallTime(during.count());
+                  method_status->calcCallTime(during.count());
+                  RPC_LOG(RPC_LOG_LEV::DEBUG, "%s call take: %llu ms", req.method_name().c_str(), during.count());
+                  auto timeout_during = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now() - pkg->gen_time);
+                  if (req.timeout() > 0 && timeout_during.count() > req.timeout()) {
+                    if(method_status) {
+                      ++(method_status->timeout_call_nums);
+                    }
+                    RPC_LOG(RPC_LOG_LEV::WARNING, "req %s:%s should already timeout on client %d->%d, will not response", req.request_id().c_str(), req.method_name().c_str(), timeout_during.count(), req.timeout());
+                    continue;
+                  }
                 }
                 resp.set_ret_val(static_cast<uint32_t>(ret));
                 switch (ret) {

@@ -7,9 +7,12 @@
 #define RPCFRAME_RPCDEFS
 #include <utility>
 #include <string>
+#include <functional>
+#include <memory>
 
 namespace rpcframe
 {
+
     enum class RpcStatus {
         RPC_SEND_OK = 0,
         RPC_SEND_FAIL,
@@ -24,5 +27,10 @@ namespace rpcframe
         RPC_SERVER_FAIL,
         RPC_MALLOC_PKG_FAIL,
     };
+
+    class IRpcRespBroker;
+
+    typedef std::shared_ptr<IRpcRespBroker> IRpcRespBrokerPtr;
+    typedef std::function<rpcframe::RpcStatus(const std::string &, std::string &, IRpcRespBrokerPtr)> RPC_FUNC_T;
 };
 #endif

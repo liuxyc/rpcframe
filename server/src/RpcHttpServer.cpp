@@ -33,61 +33,73 @@ void sendHttpResp(mg_connection *conn, int status, const std::string &resp) {
 }
 
 static void ev_handler(struct mg_connection *conn, int ev, void *ev_data) {
-      struct http_message *hm = (struct http_message *) ev_data;
-      switch (ev) {
-        case MG_EV_HTTP_REQUEST:
-        {
-            std::string url_string(hm->uri.p, hm->uri.len);
-            if (url_string[0] != '/') {
-                mg_printf(conn, "Invalid Request URI [%s]", url_string.c_str());  
-                mg_send_head(conn, 500, 0, NULL);
-            }
-            RpcServerImpl *server = (RpcServerImpl *)conn->user_data;
-            std::string::size_type service_pos = url_string.find('/', 1);
-            if (service_pos != std::string::npos) {
-                std::string service_name = url_string.substr(1, service_pos - 1);
-                std::string method_name = url_string.substr(service_pos + 1, url_string.size());
-                IService *p_service = server->getService(service_name);
-                if (p_service != nullptr) {
-                    IRpcRespBrokerPtr rpcbroker = std::make_shared<RpcRespBroker>(server, "http_connection", "http_request",true, conn);
-                    std::string req_data(hm->body.p, hm->body.len);
-                    std::string resp_data;
-                    RpcStatus ret = p_service->runMethod(method_name, req_data, resp_data, rpcbroker);
-                    switch (ret) {
-                        case RpcStatus::RPC_SERVER_OK:
-                            sendHttpResp(conn, 200, resp_data);
-                            break;
-                        case RpcStatus::RPC_METHOD_NOTFOUND:
-                            RPC_LOG(RPC_LOG_LEV::WARNING, "Unknow method request #%s#", method_name.c_str());
-                            sendHttpResp(conn, 404, std::string("Unknow method request:") + method_name);
-                            break;
-                        case RpcStatus::RPC_SERVER_FAIL:
-                            RPC_LOG(RPC_LOG_LEV::WARNING, "method call fail #%s#", method_name.c_str());
-                            sendHttpResp(conn, 200, resp_data);
-                            break;
-                        //FIXME:mongoose is not thread safe, async response is not avaliabe in http mode
-                        /*
-                        case RpcStatus::RPC_SERVER_NONE:
-                            return MG_MORE;
-                            break;
-                        */
-                        default:
-                            break;
-                    }
-                }
-                else {
-                    RPC_LOG(RPC_LOG_LEV::WARNING, "Unknow service request #%s#", service_name.c_str());
-                    sendHttpResp(conn, 404, std::string("Unknow service request:") + service_name);
-                }
-            }
-            else {
-                mg_printf(conn, "Invalid Request URI [%s]", url_string.c_str());  
-            }
+  struct http_message *hm = (struct http_message *) ev_data;
+  switch (ev) {
+    case MG_EV_HTTP_REQUEST:
+      {
+        std::string url_string(hm->uri.p, hm->uri.len);
+        if (url_string[0] != '/') {
+          mg_printf(conn, "Invalid Request URI [%s]", url_string.c_str());  
+          mg_send_head(conn, 500, 0, NULL);
         }
-        default: 
-            break;
+        RpcServerImpl *server = (RpcServerImpl *)conn->user_data;
+        std::string::size_type service_pos = url_string.find('/', 1);
+        if (service_pos != std::string::npos) {
+          std::string service_name = url_string.substr(1, service_pos - 1);
+          std::string method_name = url_string.substr(service_pos + 1, url_string.size());
+          IService *p_service = server->getService(service_name);
+          if (p_service != nullptr) {
+            IRpcRespBrokerPtr rpcbroker = std::make_shared<RpcRespBroker>(server, "http_connection", "http_request",true, conn);
+            std::string req_data(hm->body.p, hm->body.len);
+            std::string resp_data;
+            std::chrono::system_clock::time_point begin_call_timepoint = std::chrono::system_clock::now();
+            RpcMethodStatusPtr method_status = nullptr;
+            RpcStatus ret = p_service->runMethod(method_name, req_data, resp_data, rpcbroker, method_status) ;
+            auto during = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - begin_call_timepoint);
+            if(method_status) {
+              if (during.count() < 0) {
+                during = during.zero();
+              }
+              server->calcCallTime(during.count());
+              method_status->calcCallTime(during.count());
+              ++(method_status->call_from_http_num);
+            }
+            switch (ret) {
+              case RpcStatus::RPC_SERVER_OK:
+                sendHttpResp(conn, 200, resp_data);
+                break;
+              case RpcStatus::RPC_METHOD_NOTFOUND:
+                RPC_LOG(RPC_LOG_LEV::WARNING, "[HTTP]Unknow method request #%s#", method_name.c_str());
+                sendHttpResp(conn, 404, std::string("Unknow method request:") + method_name);
+                break;
+              case RpcStatus::RPC_SERVER_FAIL:
+                RPC_LOG(RPC_LOG_LEV::WARNING, "[HTTP]method call fail #%s#", method_name.c_str());
+                sendHttpResp(conn, 200, resp_data);
+                break;
+                //FIXME:mongoose is not thread safe, async response is not avaliabe in http mode
+                /*
+                   case RpcStatus::RPC_SERVER_NONE:
+                   return MG_MORE;
+                   break;
+                   */
+              default:
+                break;
+            }
+            //mp->calcCallTime();
+          }
+          else {
+            RPC_LOG(RPC_LOG_LEV::WARNING, "[HTTP]Unknow service request #%s#", service_name.c_str());
+            sendHttpResp(conn, 404, std::string("Unknow service request:") + service_name);
+          }
+        }
+        else {
+          mg_printf(conn, "Invalid Request URI [%s]", url_string.c_str());  
+        }
+      }
+    default: 
+      break;
 
-    }
+  }
 }
 
 void* process_proc(void* p_server)  
