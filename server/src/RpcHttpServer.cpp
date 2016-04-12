@@ -56,7 +56,7 @@ static void ev_handler(struct mg_connection *conn, int ev, void *ev_data) {
             RpcMethodStatusPtr method_status = nullptr;
             RpcStatus ret = p_service->runMethod(method_name, req_data, resp_data, rpcbroker, method_status) ;
             auto during = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - begin_call_timepoint);
-            if(method_status) {
+            if(method_status->enabled) {
               if (during.count() < 0) {
                 during = during.zero();
               }
@@ -147,6 +147,10 @@ void RpcHttpServer::start() {
 
   mg_mgr_init(&m_mgr, NULL);
   nc = mg_bind(&m_mgr, std::to_string(m_listen_port).c_str(), ev_handler);
+  if (nc == nullptr) {
+    RPC_LOG(RPC_LOG_LEV::FATAL, "Listening on HTTP port %d fail", m_listen_port);
+    return;
+  }
   mg_set_protocol_http_websocket(nc);
 
   /* For each new connection, execute ev_handler in a separate thread */

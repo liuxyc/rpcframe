@@ -32,5 +32,11 @@ namespace rpcframe
 
     typedef std::shared_ptr<IRpcRespBroker> IRpcRespBrokerPtr;
     typedef std::function<rpcframe::RpcStatus(const std::string &, std::string &, IRpcRespBrokerPtr)> RPC_FUNC_T;
+
+
+    /*
+     * Request/Response binary format:
+     *        | --> uint32_t(the length of data) <-- | --> (data: protobuf format, ref: common/proto/rpc.proto) <--| 
+     */
 };
 #endif

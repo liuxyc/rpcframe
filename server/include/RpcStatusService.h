@@ -31,8 +31,7 @@ public:
         //not static get_status call, hack m_status to nullptr
         auto st = m_method_map.find("get_status");
         if(st != m_method_map.end()) {
-          delete st->second.m_status;
-          st->second.m_status = nullptr;
+          st->second.m_status->enabled = false;
         }
     };
     
@@ -68,7 +67,7 @@ public:
           std::vector<std::string> mnames;
           for (auto &method: srv.second->m_method_map) {
             resp_data += "<h3>&nbsp;&nbsp;method name:" + method.first + "</h3>";
-            if(method.second.m_status) {
+            if(method.second.m_status->enabled) {
               resp_data += "&nbsp;&nbsp;&nbsp;&nbsp;Total Call num:" + std::to_string(method.second.m_status->total_call_nums) + "</br>";
               resp_data += "&nbsp;&nbsp;&nbsp;&nbsp;Timeout Call num:" + std::to_string(method.second.m_status->timeout_call_nums) + "</br>";
               resp_data += "&nbsp;&nbsp;&nbsp;&nbsp;Avg Call time:" + std::to_string(method.second.m_status->avg_call_time) + "ms</br>";
@@ -76,7 +75,7 @@ public:
               resp_data += "&nbsp;&nbsp;&nbsp;&nbsp;Call from http num:" + std::to_string(method.second.m_status->call_from_http_num) + "</br>";
             }
             else {
-              resp_data += "&nbsp;&nbsp;&nbsp;&nbsp;Method Status is nullptr</br>";
+              resp_data += "&nbsp;&nbsp;&nbsp;&nbsp;Method statistic disabled</br>";
             }
           }
         }

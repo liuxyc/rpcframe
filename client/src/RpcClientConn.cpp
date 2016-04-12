@@ -154,7 +154,6 @@ RpcStatus RpcClientConn::sendReq(
     RpcInnerReq req;
     req.set_service_name(service_name);
     req.set_method_name(method_name);
-
     req.set_request_id(reqid);
     req.set_timeout(timeout);
     req.set_data(request_data);
@@ -166,10 +165,11 @@ RpcStatus RpcClientConn::sendReq(
     }
     int pkg_len = req.ByteSize();
     uint32_t hdr = htonl(pkg_len);
-    std::unique_ptr<char[]> out_data(new char[pkg_len + sizeof(pkg_len)]);
-    memcpy((void *)(out_data.get()), (const void *)(&hdr), sizeof(pkg_len));
-    if (!req.SerializeToArray((void *)(out_data.get() + sizeof(pkg_len)), pkg_len)) {
+    std::unique_ptr<char[]> out_data(new char[pkg_len + sizeof(hdr)]);
+    memcpy((void *)(out_data.get()), (const void *)(&hdr), sizeof(hdr));
+    if (!req.SerializeToArray((void *)(out_data.get() + sizeof(hdr)), pkg_len)) {
       RPC_LOG(RPC_LOG_LEV::ERROR, "Serialize req data fail");
+      return RpcStatus::RPC_SEND_FAIL;
     }
 
     std::time_t begin_tm = std::time(nullptr);
@@ -202,7 +202,6 @@ RpcStatus RpcClientConn::sendReq(
         }
 
     }
-
     return RpcStatus::RPC_SEND_OK;
 }
 

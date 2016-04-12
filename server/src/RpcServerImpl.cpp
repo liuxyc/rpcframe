@@ -145,7 +145,6 @@ bool RpcServerImpl::startListen() {
     sockaddr_in listen_addr;  
     listen_addr.sin_family = AF_INET;  
     listen_addr.sin_port = htons(m_cfg.m_port);  
-    listen_addr.sin_addr.s_addr = htonl(INADDR_ANY);  
     std::string hostip;
     if(!getHostIpByName(hostip, m_cfg.m_hostname.c_str())) {
         RPC_LOG(RPC_LOG_LEV::ERROR, "gethostbyname fail");
@@ -157,7 +156,7 @@ bool RpcServerImpl::startListen() {
     
     if (bind(m_listen_socket, (sockaddr *) &listen_addr, sizeof (listen_addr) ) != 0 )  
     {  
-        RPC_LOG(RPC_LOG_LEV::ERROR, "bind error");  
+        RPC_LOG(RPC_LOG_LEV::ERROR, "bind %s:%d error", hostip.c_str(), m_cfg.m_port);  
         return false;  
     }  
     
@@ -340,6 +339,7 @@ void RpcServerImpl::onDataIn(const int fd) {
 bool RpcServerImpl::start() {
     if(!startListen()) {
         RPC_LOG(RPC_LOG_LEV::ERROR, "start listen failed");
+        return false;
     }
 
     struct epoll_event events[RPC_MAX_SOCKFD_COUNT];  

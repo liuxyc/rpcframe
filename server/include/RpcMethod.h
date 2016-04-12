@@ -9,28 +9,31 @@
 #include <cstdint>
 
 #include "RpcDefs.h"
-#include "SpinLock.h"
 
 namespace rpcframe
 {
+class SpinLock;
 
 class RpcMethodStatus 
 {
   public:
     RpcMethodStatus();
-
+    ~RpcMethodStatus();
     RpcMethodStatus(const RpcMethodStatus &) = delete;
     const RpcMethodStatus& operator=(const RpcMethodStatus &) = delete;
 
     void calcCallTime(uint64_t call_time);
 
+    bool enabled;
     uint64_t total_call_nums;
     uint64_t timeout_call_nums;
     uint64_t avg_call_time;  // unit: ms
     uint64_t longest_call_time;   // unit: ms
     uint64_t call_from_http_num;
-    SpinLock m_stat_lock;
+    SpinLock *m_stat_lock;
 };
+
+typedef RpcMethodStatus* RpcMethodStatusPtr;
 
 class RpcMethod {
   public:
@@ -40,9 +43,8 @@ class RpcMethod {
     RpcMethod(const RpcMethod &m) = delete;
     const RpcMethod &operator=(const RpcMethod &m) = delete;
     RPC_FUNC_T m_func;
-    RpcMethodStatus *m_status;
+    RpcMethodStatusPtr m_status;
 };
 
-typedef RpcMethodStatus* RpcMethodStatusPtr;
 
 };

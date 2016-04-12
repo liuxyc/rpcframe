@@ -46,7 +46,8 @@ SET(PUB_HDR
   ${COMMON_DIR}/include/RpcDefs.h 
   ${SERVER_DIR}/include/RpcServer.h 
   ${SERVER_DIR}/include/RpcServerConfig.h 
-  ${SERVER_DIR}/include/IService.h 
+  ${SERVER_DIR}/include/IService.h
+  ${SERVER_DIR}/include/RpcMethod.h
   ${SERVER_DIR}/include/IRpcRespBroker.h)
 
 ADD_CUSTOM_COMMAND(TARGET rpcframe
