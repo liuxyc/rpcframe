@@ -1,6 +1,7 @@
 #include "gtest/gtest.h"
 #include "Queue.h"
 #include "SpinLock.h"
+#include "util.h"
 #include <thread>
 
 TEST(QueueTest, full)
@@ -101,4 +102,14 @@ TEST(SpinLockTest, thread)
       th.join();
     }
     EXPECT_EQ(number, 1000000);
+}
+
+TEST(LogTest, print)
+{
+  rpcframe::RPC_LOG(rpcframe::RPC_LOG_LEV::DEBUG, "%s", "hello");
+  rpcframe::RPC_LOG(rpcframe::RPC_LOG_LEV::INFO, "%s", "hello");
+  rpcframe::RPC_LOG(rpcframe::RPC_LOG_LEV::WARNING, "%s", "hello");
+  rpcframe::RPC_LOG(rpcframe::RPC_LOG_LEV::ERROR, "%s", "hello");
+  rpcframe::RPC_LOG(rpcframe::RPC_LOG_LEV::FATAL, "%s", "hello");
+  rpcframe::RPC_LOG(rpcframe::RPC_LOG_LEV::DEBUG, "%s", std::string(4097, 'c').c_str());
 }

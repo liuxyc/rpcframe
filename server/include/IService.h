@@ -15,13 +15,13 @@
 
 namespace rpcframe {
 
+/*std::move VS RVO ...*/
 #define RPC_ADD_METHOD(class_name, method_name) \
-  /*std::move VS RVO ...*/ \
-  m_method_map.emplace(#method_name, rpcframe::RpcMethod(std::bind(&class_name::method_name, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3))); \
+  m_method_map.emplace(#method_name, rpcframe::RpcMethod(std::bind(&class_name::method_name, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3))); 
 
 class IService
 {
-public:
+  public:
     IService() {};
     virtual ~IService() {};
 

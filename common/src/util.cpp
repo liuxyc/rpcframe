@@ -67,11 +67,11 @@ bool getHostIpByName(std::string &str_ip, const char *hname) {
 
 std::vector<std::string> log_level_map = {"DEBUG", "INFO", "WARNING", "ERROR", "FATAL"};
 
-void RPC_LOG(RPC_LOG_LEV level, const char *format, ... ){
+void RPC_LOG_FUNC(RPC_LOG_LEV level, const char* func_name, const char *format, ... ){
   char logbuf[4096] = {0};
   va_list arglist;
   va_start( arglist, format );
-  vsprintf(logbuf, format, arglist );
+  int writenum = vsnprintf(logbuf, 4096, format, arglist);
   va_end( arglist );
   struct timeval tm;
   gettimeofday(&tm, nullptr);
@@ -79,9 +79,12 @@ void RPC_LOG(RPC_LOG_LEV level, const char *format, ... ){
   log_ss << "[";
   log_ss << log_level_map[(int)level] << " ";
   log_ss << tm.tv_sec << "." << tm.tv_usec * 1000 << " ";
-  log_ss << std::hex << std::this_thread::get_id();
-  log_ss << "] ";
+  log_ss << std::hex << std::this_thread::get_id() << "][";
+  log_ss << func_name << "] ";
   log_ss << logbuf;
+  if(writenum > 4096) {
+    log_ss << " LOG HAS BEEN TRUNCATED..." << std::dec << writenum;
+  }
   printf("%s\n", log_ss.str().c_str());
 }
 
