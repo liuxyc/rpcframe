@@ -12,7 +12,7 @@ class mg_connection;
 
 namespace rpcframe {
 
-class RpcServerImpl;
+class RpcServerConnWorker;
 
 /**
  * @brief RpcRespBroker help server send the response in async
@@ -20,7 +20,7 @@ class RpcServerImpl;
 class RpcRespBroker: public IRpcRespBroker
 {
 public:
-    RpcRespBroker(RpcServerImpl *server, const std::string &conn_id, const std::string &req_id, bool needResp, mg_connection *http_conn);
+    RpcRespBroker(RpcServerConnWorker *conn_worker, const std::string &conn_id, const std::string &req_id, bool needResp, mg_connection *http_conn);
     bool response(const std::string &resp_data);
     bool isNeedResp();
     bool isFromHttp();
@@ -29,7 +29,7 @@ public:
     RpcRespBroker &operator=(const RpcRespBroker &) = delete;
 private:
     void sendHttpResp(mg_connection *conn, int status, const std::string &resp);
-    RpcServerImpl *m_server;
+    RpcServerConnWorker *m_connworker;
     std::string m_conn_id;
     std::string m_req_id;
     bool m_need_resp;

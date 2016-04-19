@@ -49,7 +49,7 @@ static void ev_handler(struct mg_connection *conn, int ev, void *ev_data) {
           std::string method_name = url_string.substr(service_pos + 1, url_string.size());
           IService *p_service = server->getService(service_name);
           if (p_service != nullptr) {
-            IRpcRespBrokerPtr rpcbroker = std::make_shared<RpcRespBroker>(server, "http_connection", "http_request",true, conn);
+            IRpcRespBrokerPtr rpcbroker = std::make_shared<RpcRespBroker>(nullptr, "http_connection", "http_request",true, conn);
             std::string req_data(hm->body.p, hm->body.len);
             std::string resp_data;
             std::chrono::system_clock::time_point begin_call_timepoint = std::chrono::system_clock::now();
@@ -85,7 +85,6 @@ static void ev_handler(struct mg_connection *conn, int ev, void *ev_data) {
               default:
                 break;
             }
-            //mp->calcCallTime();
           }
           else {
             RPC_LOG(RPC_LOG_LEV::WARNING, "[HTTP]Unknow service request #%s#", service_name.c_str());

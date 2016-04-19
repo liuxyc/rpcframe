@@ -20,7 +20,7 @@ class RpcServerImpl;
 class RpcServerConn
 {
 public:
-    RpcServerConn(int fd, uint32_t seqid, RpcServerImpl *server);
+    RpcServerConn(int fd, const char *seqid, RpcServerImpl *server);
     ~RpcServerConn();
 
     pkg_ret_t getRequest();

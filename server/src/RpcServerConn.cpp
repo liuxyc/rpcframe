@@ -20,7 +20,7 @@
 namespace rpcframe
 {
 
-RpcServerConn::RpcServerConn(int fd, uint32_t seqid, RpcServerImpl *server)
+RpcServerConn::RpcServerConn(int fd, const char *id, RpcServerImpl *server)
 : m_fd(fd)
 , m_cur_left_len(0)
 , m_cur_pkg_size(0)
@@ -33,7 +33,8 @@ RpcServerConn::RpcServerConn(int fd, uint32_t seqid, RpcServerImpl *server)
 {
     //generate a connection id, this id used for track and identify RpcServerConn instance
     m_seqid = std::to_string(std::time(nullptr)) + "_";
-    m_seqid += std::to_string(seqid) + "_";
+    m_seqid += id;
+    m_seqid += "_";
     m_seqid += std::to_string(fd);
 }
 

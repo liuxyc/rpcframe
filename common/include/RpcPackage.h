@@ -12,6 +12,8 @@
 namespace rpcframe
 {
 
+class RpcServerConnWorker;
+
 enum class PkgIOStatus {
   FAIL = -1,
   PARTIAL = -2,
@@ -23,9 +25,10 @@ class request_pkg
 {
 public:
     request_pkg(uint32_t size, std::string conn_id)
-    : connection_id(conn_id)
-    , data(nullptr)
+    : data(nullptr)
     , data_len(size)
+    , connection_id(conn_id)
+    , conn_worker(nullptr)
     {
         data = new char[size];
     };
@@ -33,9 +36,10 @@ public:
     {
         delete [] data;
     };
-    std::string connection_id;
     char *data;
     uint32_t data_len;
+    std::string connection_id;
+    RpcServerConnWorker *conn_worker;
     std::chrono::system_clock::time_point gen_time;
 
     request_pkg(const request_pkg &) = delete;

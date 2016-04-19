@@ -10,6 +10,7 @@
 #include "IService.h"
 #include "RpcServerImpl.h"
 #include "RpcServerConn.h"
+#include "RpcServerConnWorker.h"
 #include "RpcServerConfig.h"
 #include "IRpcRespBroker.h"
 #include <unistd.h>
@@ -41,13 +42,17 @@ public:
         resp_data += "<h3>Pid:" + std::to_string(getpid()) + "</h3>";
         resp_data += "<h3>Running:" + std::to_string(!m_rpc_server->m_stop) + "</h3>";
         resp_data += "<h3>Worker num:" + std::to_string(m_rpc_server->m_worker_vec.size()) + "</h3>";
+        resp_data += "<h3>Conn Worker num:" + std::to_string(m_rpc_server->m_connworker.size()) + "</h3>";
         resp_data += "<h3>Max conn limit:" + std::to_string(m_rpc_server->m_cfg.m_max_conn_num) + "</h3>";
         resp_data += "<h3>Rejected conn num:" + std::to_string(m_rpc_server->rejected_conn) + "</h3>";
-        resp_data += "<h3>Current conn num:" + std::to_string(m_rpc_server->m_conn_map.size()) + "</h3>";
-        for(auto conn: m_rpc_server->m_conn_set) {
-          resp_data += "&nbsp;&nbsp;conn id:" + conn.first + " fd:" + std::to_string(conn.second->getFd()) + "</br>";
+        for(auto connw: m_rpc_server->getConnWorker()) {
+          std::vector<std::string> conn_ids;
+          connw->dumpConnIDs(conn_ids);
+          for(auto id: conn_ids) {
+            resp_data += "&nbsp;&nbsp;conn id:" + id + "</br>";
+          }
         }
-        resp_data += "<h3>Seqid:" + std::to_string(m_rpc_server->m_seqid) + "</h3>";
+        resp_data += "<h3>Current conn num:" + std::to_string(m_rpc_server->GetConnCount()) + "</h3>";
         resp_data += "<h3>Req Q size:" + std::to_string(m_rpc_server->m_request_q.size()) + "</h3>";
         resp_data += "<h3>Req InQueue fail num:" + std::to_string(m_rpc_server->req_inqueue_fail) + "</h3>";
         resp_data += "<h3>Resp Q size:" + std::to_string(m_rpc_server->m_response_q.size()) + "</h3>";
@@ -59,7 +64,6 @@ public:
         resp_data += "<h3>Avg Resp wait time:" + std::to_string(m_rpc_server->avg_resp_wait_time) + "ms</h3>";
         resp_data += "<h3>Avg Call time:" + std::to_string(m_rpc_server->avg_call_time) + "ms</h3>";
         resp_data += "<h3>Longest Call time:" + std::to_string(m_rpc_server->max_call_time) + "ms</h3>";
-        resp_data += "<h3>epoll fd:" + std::to_string(m_rpc_server->m_epoll_fd) + "</h3>";
         resp_data += "<h3>Rpc listening on port:" + std::to_string(m_rpc_server->m_cfg.m_port) + " fd:" + std::to_string(m_rpc_server->m_listen_socket) + "</h3>";
         resp_data += "<h1>Service Status</h1>";
         for(auto srv: m_rpc_server->m_service_map) {

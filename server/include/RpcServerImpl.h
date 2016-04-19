@@ -14,13 +14,13 @@
 #include "SpinLock.h"
 #include "RpcDefs.h"
 #include "RpcPackage.h"
-//#include "RpcServerConfig.h"
 
 namespace rpcframe
 {
 
 class RpcServerConn;
 class RpcWorker;
+class RpcServerConnWorker;
 class IService;
 class RpcHttpServer;
 class RpcStatusService;
@@ -58,38 +58,30 @@ public:
     bool start();
     void stop();
 
-    void setSocketKeepAlive(int fd);
-    void removeConnection(int fd);
-    void addConnection(int fd, RpcServerConn *conn);
-    RpcServerConn *getConnection(int fd);
-    void pushResp(std::string seqid, RpcInnerResp &resp);
+    void DecConnCount();
+    void IncConnCount();
+    uint64_t GetConnCount();
     void calcReqQTime(uint64_t);
     void calcRespQTime(uint64_t);
     void calcCallTime(uint64_t);
+    void IncRejectedConn();
+    void IncReqInQFail();
+    void IncRespInQFail();
     const RpcServerConfig *getConfig();
+    std::vector<RpcServerConnWorker *> &getConnWorker();
 
 private:
     bool startListen();
-    void onDataOut(const int fd);
-    bool onDataOutEvent();
-    void onAccept();
-    void onDataIn(const int fd);
-
     RpcServerConfig &m_cfg;
     std::vector<RpcWorker *> m_worker_vec;
     ServiceMap m_service_map;
-    std::unordered_map<int, RpcServerConn *> m_conn_map;
-    std::unordered_map<std::string, RpcServerConn *> m_conn_set;
-    uint32_t m_seqid;
     ReqQueue m_request_q;
     RespQueue m_response_q;
-    Queue<std::string> m_resp_conn_q;
-    std::mutex m_mutex;
-    int m_epoll_fd;
     int m_listen_socket;
-    int m_resp_ev_fd;
     std::atomic<bool> m_stop;
+    std::atomic<uint64_t> m_conn_num;
     RpcHttpServer *m_http_server;
+    std::vector<RpcServerConnWorker *> m_connworker;
 
     uint64_t avg_req_wait_time;
     uint64_t avg_resp_wait_time;

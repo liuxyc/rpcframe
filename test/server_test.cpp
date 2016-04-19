@@ -93,7 +93,6 @@ public:
                                                 std::string &resp_data, 
                                                 rpcframe::IRpcRespBrokerPtr resp_broker) 
     {
-        //printf("my method1 get %s\n", request_data.c_str());
         resp_data = "my feedback_random_delay";
         //generate 0-5 seconds delay
         std::random_device rd;
@@ -114,7 +113,6 @@ public:
                                                         std::string &resp_data, 
                                                         rpcframe::IRpcRespBrokerPtr resp_broker) 
     {
-        //printf("my method1 get %s\n", request_data.c_str());
         resp_data = std::string(1024*1024*40, 'a');
         return rpcframe::RpcStatus::RPC_SERVER_OK;
     };

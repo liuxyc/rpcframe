@@ -15,6 +15,7 @@
 #include "RpcRespBroker.h"
 #include "RpcServerConn.h"
 #include "RpcServerImpl.h"
+#include "RpcServerConnWorker.h"
 #include "IService.h"
 #include "rpc.pb.h"
 #include "util.h"
@@ -57,7 +58,7 @@ void RpcWorker::run() {
             break;
         }
         std::shared_ptr<request_pkg> pkg = nullptr;
-        if (m_work_q->pop(pkg, 10)) {
+        if (m_work_q->pop(pkg, 100)) {
             auto during = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - pkg->gen_time);
             if (during.count() < 0) {
               during = during.zero();
@@ -67,8 +68,13 @@ void RpcWorker::run() {
             //must get request id from here
             RpcInnerReq req;
             if (!req.ParseFromArray(pkg->data, pkg->data_len)) {
-                RPC_LOG(RPC_LOG_LEV::ERROR, "parse internal pkg fail");
+                RPC_LOG(RPC_LOG_LEV::ERROR, "parse internal pkg fail %s", req.DebugString().c_str());
                 continue;
+            }
+            RpcServerConnWorker *connworker = pkg->conn_worker;
+            if(connworker == nullptr) {
+              RPC_LOG(RPC_LOG_LEV::ERROR, "connworker is null, %s %s", req.method_name().c_str(), req.request_id().c_str());
+              continue;
             }
             RPC_LOG(RPC_LOG_LEV::DEBUG, "req %s:%s stay: %d ms", req.request_id().c_str(), req.method_name().c_str(), during.count());
             std::string resp_data;
@@ -76,7 +82,7 @@ void RpcWorker::run() {
             RpcInnerResp resp;
             resp.set_request_id(req.request_id());
             if (p_service != nullptr) {
-                IRpcRespBrokerPtr rpcbroker = std::make_shared<RpcRespBroker>(m_server, 
+                IRpcRespBrokerPtr rpcbroker = std::make_shared<RpcRespBroker>(connworker, 
                     pkg->connection_id,
                     req.request_id(),
                     (req.type() == RpcInnerReq::TWO_WAY), nullptr);
@@ -125,7 +131,7 @@ void RpcWorker::run() {
             if (req.type() == RpcInnerReq::TWO_WAY) {
                 resp.set_data(resp_data);
                 //put response to connection queue, max worker throughput
-                m_server->pushResp(pkg->connection_id, resp);
+                connworker->pushResp(pkg->connection_id, resp);
             }
         } 
         else {

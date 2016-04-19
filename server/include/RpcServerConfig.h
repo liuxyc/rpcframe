@@ -13,6 +13,7 @@
 
 namespace rpcframe
 {
+
 class RpcServerConfig
 {
 public:
@@ -20,6 +21,8 @@ public:
     ~RpcServerConfig();
     void setThreadNum(uint32_t thread_num);
     uint32_t getThreadNum();
+    void setConnThreadNum(uint16_t thread_num);
+    uint16_t getConnThreadNum();
     void setMaxConnection(uint32_t max_conn_num);
     void setMaxReqPkgSize(uint32_t max_req_size);
     void setMaxReqQSize(uint32_t max_req_qsize);
@@ -35,6 +38,7 @@ public:
     int m_http_port;
     int m_http_thread_num;
     std::atomic<uint32_t> m_max_req_qsize;
+    uint16_t m_conn_thread_num;
 };
 
 };

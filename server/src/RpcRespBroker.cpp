@@ -10,19 +10,19 @@
 #include <unistd.h>
 
 #include "RpcPackage.h"
-#include "RpcServerImpl.h"
 #include "rpc.pb.h"
 #include "mongoose.h"
+#include "RpcServerConnWorker.h"
 
 namespace rpcframe
 {
 
-RpcRespBroker::RpcRespBroker(RpcServerImpl *server, 
+RpcRespBroker::RpcRespBroker(RpcServerConnWorker *conn_worker,
                              const std::string &conn_id, 
                              const std::string &req_id, 
                              bool needResp,
                              mg_connection *http_conn) 
-: m_server(server)
+: m_connworker(conn_worker)
 , m_conn_id(conn_id)
 , m_req_id(req_id)
 , m_need_resp(needResp)
@@ -50,7 +50,7 @@ bool RpcRespBroker::response(const std::string &resp_data) {
             resp.set_data(resp_data);
 
             //put response to connection queue
-            m_server->pushResp(m_conn_id, resp);
+            m_connworker->pushResp(m_conn_id, resp);
         }
     }
     else {

@@ -120,7 +120,7 @@ TEST(ClientTest, big_resp)
 
   rpcframe::RpcClient client(ccfg, "test_service");
   //async with big resp
-  int pkg_cnt = 200;
+  int pkg_cnt = 100;
   for (int pcnt = 0; pcnt < pkg_cnt; ++pcnt) {
     ASSERT_EQ(rpcframe::RpcStatus::RPC_SEND_OK, client.async_call("test_method_big_resp", "req big async", 50, pCB));
   }

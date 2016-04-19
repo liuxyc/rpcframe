@@ -70,6 +70,8 @@ ADD_EXECUTABLE(common_test ${TEST_DIR}/common_test.cpp)
 TARGET_LINK_LIBRARIES(common_test rpcframe gtest gtest_main protobuf pthread)
 
 ADD_EXECUTABLE(server_test ${TEST_DIR}/server_test.cpp)
+#set (CMAKE_EXE_LINKER_FLAGS "-Wl,--no-as-needed")
+#TARGET_LINK_LIBRARIES(server_test rpcframe protobuf pthread profiler)
 TARGET_LINK_LIBRARIES(server_test rpcframe protobuf pthread)
 
 ADD_EXECUTABLE(client_test ${TEST_DIR}/client_test.cpp)
