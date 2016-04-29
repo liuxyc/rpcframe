@@ -207,7 +207,7 @@ void RpcServerImpl::calcReqQTime(uint64_t req_time)
     }
     ++total_req_num;
   }
-  RPC_LOG(RPC_LOG_LEV::DEBUG, "avg req wait: %llu ms", avg_req_wait_time);
+  //RPC_LOG(RPC_LOG_LEV::DEBUG, "avg req wait: %llu ms", avg_req_wait_time);
 }
 
 
@@ -223,8 +223,7 @@ void RpcServerImpl::calcRespQTime(uint64_t resp_time)
     }
     ++total_resp_num;
   }
-  RPC_LOG(RPC_LOG_LEV::DEBUG, "avg resp wait: %llu ms", avg_resp_wait_time);
-
+  //RPC_LOG(RPC_LOG_LEV::DEBUG, "avg resp wait: %llu ms", avg_resp_wait_time);
 }
 
 void RpcServerImpl::calcCallTime(uint64_t call_time)
@@ -242,7 +241,7 @@ void RpcServerImpl::calcCallTime(uint64_t call_time)
       max_call_time = call_time;
     }
   }
-  RPC_LOG(RPC_LOG_LEV::DEBUG, "avg call time: %llu ms", avg_call_time);
+  //RPC_LOG(RPC_LOG_LEV::DEBUG, "avg call time: %llu ms", avg_call_time);
 }
 
 void RpcServerImpl::IncRejectedConn()

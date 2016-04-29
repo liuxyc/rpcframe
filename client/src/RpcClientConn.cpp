@@ -53,7 +53,7 @@ bool RpcClientConn::readPkgLen(uint32_t &pkg_len)
         int rev_size = recv(m_fd, p + recved, recv_left, 0);  
         if (rev_size <= 0) {
             if (rev_size == 0) {
-                RPC_LOG(RPC_LOG_LEV::WARNING, "recv pkg peer close %s", strerror(errno));
+                RPC_LOG(RPC_LOG_LEV::WARNING, "recv pkg peer close");
                 return false;
             }
             if( errno == EAGAIN || errno == EINTR) {
@@ -91,7 +91,7 @@ PkgIOStatus RpcClientConn::readPkgData()
     int rev_size = recv(m_fd, m_rpk->data + (m_cur_pkg_size - m_cur_left_len), m_cur_left_len, 0);  
     if (rev_size <= 0) {
         if (rev_size == 0) {
-            RPC_LOG(RPC_LOG_LEV::WARNING, "recv pkg peer close %s", strerror(errno));
+            RPC_LOG(RPC_LOG_LEV::WARNING, "recv pkg peer close");
             return PkgIOStatus::FAIL;
         }
         if( errno == EAGAIN || errno == EINTR) {

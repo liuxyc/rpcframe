@@ -18,6 +18,7 @@ enum class PkgIOStatus {
   FAIL = -1,
   PARTIAL = -2,
   TIME_OUT = -3,
+  NODATA = -4,
   FULL = 0,
 };
 

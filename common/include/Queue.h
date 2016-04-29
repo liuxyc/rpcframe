@@ -35,7 +35,7 @@ public:
         return true;
     }
 
-    bool peak(T& item)
+    bool peek(T& item)
     {
         std::unique_lock<std::mutex> mlock(m_mutex);
         if (m_queue.empty()) {

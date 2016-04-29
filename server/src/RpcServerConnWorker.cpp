@@ -47,6 +47,7 @@ RpcServerConnWorker::~RpcServerConnWorker() {
 }
 
 void RpcServerConnWorker::onDataOut(const int fd) {
+  //RPC_LOG(RPC_LOG_LEV::DEBUG, "onDataOut %d", fd);
   auto conn_iter = m_conn_map.find(fd);
   if (conn_iter != m_conn_map.end()) {
     RpcServerConn *conn = conn_iter->second;
@@ -55,23 +56,34 @@ void RpcServerConnWorker::onDataOut(const int fd) {
       removeConnection(fd);
     }
     else if (sent_ret == PkgIOStatus::PARTIAL){
-      //partial data sent or there is no data to send
-      //FIXME: seprarte return status for 'no data sent'?
-      //RPC_LOG(RPC_LOG_LEV::DEBUG, "OUT sent partial to %d", fd);
+      RPC_LOG(RPC_LOG_LEV::DEBUG, "OUT sent partial to %d", fd);
     }
-    else {
-      //RPC_LOG(RPC_LOG_LEV::DEBUG, "OUT sent to %d", fd);
-      //send full resp, remove EPOLLOUT flag
+    else if (sent_ret == PkgIOStatus::NODATA){
       struct epoll_event event_mod;  
       memset(&event_mod, 0, sizeof(event_mod));
       event_mod.data.fd = fd;
       event_mod.events = EPOLLIN | EPOLLET;
       epoll_ctl(m_epoll_fd, EPOLL_CTL_MOD, event_mod.data.fd, &event_mod);
     }
+    else {
+      RPC_LOG(RPC_LOG_LEV::DEBUG, "OUT sent to %d", fd);
+      //send full resp, remove EPOLLOUT flag
+      if(conn->m_response_q.size() == 0) {
+        struct epoll_event event_mod;  
+        memset(&event_mod, 0, sizeof(event_mod));
+        event_mod.data.fd = fd;
+        event_mod.events = EPOLLIN | EPOLLET;
+        epoll_ctl(m_epoll_fd, EPOLL_CTL_MOD, event_mod.data.fd, &event_mod);
+      }
+    }
+  }
+  else {
+    RPC_LOG(RPC_LOG_LEV::DEBUG, "not found connection of %d", fd);
   }
 }
 
 bool RpcServerConnWorker::onDataOutEvent() {
+  RPC_LOG(RPC_LOG_LEV::DEBUG, "onDataOutEvent");
   eventfd_t resp_cnt = -1;
   if (eventfd_read(m_resp_ev_fd, &resp_cnt) == -1) {
     RPC_LOG(RPC_LOG_LEV::ERROR, "read resp event fail");
@@ -80,56 +92,27 @@ bool RpcServerConnWorker::onDataOutEvent() {
 
   std::string connid;
   std::unordered_map<std::string, RpcServerConn *>::iterator conn_iter;
-  //if the connection still sending data,
-  //we put the event back, wait for next chance
-  if (m_resp_conn_q.peak(connid)) {
+  if (m_resp_conn_q.pop(connid, 0)) {
+    ReadLockGuard rg(m_conn_rwlock);
     conn_iter = m_conn_set.find(connid);
     if (conn_iter != m_conn_set.end()) {
       RpcServerConn *conn = conn_iter->second;
-      if(conn->isSending()) {
-        //RPC_LOG(RPC_LOG_LEV::DEBUG, "still sending pkg");
-        //keep eventfd filled with the count of ready connection
-        resp_cnt = 1;
-        if( eventfd_write(m_resp_ev_fd, resp_cnt) == -1) {
-          RPC_LOG(RPC_LOG_LEV::ERROR, "write resp event fd fail");
-        }
-        return false;
-      }
-    }
-  }
-
-  if (m_resp_conn_q.pop(connid, 0)) {
-    if (conn_iter != m_conn_set.end()) {
-      //we have resp data to send
-      RpcServerConn *conn = conn_iter->second;
-      //RPC_LOG(RPC_LOG_LEV::DEBUG, "conn %s resp queue len %lu", 
-      //conn->m_seqid.c_str(), 
-      //conn->m_response_q.size());
-      PkgIOStatus sent_ret = conn->sendResponse();
-      if (sent_ret == PkgIOStatus::FAIL ) {
-        removeConnection(conn->getFd());
-      }
-      else if ( sent_ret == PkgIOStatus::PARTIAL ){
-        //RPC_LOG(RPC_LOG_LEV::DEBUG, "sent partial to %d", conn->getFd());
-        //send not finish, set EPOLLOUT flag on this fd, 
-        //until this resp send finish
+      if(!conn->isSending()) {
         struct epoll_event ev;  
         memset(&ev, 0, sizeof(ev));
-        ev.events = EPOLLIN | EPOLLOUT | EPOLLET;
+        ev.events = EPOLLIN | EPOLLOUT;
         ev.data.fd = conn->getFd();
         epoll_ctl(m_epoll_fd, EPOLL_CTL_MOD, ev.data.fd, &ev);  
       }
-      else {
-        //RPC_LOG(RPC_LOG_LEV::DEBUG, "sent to %d\n", conn->getFd());
-        //send full resp finish, try remove EPOLLOUT flag if it already set
-        struct epoll_event event_mod;  
-        memset(&event_mod, 0, sizeof(event_mod));
-        event_mod.data.fd = conn->getFd();
-        event_mod.events = EPOLLIN | EPOLLET;
-        epoll_ctl(m_epoll_fd, EPOLL_CTL_MOD, event_mod.data.fd, &event_mod);
-      }
+    }
+    else {
+      RPC_LOG(RPC_LOG_LEV::DEBUG, " not found connection for %s", connid.c_str());
     }
   }
+  else {
+    RPC_LOG(RPC_LOG_LEV::DEBUG, "can not peek connection for %s", connid.c_str());
+  }
+
   return true;
 }
 
@@ -171,30 +154,39 @@ void RpcServerConnWorker::onAccept() {
 
 void RpcServerConnWorker::onDataIn(const int fd) {
   //data come in
+  RPC_LOG(RPC_LOG_LEV::DEBUG, "data coming in");
   RpcServerConn *conn = getConnection(fd);
   if (conn == nullptr) {
-    //RPC_LOG(RPC_LOG_LEV::WARNING, "rpc server socket already disconnected: %d", fd);  
+    RPC_LOG(RPC_LOG_LEV::INFO, "rpc server socket already disconnected: %d", fd);  
   }
   else {
-    pkg_ret_t pkgret = conn->getRequest();
-    if( pkgret.first < 0 )  
-    {  
-      RPC_LOG(RPC_LOG_LEV::WARNING, "rpc server socket disconnected: %d", fd);  
-      removeConnection(fd);
-    }  
-    else 
-    {  
-      if (pkgret.second != nullptr) {
-        pkgret.second->gen_time = std::chrono::system_clock::now();
-        pkgret.second->conn_worker = this;
-        //got a full request, put to worker queue
-        if ( !m_req_q->push(pkgret.second)) {
-          //queue fail, drop pkg
-          RPC_LOG(RPC_LOG_LEV::WARNING, "server queue fail, drop pkg");
-          m_server->IncReqInQFail();
+    while(1) {
+      pkg_ret_t pkgret = conn->getRequest();
+      if( pkgret.first < 0 )  
+      {  
+        RPC_LOG(RPC_LOG_LEV::INFO, "rpc server socket disconnected: %d", fd);  
+        removeConnection(fd);
+        break;
+      }  
+      else 
+      {  
+        if(pkgret.second != nullptr) {
+          pkgret.second->gen_time = std::chrono::system_clock::now();
+          pkgret.second->conn_worker = this;
+          //got a full request, put to worker queue
+          if ( !m_req_q->push(pkgret.second)) {
+            //queue fail, drop pkg
+            RPC_LOG(RPC_LOG_LEV::WARNING, "server queue fail, drop pkg");
+            m_server->IncReqInQFail();
+          }
         }
+        else {
+          if(pkgret.first == 0) {
+            break;
+          }
+        }  
       }
-    }  
+    }
   }
 }
 
@@ -246,45 +238,44 @@ bool RpcServerConnWorker::start(int listen_fd)
   struct epoll_event events[RPC_MAX_SOCKFD_COUNT];  
   while(!m_stop) {
     int nfds = epoll_wait(m_epoll_fd, events, RPC_MAX_SOCKFD_COUNT, 2000);  
-    if ( nfds == -1) {
+    if( nfds == -1) {
       if( m_stop ) {
         break;
       }
       RPC_LOG(RPC_LOG_LEV::ERROR, "epoll_wait");
     }
-    for (int i = 0; i < nfds; i++)  
+    for(int i = 0; i < nfds; i++)  
     {  
       int client_socket = events[i].data.fd;  
-
-      if (events[i].events & EPOLLOUT)
-      {  
-        onDataOut(client_socket);
+      if(client_socket == m_listen_socket) {
+        onAccept();
       }
-
-      //event fd, we have data to send
-      if (events[i].events & EPOLLIN)
-      {  
-        if (client_socket == m_resp_ev_fd) {
-          if (!onDataOutEvent()) {
+      else {
+        //event fd, we have data to send
+        if(events[i].events & EPOLLIN)
+        {  
+          if(client_socket == m_resp_ev_fd) {
+            onDataOutEvent();
             continue;
           }
-        }
-        else if (client_socket == m_listen_socket) {
-          onAccept();
-        }
-        else {
-          onDataIn(client_socket);
-        }
-      }  
+          else {
+            onDataIn(client_socket);
+          }
+        }  
 
-      if (events[i].events & EPOLLERR) {
-        RPC_LOG(RPC_LOG_LEV::ERROR, "EPOLL ERROR");
-      }
-      if (events[i].events & EPOLLHUP) {
-        RPC_LOG(RPC_LOG_LEV::ERROR, "EPOLL HUP");
+        if(events[i].events & EPOLLOUT)
+        {  
+          onDataOut(client_socket);
+        }
+
+        if(events[i].events & EPOLLERR) {
+          RPC_LOG(RPC_LOG_LEV::ERROR, "EPOLL ERROR");
+        }
+        if(events[i].events & EPOLLHUP) {
+          RPC_LOG(RPC_LOG_LEV::ERROR, "EPOLL HUP");
+        }
       }
     }  
-    //RPC_LOG(RPC_LOG_LEV::DEBUG, "server eloop request queue len %lu", m_request_q.size());
   }
   return true;
 }
@@ -359,6 +350,7 @@ void RpcServerConnWorker::pushResp(std::string conn_id, RpcInnerResp &resp)
       if( eventfd_write(m_resp_ev_fd, resp_cnt) == -1) {
         RPC_LOG(RPC_LOG_LEV::ERROR, "write resp event fd fail");
       }
+      RPC_LOG(RPC_LOG_LEV::DEBUG, "push %s resp inqueue fd:%d", resp.request_id().c_str(), conn->getFd());
     }
     else {
       RPC_LOG(RPC_LOG_LEV::WARNING, "connection %s gone, drop resp", conn_id.c_str());

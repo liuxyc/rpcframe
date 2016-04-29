@@ -15,6 +15,8 @@
 
 namespace rpcframe {
 
+RPC_LOG_LEV g_log_level = RPC_LOG_LEV::INFO;
+
 bool getHostIp(std::string &str_ip) {
     char hname[256] = {0};
 
@@ -68,6 +70,9 @@ bool getHostIpByName(std::string &str_ip, const char *hname) {
 std::vector<std::string> log_level_map = {"DEBUG", "INFO", "WARNING", "ERROR", "FATAL"};
 
 void RPC_LOG_FUNC(RPC_LOG_LEV level, const char* func_name, const char *format, ... ){
+  if(level < g_log_level) {
+    return;
+  }
   char logbuf[4096] = {0};
   va_list arglist;
   va_start( arglist, format );

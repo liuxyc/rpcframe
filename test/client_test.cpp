@@ -287,7 +287,7 @@ TEST(ClientTest, random_timeout)
   }
 }
     
-TEST(ClientTest, server_asyc_back)
+TEST(ClientTest, server_async_back)
 {
   auto endp = std::make_pair("localhost", 8801);
   rpcframe::RpcClientConfig ccfg(endp);
@@ -295,7 +295,7 @@ TEST(ClientTest, server_asyc_back)
   std::shared_ptr<success_CB> pCB(new success_CB());
   pCB->setShared(true);
   //send request to async server
-  //server will send response in aync way, client side not aware of that.
+  //server will send response in async way, client side not aware of that.
   rpcframe::RpcClient client_call_async_server(ccfg, "test_service_async");
   std::string resp_data;
   //request a server side async response, server will response after 5 seconds,
@@ -305,7 +305,6 @@ TEST(ClientTest, server_asyc_back)
   ASSERT_EQ(rpcframe::RpcStatus::RPC_SERVER_OK, client_call_async_server.call("test_method_async", std::string(10, '*'), resp_data, 20));
   ASSERT_EQ(resp_data, "my feedback async");
   client_call_async_server.waitAllCBDone(5);
-
 }
 
 TEST(ClientTest, concurrent_conn)

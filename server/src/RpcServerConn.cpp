@@ -75,37 +75,42 @@ bool RpcServerConn::readPkgLen(uint32_t &pkg_len)
     char *data_ptr = (char *)&data;
     while(1) {
       int rev_size = recv(m_fd, data_ptr + (sizeof(data) - left_size), left_size, 0);  
-      if (rev_size <= 0) {
+      if (rev_size == 0 && left_size != 0) {
+        RPC_LOG(RPC_LOG_LEV::INFO, "Peer disconected");
+        return false;
+      }
+      if (rev_size < 0) {
         if( errno == EAGAIN || errno == EINTR) {
           //ET trigger case
           //will continue until we read the full package length
-          RPC_LOG(RPC_LOG_LEV::DEBUG, "recv data too small %d, try again", rev_size);
+          //RPC_LOG(RPC_LOG_LEV::DEBUG, "recv data too small %d, try again", rev_size);
+          if( left_size == sizeof(data) ) {
+            //no avaliable data
+            return true;
+          }
         }
         else {
-          if (rev_size == 0) {
-            //RPC_LOG(RPC_LOG_LEV::WARNING, "Peer disconected");
-          }
-          else {
-            RPC_LOG(RPC_LOG_LEV::ERROR, "try recv pkg len error %s, need recv %d:%d", strerror(errno), left_size, rev_size);
-          }
+          RPC_LOG(RPC_LOG_LEV::ERROR, "try recv pkg len error %s, need recv %d:%d", strerror(errno), left_size, rev_size);
           return false;
         }
       }
-      left_size -= rev_size;
-      if(left_size == 0) {
-        pkg_len = ntohl(data);
-        return true;
+      else {
+        left_size -= rev_size;
+        if(left_size == 0) {
+          pkg_len = ntohl(data);
+          return true;
+        }
+        if( left_size > 0 )
+        {  
+          RPC_LOG(RPC_LOG_LEV::DEBUG, "recv data too small %d, try again %d left", rev_size, left_size);
+          continue;
+        }  
+        if( left_size < 0 )
+        {  
+          RPC_LOG(RPC_LOG_LEV::DEBUG, "recv wrong hdr %d, close fd %d", rev_size, m_fd);
+          return false;
+        }  
       }
-      if( left_size > 0 )
-      {  
-        RPC_LOG(RPC_LOG_LEV::DEBUG, "recv data too small %d, try again %d left", rev_size, left_size);
-        continue;
-      }  
-      if( left_size < 0 )
-      {  
-        RPC_LOG(RPC_LOG_LEV::DEBUG, "recv wrong hdr %d, close fd %d", rev_size, m_fd);
-        return false;
-      }  
     }
     return false;
 }
@@ -124,12 +129,17 @@ PkgIOStatus RpcServerConn::readPkgData()
     while(1) {
       int rev_size = recv(m_fd, m_rpk->data + (m_cur_pkg_size - m_cur_left_len), m_cur_left_len, 0);  
       if (rev_size <= 0) {
+        if(rev_size == 0 && m_cur_left_len !=0) {
+          RPC_LOG(RPC_LOG_LEV::ERROR, "peer disconnected");
+          return PkgIOStatus::FAIL;
+        }
         if( errno == EAGAIN) {
           //for ET case
-          m_cur_left_len -= rev_size;
+          RPC_LOG(RPC_LOG_LEV::DEBUG, " half pkg got %d/%d need %d more", rev_size, m_cur_pkg_size, m_cur_left_len);
           return PkgIOStatus::PARTIAL;
         }
-        else if(  errno == EINTR ) {
+        else if(errno == EINTR) {
+          continue;
         }
         else {
           RPC_LOG(RPC_LOG_LEV::ERROR, "recv pkg error %s", strerror(errno));
@@ -137,14 +147,14 @@ PkgIOStatus RpcServerConn::readPkgData()
         }
       }
       if ((uint32_t)rev_size == m_cur_left_len) {
-        //RPC_LOG(RPC_LOG_LEV::DEBUG, "got full pkg");
+        RPC_LOG(RPC_LOG_LEV::DEBUG, "got full pkg");
         m_cur_left_len = 0;
         m_cur_pkg_size = 0;
         return PkgIOStatus::FULL;
       }
       else {
         m_cur_left_len -= rev_size;
-        //RPC_LOG(RPC_LOG_LEV::DEBUG, " half pkg got %d/%d need %d more", rev_size, m_cur_pkg_size, m_cur_left_len);
+        RPC_LOG(RPC_LOG_LEV::DEBUG, " half pkg got %d/%d need %d more", rev_size, m_cur_pkg_size, m_cur_left_len);
         //NOTICE:consider as EAGAIN
         return PkgIOStatus::PARTIAL;
       }
@@ -161,7 +171,7 @@ pkg_ret_t RpcServerConn::getRequest()
         if (m_cur_pkg_size == 0) {
             return pkg_ret_t(0, nullptr);
         }
-        //RPC_LOG(RPC_LOG_LEV::DEBUG, "pkg len is %d", m_cur_pkg_size);
+        RPC_LOG(RPC_LOG_LEV::DEBUG, "pkg len is %d", m_cur_pkg_size);
         if(m_cur_pkg_size > MAX_REQ_LIMIT_BYTE) {
           RPC_LOG(RPC_LOG_LEV::WARNING, "request %s too large %llu > %llu", m_seqid.c_str(), m_cur_pkg_size, MAX_REQ_LIMIT_BYTE);
           return pkg_ret_t(-1, nullptr);
@@ -183,7 +193,6 @@ pkg_ret_t RpcServerConn::getRequest()
     }
     else {
         std::shared_ptr<request_pkg> p_rpk(m_rpk);
-        //FIXME:
         m_rpk = nullptr;
         return pkg_ret_t(0, p_rpk);
     }
@@ -199,17 +208,15 @@ PkgIOStatus RpcServerConn::sendData()
         MSG_NOSIGNAL | MSG_DONTWAIT);  
     //for <= 0 cases
     if (slen <= 0) {
-      if (errno == EAGAIN) {
-        //ET trigger case
-        m_sent_len += slen;
-        return PkgIOStatus::PARTIAL;
-      }
       if (slen == 0 || errno == EPIPE) {
-        RPC_LOG(RPC_LOG_LEV::WARNING, "peer closed");
+        RPC_LOG(RPC_LOG_LEV::INFO, "peer closed");
         return PkgIOStatus::FAIL;
       }
+      if (errno == EAGAIN) {
+        //ET trigger case
+        return PkgIOStatus::PARTIAL;
+      }
       if( errno == EINTR) {
-        m_sent_len += slen;
         continue;
       }
       else {
@@ -220,13 +227,13 @@ PkgIOStatus RpcServerConn::sendData()
     //for > 0 case
     m_sent_len += slen;
     if (m_sent_pkg->data_len == m_sent_len) {
-      //RPC_LOG(RPC_LOG_LEV::DEBUG, "full send %d", m_sent_len);
+      RPC_LOG(RPC_LOG_LEV::DEBUG, "full send %d", m_sent_len);
       m_sent_pkg = nullptr;
       m_sent_len = 0;
       return PkgIOStatus::FULL;
     }
     else {
-      //RPC_LOG(RPC_LOG_LEV::DEBUG, "left send %d", m_sent_pkg->data_len - m_sent_len);
+      RPC_LOG(RPC_LOG_LEV::DEBUG, "left send %d", m_sent_pkg->data_len - m_sent_len);
       //NOTICE:consider as EAGAIN
       return PkgIOStatus::PARTIAL;
     }
@@ -257,7 +264,7 @@ PkgIOStatus RpcServerConn::sendResponse()
             return sendData();
         }
     }
-    return PkgIOStatus::PARTIAL;
+    return PkgIOStatus::NODATA;
 }
 
 bool RpcServerConn::isSending() const {

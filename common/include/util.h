@@ -26,6 +26,7 @@ enum class RPC_LOG_LEV
 
 extern std::vector<std::string> log_level_map;
 
+extern RPC_LOG_LEV g_log_level;
 
 extern void RPC_LOG_FUNC(RPC_LOG_LEV level, const char *func_name, const char *format, ... );
 

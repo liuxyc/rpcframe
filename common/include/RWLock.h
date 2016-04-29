@@ -36,7 +36,7 @@ class RWLock
 class ReadLockGuard
 {
   public:
-    ReadLockGuard(RWLock& lock) 
+    explicit ReadLockGuard(RWLock& lock) 
     : m_lock(lock)
     {
       m_lock.lock_read();
@@ -54,7 +54,7 @@ class ReadLockGuard
 class WriteLockGuard
 {
   public:
-    WriteLockGuard(RWLock& lock) 
+    explicit WriteLockGuard(RWLock& lock) 
     : m_lock(lock)
     {
       m_lock.lock_write();
