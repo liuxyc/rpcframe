@@ -50,11 +50,10 @@ static void ev_handler(struct mg_connection *conn, int ev, void *ev_data) {
           IService *p_service = server->getService(service_name);
           if (p_service != nullptr) {
             IRpcRespBrokerPtr rpcbroker = std::make_shared<RpcRespBroker>(nullptr, "http_connection", "http_request",true, conn);
-            std::string req_data(hm->body.p, hm->body.len);
-            std::string resp_data;
             std::chrono::system_clock::time_point begin_call_timepoint = std::chrono::system_clock::now();
             RpcMethodStatusPtr method_status = nullptr;
-            RpcStatus ret = p_service->runMethod(method_name, req_data, resp_data, rpcbroker, method_status) ;
+            RawData rd(hm->body.p, hm->body.len);
+            RpcStatus ret = p_service->runMethod(method_name, rd, rpcbroker, method_status) ;
             auto during = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - begin_call_timepoint);
             if(method_status->enabled) {
               if (during.count() < 0) {
@@ -64,6 +63,7 @@ static void ev_handler(struct mg_connection *conn, int ev, void *ev_data) {
               method_status->calcCallTime(during.count());
               ++(method_status->call_from_http_num);
             }
+            std::string resp_data(dynamic_cast<RpcRespBroker *>(rpcbroker.get())->getUserData());
             switch (ret) {
               case RpcStatus::RPC_SERVER_OK:
                 sendHttpResp(conn, 200, resp_data);

@@ -42,17 +42,17 @@ public:
      * @param status
      * @param response_data
      */
-    virtual void callback(const RpcStatus status, const std::string &response_data) = 0;
+    virtual void callback(const RpcStatus status, const RawData &) = 0;
 
-    void callback_safe(const RpcStatus status, const std::string &response_data) {
+    void callback_safe(const RpcStatus status, const RawData &resp_data) {
         //if a callback instance shared by many call, not use internal "m_is_done"
         if (m_is_shared) {
-            callback(status, response_data);
+            callback(status, resp_data);
         } 
         else {
             std::lock_guard<std::mutex> lock(m_mutex);
             if (!m_is_done) {
-                callback(status, response_data);
+                callback(status, resp_data);
                 m_is_done = true;
             }
         }
@@ -140,7 +140,7 @@ public:
      *
      * @return 
      */
-    RpcStatus call(const std::string &method_name, const std::string &request_data, std::string &response_data, uint32_t timeout);
+    RpcStatus call(const std::string &method_name, const RawData &request_data, RawData &, uint32_t timeout);
 
     /**
      * @brief async call, not thread safe
@@ -152,7 +152,7 @@ public:
      *
      * @return 
      */
-    RpcStatus async_call(const std::string &method_name, const std::string &request_data, uint32_t timeout, std::shared_ptr<RpcClientCallBack> cb_obj);
+    RpcStatus async_call(const std::string &method_name, const RawData &request_data, uint32_t timeout, std::shared_ptr<RpcClientCallBack> cb_obj);
 
     const RpcClientConfig &getConfig();
 

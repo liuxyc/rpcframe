@@ -74,21 +74,19 @@ const RpcClientConfig &RpcClient::getConfig() {
     return m_cfg;
 }
 
-RpcStatus RpcClient::call(const std::string &method_name, const std::string &request_data, std::string &response_data, uint32_t timeout) {
+RpcStatus RpcClient::call(const std::string &method_name, const RawData &request_data, RawData &response_data, uint32_t timeout) {
     std::shared_ptr<RpcClientBlocker> rb(new RpcClientBlocker(timeout));
     std::string req_id;
     RpcStatus ret_st = m_ev->sendReq(m_servicename, method_name, request_data, rb, req_id);
     if (ret_st == RpcStatus::RPC_SEND_OK) {
-        std::pair<RpcStatus, std::string> ret_p = rb->wait(req_id);
-        response_data = ret_p.second;
-        ret_st = ret_p.first;
+        ret_st = rb->wait(req_id, response_data);
     }
     m_ev->removeCb(req_id);
     
     return ret_st;
 }
 
-RpcStatus RpcClient::async_call(const std::string &method_name, const std::string &request_data, uint32_t timeout, std::shared_ptr<RpcClientCallBack> cb_obj) {
+RpcStatus RpcClient::async_call(const std::string &method_name, const RawData &request_data, uint32_t timeout, std::shared_ptr<RpcClientCallBack> cb_obj) {
     std::string req_id;
     if (cb_obj != nullptr) {
         cb_obj->setTimeout(timeout);

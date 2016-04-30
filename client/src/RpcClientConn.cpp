@@ -45,9 +45,9 @@ bool RpcClientConn::readPkgLen(uint32_t &pkg_len)
         RPC_LOG(RPC_LOG_LEV::WARNING, "connection already disconnected");
         return false;
     }
-    int data;
+    uint32_t data;
     char *p = (char *)(&data);
-    int recv_left = 4;
+    int recv_left = sizeof(data);
     int recved = 0;
     while(true) {
         int rev_size = recv(m_fd, p + recved, recv_left, 0);  
@@ -57,7 +57,7 @@ bool RpcClientConn::readPkgLen(uint32_t &pkg_len)
                 return false;
             }
             if( errno == EAGAIN || errno == EINTR) {
-                //RPC_LOG(RPC_LOG_LEV::INFO, "recv pkg interupt %s", strerror(errno));
+                RPC_LOG(RPC_LOG_LEV::INFO, "recv pkg interupt %s", strerror(errno));
             }
             else {
                 RPC_LOG(RPC_LOG_LEV::ERROR, "recv pkg error %s", strerror(errno));
@@ -65,16 +65,16 @@ bool RpcClientConn::readPkgLen(uint32_t &pkg_len)
             }
         }
         recved += rev_size;
-        if( recved == 4 )  
+        if( recved == sizeof(data) )  
         {  
-            //RPC_LOG(RPC_LOG_LEV::DEBUG, "recv full len");
+            RPC_LOG(RPC_LOG_LEV::DEBUG, "recv full len");
             break;
         }
         recv_left -= rev_size;
-        //RPC_LOG(RPC_LOG_LEV::INFO, "need more len %d", recv_left);
+        RPC_LOG(RPC_LOG_LEV::INFO, "need more len %d", recv_left);
     }
     pkg_len = ntohl(data);
-    //RPC_LOG(RPC_LOG_LEV::DEBUG, "got resp len %lu", pkg_len);
+    RPC_LOG(RPC_LOG_LEV::DEBUG, "got resp len %lu", pkg_len);
     return true;
 }
 
@@ -88,14 +88,14 @@ PkgIOStatus RpcClientConn::readPkgData()
         RPC_LOG(RPC_LOG_LEV::WARNING, "connection already disconnected");
         return PkgIOStatus::FAIL;
     }
-    int rev_size = recv(m_fd, m_rpk->data + (m_cur_pkg_size - m_cur_left_len), m_cur_left_len, 0);  
+    int rev_size = recv(m_fd, m_rpk->data + (m_cur_pkg_size - m_cur_left_len), m_cur_left_len, MSG_DONTWAIT);  
     if (rev_size <= 0) {
         if (rev_size == 0) {
             RPC_LOG(RPC_LOG_LEV::WARNING, "recv pkg peer close");
             return PkgIOStatus::FAIL;
         }
         if( errno == EAGAIN || errno == EINTR) {
-            //RPC_LOG(RPC_LOG_LEV::INFO, "recv pkg interupt %s", strerror(errno));
+            RPC_LOG(RPC_LOG_LEV::INFO, "recv pkg interupt %s", strerror(errno));
             return PkgIOStatus::PARTIAL;
         }
         else {
@@ -104,14 +104,14 @@ PkgIOStatus RpcClientConn::readPkgData()
         }
     }
     if ((uint32_t)rev_size == m_cur_left_len) {
-        //RPC_LOG(RPC_LOG_LEV::DEBUG, "got full pkg %lu", rev_size);
+        RPC_LOG(RPC_LOG_LEV::DEBUG, "got full pkg %lu", rev_size);
         m_cur_left_len = 0;
         m_cur_pkg_size = 0;
         return PkgIOStatus::FULL;
     }
     else {
-        m_cur_left_len = m_cur_left_len - rev_size;
-        //RPC_LOG(RPC_LOG_LEV::DEBUG, " half pkg got %d need %d more", rev_size, m_cur_left_len);
+        m_cur_left_len -= rev_size;
+        RPC_LOG(RPC_LOG_LEV::DEBUG, " half pkg got %d need %d more", rev_size, m_cur_left_len);
         return PkgIOStatus::PARTIAL;
     }
 }
@@ -126,7 +126,7 @@ pkg_ret_t RpcClientConn::getResponse()
         if (m_cur_pkg_size == 0) {
             return pkg_ret_t(0, nullptr);
         }
-        //RPC_LOG(RPC_LOG_LEV::DEBUG, "pkg len is %d", m_cur_pkg_size);
+        RPC_LOG(RPC_LOG_LEV::DEBUG, "pkg len is %d", m_cur_pkg_size);
         m_rpk = new response_pkg(m_cur_pkg_size);
         m_cur_left_len = m_cur_pkg_size;
     }
@@ -147,62 +147,85 @@ pkg_ret_t RpcClientConn::getResponse()
 RpcStatus RpcClientConn::sendReq(
         const std::string &service_name, 
         const std::string &method_name, 
-        const std::string &request_data, 
+        const RawData &request_data, 
         const std::string &reqid, 
         bool is_oneway, uint32_t timeout) {
 
-    RpcInnerReq req;
-    req.set_service_name(service_name);
-    req.set_method_name(method_name);
-    req.set_request_id(reqid);
-    req.set_timeout(timeout);
-    req.set_data(request_data);
-    if (is_oneway) {
-        req.set_type(RpcInnerReq::ONE_WAY);
+  RpcInnerReq req;
+  req.set_service_name(service_name);
+  req.set_method_name(method_name);
+  req.set_request_id(reqid);
+  req.set_timeout(timeout);
+  bool hasBlob = true;
+  if(request_data.size() < max_protobuf_data_len) {
+    req.set_data(request_data.data, request_data.data_len);
+    hasBlob = false;
+  }
+  if (is_oneway) {
+    req.set_type(RpcInnerReq::ONE_WAY);
+  }
+  else {
+    req.set_type(RpcInnerReq::TWO_WAY);
+  }
+  int proto_len = req.ByteSize();
+  size_t pkg_len = 0;
+  if(hasBlob){
+    pkg_len = sizeof(proto_len) + proto_len + request_data.size();
+  } else {
+    pkg_len = sizeof(proto_len) + proto_len;
+  }
+  uint32_t pkg_hdr = htonl(pkg_len);
+  uint32_t proto_hdr = htonl(proto_len);
+  std::unique_ptr<char[]> out_data(new char[pkg_len + sizeof(pkg_hdr) + sizeof(proto_hdr)]);
+  memcpy((void *)(out_data.get()), (const void *)(&pkg_hdr), sizeof(pkg_hdr));
+  memcpy((void *)(out_data.get() + sizeof(pkg_hdr)), (const void *)(&proto_hdr), sizeof(proto_hdr));
+  if (!req.SerializeToArray((void *)(out_data.get() + sizeof(pkg_hdr) + sizeof(proto_hdr)), proto_len)) {
+    RPC_LOG(RPC_LOG_LEV::ERROR, "Serialize req data fail");
+    return RpcStatus::RPC_SEND_FAIL;
+  }
+
+  std::time_t begin_tm = std::time(nullptr);
+  RpcStatus rc = sendData(out_data.get(), sizeof(pkg_hdr) + sizeof(proto_hdr) + proto_len, timeout);
+  timeout -= (std::time(nullptr) - begin_tm);
+  if(hasBlob && rc == RpcStatus::RPC_SEND_OK) {
+    rc = sendData((char *)request_data.data, request_data.size(), timeout);
+  }
+  return rc;
+}
+
+RpcStatus RpcClientConn::sendData(char *data, size_t len, uint32_t timeout)
+{
+  std::time_t begin_tm = std::time(nullptr);
+  uint32_t total_len = len;
+  uint32_t sent_len = 0;
+  while(true) {
+    if (timeout > 0 &&
+        std::time(nullptr) - begin_tm > timeout) {
+      RPC_LOG(RPC_LOG_LEV::WARNING, "send data timeout!");
+      return RpcStatus::RPC_SEND_TIMEOUT;
     }
-    else {
-        req.set_type(RpcInnerReq::TWO_WAY);
+    uint32_t len = total_len - sent_len;
+    errno = 0;
+    int s_ret = send(m_fd, data + sent_len, len, MSG_NOSIGNAL | MSG_DONTWAIT);
+    if( s_ret <= 0)
+    {
+      if( errno == EAGAIN || errno == EINTR) {
+        continue;
+      }
+      else {
+        RPC_LOG(RPC_LOG_LEV::ERROR, "send data error! %s, %u, %u, %d %u", 
+            strerror(errno), total_len, sent_len, s_ret, len);
+        is_connected = false;
+        return RpcStatus::RPC_SEND_FAIL;
+      }
     }
-    int pkg_len = req.ByteSize();
-    uint32_t hdr = htonl(pkg_len);
-    std::unique_ptr<char[]> out_data(new char[pkg_len + sizeof(hdr)]);
-    memcpy((void *)(out_data.get()), (const void *)(&hdr), sizeof(hdr));
-    if (!req.SerializeToArray((void *)(out_data.get() + sizeof(hdr)), pkg_len)) {
-      RPC_LOG(RPC_LOG_LEV::ERROR, "Serialize req data fail");
-      return RpcStatus::RPC_SEND_FAIL;
+    sent_len += s_ret;
+    if (sent_len == total_len) {
+      break;
     }
 
-    std::time_t begin_tm = std::time(nullptr);
-    uint32_t total_len = pkg_len + sizeof(pkg_len);
-    uint32_t sent_len = 0;
-    while(true) {
-        if (timeout > 0 &&
-            std::time(nullptr) - begin_tm > timeout) {
-            RPC_LOG(RPC_LOG_LEV::WARNING, "send data timeout!");
-            return RpcStatus::RPC_SEND_TIMEOUT;
-        }
-        uint32_t len = total_len - sent_len;
-        errno = 0;
-        int s_ret = send(m_fd, out_data.get() + sent_len, len, MSG_NOSIGNAL | MSG_DONTWAIT);
-        if( s_ret <= 0)
-        {
-            if( errno == EAGAIN || errno == EINTR) {
-                continue;
-            }
-            else {
-                RPC_LOG(RPC_LOG_LEV::ERROR, "send data error! %s, %u, %u, %d %u", 
-                        strerror(errno), total_len, sent_len, s_ret, len);
-                is_connected = false;
-                return RpcStatus::RPC_SEND_FAIL;
-            }
-        }
-        sent_len += s_ret;
-        if (sent_len == total_len) {
-            break;
-        }
-
-    }
-    return RpcStatus::RPC_SEND_OK;
+  }
+  return RpcStatus::RPC_SEND_OK;
 }
 
 };

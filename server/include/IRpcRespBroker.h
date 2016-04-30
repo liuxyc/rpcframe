@@ -8,6 +8,8 @@
 #include <string>
 #include <memory>
 
+#include "RpcDefs.h"
+
 namespace rpcframe {
 
 /**
@@ -24,7 +26,7 @@ public:
      *
      * @return 
      */
-    virtual bool response(const std::string &resp_data) = 0;
+    virtual bool response() = 0;
 
     /**
      * @brief check whether need response
@@ -34,11 +36,30 @@ public:
     virtual bool isNeedResp() = 0;
 
     /**
+     * @brief check whether already responsed
+     *
+     * @return 
+     */
+    virtual bool isResponed() = 0;
+
+    /**
      * @brief check whether the request is http request
      *
      * @return 
      */
     virtual bool isFromHttp() = 0;
+
+    /**
+     * @brief allocate a char * buffer for user, user need to fill response data into this buffer
+     *
+     * @param len request length of the char * buffer
+     *
+     * @return pointer of the char * buffer
+     */
+    virtual char *allocRespBuf(size_t len) = 0;
+    virtual char *allocRespBufFrom(const std::string &resp) = 0;
+
+    virtual void setReturnVal(RpcStatus rs) = 0;
 };
 
 

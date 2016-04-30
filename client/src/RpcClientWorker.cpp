@@ -12,11 +12,13 @@
 #include <signal.h>
 #include <memory>
 #include <sstream>
+#include <arpa/inet.h>
 
 #include "RpcClientConn.h"
 #include "RpcDefs.h"
 #include "RpcClient.h"
 #include "RpcEventLooper.h"
+#include "RawDataImpl.h"
 #include "rpc.pb.h"
 #include "util.h"
 
@@ -55,22 +57,27 @@ void RpcClientWorker::run() {
         if (m_stop) {
             break;
         }
-        std::shared_ptr<response_pkg> pkg;
+        RespPkgPtr pkg;
         if (m_ev->m_response_q.pop(pkg, 1000)) {
+            uint32_t proto_len = ntohl(*((uint32_t *)pkg->data));
 
             //must get request id from here
             RpcInnerResp resp;
-            if(!resp.ParseFromArray(pkg->data, pkg->data_len)) {
-                RPC_LOG(RPC_LOG_LEV::ERROR, "[ERROR]parse internal pkg fail");
+            if(!resp.ParseFromArray(pkg->data + sizeof(proto_len), proto_len)) {
+                RPC_LOG(RPC_LOG_LEV::ERROR, "parse internal pkg fail");
                 continue;
             }
+            char *resp_data = pkg->data + sizeof(proto_len) + proto_len;
+            uint32_t ret_val = ntohl(*((uint32_t *)(pkg->data + (pkg->data_len - sizeof(uint32_t)) )));
             std::shared_ptr<RpcClientCallBack> cb = m_ev->getCb(resp.request_id());
             if (cb != nullptr) {
-                //if marked as timeout, the callback already called by RpcCBStatus::RPC_TIMEOUT
-                if (!cb->isTimeout()) {
-                    cb->callback_safe(static_cast<RpcStatus>(resp.ret_val()), resp.data());
-                }
-                m_ev->removeCb(resp.request_id());
+              RawData rd(resp_data, pkg->data_len - sizeof(ret_val) - sizeof(proto_len) - proto_len);
+              rd.m_impl->m_pkg_keeper = pkg;
+              //if marked as timeout, the callback already called by RpcCBStatus::RPC_TIMEOUT
+              if (!cb->isTimeout()) {
+                cb->callback_safe(static_cast<RpcStatus>(ret_val), rd);
+              }
+              m_ev->removeCb(resp.request_id());
             }
             else {
                 //RPC_LOG(RPC_LOG_LEV::ERROR, "the cb of req:%s is nullptr", resp.request_id().c_str());

@@ -19,7 +19,7 @@ public:
     {};
     virtual ~success_CB() {};
 
-    virtual void callback(const rpcframe::RpcStatus status, const std::string &response_data) {
+    virtual void callback(const rpcframe::RpcStatus status, const rpcframe::RawData &response_data) {
         ASSERT_EQ(status, rpcframe::RpcStatus::RPC_SERVER_OK);
         ASSERT_TRUE(response_data.size() != 0);
     }
@@ -31,7 +31,7 @@ public:
     {};
     virtual ~succ_timeout_CB() {};
 
-    virtual void callback(const rpcframe::RpcStatus status, const std::string &response_data) {
+    virtual void callback(const rpcframe::RpcStatus status, const rpcframe::RawData &response_data) {
         ASSERT_TRUE(status == rpcframe::RpcStatus::RPC_CB_TIMEOUT || status == rpcframe::RpcStatus::RPC_SERVER_OK);
         if(status == rpcframe::RpcStatus::RPC_CB_TIMEOUT) {
           printf("async call timeout\n");
@@ -45,7 +45,7 @@ public:
     {};
     virtual ~succ_disconn_CB() {};
 
-    virtual void callback(const rpcframe::RpcStatus status, const std::string &response_data) {
+    virtual void callback(const rpcframe::RpcStatus status, const rpcframe::RawData &response_data) {
         ASSERT_TRUE(status == rpcframe::RpcStatus::RPC_DISCONNECTED || status == rpcframe::RpcStatus::RPC_SERVER_OK);
     }
 };
@@ -56,7 +56,7 @@ public:
     {};
     virtual ~srv_notfound_CB() {};
 
-    virtual void callback(const rpcframe::RpcStatus status, const std::string &response_data) {
+    virtual void callback(const rpcframe::RpcStatus status, const rpcframe::RawData &response_data) {
         ASSERT_EQ(status, rpcframe::RpcStatus::RPC_SRV_NOTFOUND);
     }
 };
@@ -67,7 +67,7 @@ public:
     {};
     virtual ~method_notfound_CB() {};
 
-    virtual void callback(const rpcframe::RpcStatus status, const std::string &response_data) {
+    virtual void callback(const rpcframe::RpcStatus status, const rpcframe::RawData &response_data) {
         ASSERT_EQ(status, rpcframe::RpcStatus::RPC_METHOD_NOTFOUND);
     }
 };
@@ -78,9 +78,9 @@ public:
     {};
     virtual ~big_resp_CB() {};
 
-    virtual void callback(const rpcframe::RpcStatus status, const std::string &response_data) {
+    virtual void callback(const rpcframe::RpcStatus status, const rpcframe::RawData &response_data) {
         ASSERT_EQ(status, rpcframe::RpcStatus::RPC_SERVER_OK);
-        ASSERT_EQ(response_data.size(), 1024*1024*40);
+        ASSERT_EQ(response_data.size(), 1024*1024*40 + 1);
     }
 };
 class match_size_CB : public rpcframe::RpcClientCallBack 
@@ -91,9 +91,9 @@ public:
     {};
     virtual ~match_size_CB() {};
 
-    virtual void callback(const rpcframe::RpcStatus status, const std::string &response_data) {
+    virtual void callback(const rpcframe::RpcStatus status, const rpcframe::RawData &response_data) {
         ASSERT_EQ(status, rpcframe::RpcStatus::RPC_SERVER_OK);
-        ASSERT_EQ(response_data.size(), m_size);
+        ASSERT_EQ(response_data.size(), m_size + 1);
     }
     size_t m_size;
 };
@@ -104,13 +104,12 @@ public:
     {};
     virtual ~req_too_large() {};
 
-    virtual void callback(const rpcframe::RpcStatus status, const std::string &response_data) {
+    virtual void callback(const rpcframe::RpcStatus status, const rpcframe::RawData &response_data) {
         ASSERT_EQ(status, rpcframe::RpcStatus::RPC_REQ_TOO_LARGE);
     }
 };
 
-
-TEST(ClientTest, big_resp)
+TEST(ClientTest, big_req_resp)
 {
   auto endp = std::make_pair("localhost", 8801);
   rpcframe::RpcClientConfig ccfg(endp);
@@ -121,12 +120,14 @@ TEST(ClientTest, big_resp)
   rpcframe::RpcClient client(ccfg, "test_service");
   //async with big resp
   int pkg_cnt = 100;
+  std::string req(1024 * 1024 * 2, 'a');
+  rpcframe::RawData reqd(req);
   for (int pcnt = 0; pcnt < pkg_cnt; ++pcnt) {
-    ASSERT_EQ(rpcframe::RpcStatus::RPC_SEND_OK, client.async_call("test_method_big_resp", "req big async", 50, pCB));
+    ASSERT_EQ(rpcframe::RpcStatus::RPC_SEND_OK, client.async_call("test_method_big_resp", reqd, 50, pCB));
   }
-  std::string resp;
-  ASSERT_EQ(rpcframe::RpcStatus::RPC_SERVER_OK, client.call("test_method_big_resp", "req big sync", resp, 50));
-  ASSERT_EQ(resp.size(), 1024*1024*40);
+  rpcframe::RawData resp;
+  ASSERT_EQ(rpcframe::RpcStatus::RPC_SERVER_OK, client.call("test_method_big_resp", reqd, resp, 50));
+  ASSERT_EQ(resp.size(), 1024*1024*40 + 1);
   client.waitAllCBDone(5);
 }
 
@@ -139,16 +140,17 @@ TEST(ClientTest, unknow_srv_method)
   srv_nf_CB->setShared(true);
   //call not exist service
   rpcframe::RpcClient client_wrong_srv(ccfg, "test_service_not_exist");
-  ASSERT_EQ(rpcframe::RpcStatus::RPC_SEND_OK, client_wrong_srv.async_call("test_method_big_resp_unknow", "unknow", 10, srv_nf_CB));
+  rpcframe::RawData req("abc", 4);
+  ASSERT_EQ(rpcframe::RpcStatus::RPC_SEND_OK, client_wrong_srv.async_call("test_method_big_resp_unknow", req, 100, srv_nf_CB));
 
-  std::string resp_wrong_data;
-  ASSERT_EQ(rpcframe::RpcStatus::RPC_SRV_NOTFOUND, client_wrong_srv.call("test_method_big_resp_unknow", "unknow", resp_wrong_data, 10));
+  rpcframe::RawData resp_wrong_data;
+  ASSERT_EQ(rpcframe::RpcStatus::RPC_SRV_NOTFOUND, client_wrong_srv.call("test_method_big_resp_unknow", req, resp_wrong_data, 10));
 
   std::shared_ptr<method_notfound_CB> method_nf_CB(new method_notfound_CB());
   rpcframe::RpcClient client(ccfg, "test_service");
-  ASSERT_EQ(rpcframe::RpcStatus::RPC_SEND_OK, client.async_call("test_method_big_resp_unknow", "unknow", 2, method_nf_CB));
-  std::string resp;
-  ASSERT_EQ(rpcframe::RpcStatus::RPC_METHOD_NOTFOUND, client.call("test_method_big_resp_unknow", "unknow", resp, 2));
+  ASSERT_EQ(rpcframe::RpcStatus::RPC_SEND_OK, client.async_call("test_method_big_resp_unknow", req, 2, method_nf_CB));
+  rpcframe::RawData resp;
+  ASSERT_EQ(rpcframe::RpcStatus::RPC_METHOD_NOTFOUND, client.call("test_method_big_resp_unknow", req, resp, 2));
 
   client.waitAllCBDone(5);
   client_wrong_srv.waitAllCBDone(5);
@@ -165,19 +167,21 @@ TEST(ClientTest, 3000_sync_async_call)
   pCB->setShared(true);
   //fast async/sync call
   rpcframe::RpcClient newclient(ccfg, "test_service");
+  std::string req(1024 * 10, '*');
+  rpcframe::RawData reqd(req);
   for (int pcnt = 0; pcnt < pkg_cnt; ++pcnt) {
     ASSERT_EQ(rpcframe::RpcStatus::RPC_SEND_OK, newclient.async_call("test_method_fast_return", 
-          std::string(1024 * 10, '*'), 
+          reqd, 
           10, 
           pCB));
     ASSERT_EQ(rpcframe::RpcStatus::RPC_SEND_OK, newclient.async_call("test_method_fast_return", 
-          std::string(1024 * 10, '*'), 
+          reqd,
           10, 
           std::make_shared<success_CB>()));
-    std::string resp_data;
-    rpcframe::RpcStatus ret_st = newclient.call("test_method_fast_return", "aabbcc", resp_data, 3);
+    rpcframe::RawData resp_data;
+    rpcframe::RpcStatus ret_st = newclient.call("test_method_fast_return", reqd, resp_data, 3);
     ASSERT_EQ(rpcframe::RpcStatus::RPC_SERVER_OK, ret_st);
-    ASSERT_EQ(resp_data, "my feedback");
+    ASSERT_EQ(0, strcmp(resp_data.data, "my feedback"));
   }
   newclient.waitAllCBDone(5);
 }
@@ -192,14 +196,18 @@ TEST(ClientTest, small_echo_call)
   rpcframe::RpcClient newclient(ccfg, "test_service");
   for (int pcnt = 1; pcnt <= pkg_cnt; ++pcnt) {
     ccfg.setMaxReqPkgSize(pcnt);
+    std::string req(pcnt, 'c');
+    std::string reqs(pcnt, 'e');
+    rpcframe::RawData reqd(req);
+    rpcframe::RawData reqsd(reqs);
     ASSERT_EQ(rpcframe::RpcStatus::RPC_SEND_OK, newclient.async_call("test_method_echo", 
-          std::string(pcnt, 'c'), 
+          reqd,
           10, 
           std::make_shared<match_size_CB>(pcnt)));
-    std::string resp_data;
-    rpcframe::RpcStatus ret_st = newclient.call("test_method_echo", std::string(pcnt, 'e'), resp_data, 5);
+    rpcframe::RawData resp_data;
+    rpcframe::RpcStatus ret_st = newclient.call("test_method_echo", reqsd, resp_data, 5);
     ASSERT_EQ(rpcframe::RpcStatus::RPC_SERVER_OK, ret_st);
-    ASSERT_EQ(resp_data.size(), pcnt);
+    ASSERT_EQ(resp_data.size(), pcnt + 1);
   }
   newclient.waitAllCBDone(5);
 }
@@ -211,12 +219,16 @@ TEST(ClientTest, hugesize_req)
   ccfg.setThreadNum(4);
   //fast async/sync call
   rpcframe::RpcClient newclient(ccfg, "test_service");
+  std::string s1(129 * 1024 * 1024, 'c');
+  std::string s2((128 * 1024 * 1024) + 1, 'e');
+  rpcframe::RawData req1(s1);
+  rpcframe::RawData req2(s2);
   ASSERT_EQ(rpcframe::RpcStatus::RPC_REQ_TOO_LARGE, newclient.async_call("test_method_echo", 
-        std::string(129 * 1024 * 1024, 'c'), 
+        req1,
         10, 
         std::make_shared<req_too_large>()));
-  std::string resp_data;
-  rpcframe::RpcStatus ret_st = newclient.call("test_method_echo", std::string((128 * 1024 * 1024) + 1, 'e'), resp_data, 10);
+  rpcframe::RawData resp_data;
+  rpcframe::RpcStatus ret_st = newclient.call("test_method_echo", req2, resp_data, 10);
   ASSERT_EQ(rpcframe::RpcStatus::RPC_REQ_TOO_LARGE, ret_st);
   newclient.waitAllCBDone(5);
 }
@@ -230,12 +242,14 @@ TEST(ClientTest, DISABLED_huge_echo_call)
   //fast async/sync call
   rpcframe::RpcClient newclient(ccfg, "test_service");
   for (int pcnt = 1; pcnt <= pkg_cnt; ++pcnt) {
+    std::string s1(pcnt, 'c');
+    rpcframe::RawData req(s1);
     ASSERT_EQ(rpcframe::RpcStatus::RPC_SEND_OK, newclient.async_call("test_method_echo", 
-          std::string(pcnt, 'c'), 
+          req,
           10, 
           std::make_shared<match_size_CB>(pcnt)));
-    std::string resp_data;
-    rpcframe::RpcStatus ret_st = newclient.call("test_method_echo", std::string(pcnt, 'e'), resp_data, 5);
+    rpcframe::RawData resp_data;
+    rpcframe::RpcStatus ret_st = newclient.call("test_method_echo", req, resp_data, 5);
     ASSERT_EQ(rpcframe::RpcStatus::RPC_SERVER_OK, ret_st);
     ASSERT_EQ(resp_data.size(), pcnt);
   }
@@ -265,23 +279,26 @@ TEST(ClientTest, random_timeout)
       if ( len <= 0) {
         len = 10;
       }
+
+      std::string s1(len, '*');
+      rpcframe::RawData req(s1);
       ASSERT_EQ(rpcframe::RpcStatus::RPC_SEND_OK, client.async_call("test_method_5sec_delay", 
-            std::string(len, '*'), 
+            req,
             10, 
             pCB));
       //set timeout to 3 seconds, server may delay in 0-5 seconds
       ASSERT_EQ(rpcframe::RpcStatus::RPC_SEND_OK, client.async_call("test_method_random_delay", 
-            std::string(len, '*'), 
+            req,
             3, 
             succ_to_CB));
-      std::string resp_data;
+      rpcframe::RawData resp_data;
       rpcframe::RpcStatus ret_st = 
-        client.call("test_method_random_delay", "aaaaaaabbbbbbbbccccccc", resp_data, 3);
+        client.call("test_method_random_delay", req, resp_data, 3);
       ASSERT_TRUE(ret_st == rpcframe::RpcStatus::RPC_CB_TIMEOUT || ret_st == rpcframe::RpcStatus::RPC_SERVER_OK);
       if( ret_st == rpcframe::RpcStatus::RPC_SERVER_OK ) {
-        ASSERT_EQ(resp_data, "my feedback_random_delay");
+        ASSERT_EQ(0, strcmp(resp_data.data, "my feedback_random_delay"));
       }
-      client.async_call("test_method_random_delay", std::string(len, '*'), 3, nullptr);
+      client.async_call("test_method_random_delay", req, 3, nullptr);
     }
     client.waitAllCBDone(5);
   }
@@ -297,13 +314,19 @@ TEST(ClientTest, server_async_back)
   //send request to async server
   //server will send response in async way, client side not aware of that.
   rpcframe::RpcClient client_call_async_server(ccfg, "test_service_async");
-  std::string resp_data;
+  rpcframe::RawData resp_data;
   //request a server side async response, server will response after 5 seconds,
   //so we set timeout = 10 seconds
-  ASSERT_EQ(rpcframe::RpcStatus::RPC_SEND_OK, client_call_async_server.async_call("test_method_async", std::string(23, '*'), 10, pCB));
-  ASSERT_EQ(rpcframe::RpcStatus::RPC_SEND_OK, client_call_async_server.async_call("test_method_async", std::string(20, '*'), 10, nullptr));
-  ASSERT_EQ(rpcframe::RpcStatus::RPC_SERVER_OK, client_call_async_server.call("test_method_async", std::string(10, '*'), resp_data, 20));
-  ASSERT_EQ(resp_data, "my feedback async");
+  std::string s1(23, '*');
+  std::string s2(20, '*');
+  std::string s3(10, '*');
+  rpcframe::RawData req(s1);
+  rpcframe::RawData req2(s2);
+  rpcframe::RawData req3(s3);
+  ASSERT_EQ(rpcframe::RpcStatus::RPC_SEND_OK, client_call_async_server.async_call("test_method_async", req, 10, pCB));
+  ASSERT_EQ(rpcframe::RpcStatus::RPC_SEND_OK, client_call_async_server.async_call("test_method_async", req2, 10, nullptr));
+  ASSERT_EQ(rpcframe::RpcStatus::RPC_SERVER_OK, client_call_async_server.call("test_method_async", req3, resp_data, 20));
+  ASSERT_EQ(0, strcmp(resp_data.data, "my feedback async"));
   client_call_async_server.waitAllCBDone(5);
 }
 
@@ -315,11 +338,15 @@ TEST(ClientTest, concurrent_conn)
     std::shared_ptr<succ_disconn_CB> pCB(new succ_disconn_CB());
     pCB->setShared(true);
     ccfg.setThreadNum(1);
+    std::string s1(23, '*');
+    rpcframe::RawData req(s1);
+    std::string s3(10, '*');
+    rpcframe::RawData req1(s3);
     for(auto i = 0; i < 10; ++i) {
       rpcframe::RpcClient client(ccfg, "test_service");
-      ASSERT_EQ(rpcframe::RpcStatus::RPC_SEND_OK, client.async_call("test_method_fast_return", std::string(23, '*'), 10, pCB));
-      std::string resp_data;
-      rpcframe::RpcStatus ret_st = client.call("test_method_echo", std::string(10, '*'), resp_data, 20);
+      ASSERT_EQ(rpcframe::RpcStatus::RPC_SEND_OK, client.async_call("test_method_fast_return", req, 10, pCB));
+      rpcframe::RawData resp_data;
+      rpcframe::RpcStatus ret_st = client.call("test_method_echo", req1, resp_data, 20);
       ASSERT_TRUE(ret_st == rpcframe::RpcStatus::RPC_DISCONNECTED || ret_st == rpcframe::RpcStatus::RPC_SERVER_OK);
     }
   };
@@ -344,9 +371,11 @@ TEST(ClientTest, concurrent_req)
   rpcframe::RpcClient client(ccfg, "test_service");
   auto thread_func = [&client, &pCB](){
     for(auto i = 0; i < 100; ++i) {
-      ASSERT_EQ(rpcframe::RpcStatus::RPC_SEND_OK, client.async_call("test_method_fast_return", std::string(23, '*'), 10, pCB));
-      std::string resp_data;
-      rpcframe::RpcStatus ret_st = client.call("test_method_echo", std::string(10, '*'), resp_data, 20);
+      std::string s1(i, '*');
+      rpcframe::RawData req(s1);
+      ASSERT_EQ(rpcframe::RpcStatus::RPC_SEND_OK, client.async_call("test_method_fast_return", req, 10, pCB));
+      rpcframe::RawData resp_data;
+      rpcframe::RpcStatus ret_st = client.call("test_method_echo", req, resp_data, 20);
       ASSERT_TRUE(ret_st == rpcframe::RpcStatus::RPC_DISCONNECTED || ret_st == rpcframe::RpcStatus::RPC_SERVER_OK);
     }
   };

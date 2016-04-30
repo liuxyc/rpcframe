@@ -24,6 +24,7 @@
 #include "util.h"
 #include "rpc.pb.h"
 #include "RpcServerConfig.h"
+#include "RpcRespBroker.h"
 
 #define RPC_MAX_SOCKFD_COUNT 65535 
 
@@ -322,16 +323,17 @@ RpcServerConn *RpcServerConnWorker::getConnection(int fd)
   return nullptr;
 }
 
-void RpcServerConnWorker::pushResp(std::string conn_id, RpcInnerResp &resp)
+void RpcServerConnWorker::pushResp(std::string conn_id, RpcRespBroker &br)
 {
-  //NOTICE: memory fragments
-  //make whole package(include header) here
-  int pkg_len = resp.ByteSize();
-  RespPkgPtr resp_pkg = RespPkgPtr(new response_pkg(pkg_len + sizeof(pkg_len)));
-  uint32_t hdr = htonl(pkg_len);
-  memcpy((void *)(resp_pkg->data), (const void *)(&hdr), sizeof(pkg_len));
-  if(!resp.SerializeToArray(resp_pkg->data + sizeof(pkg_len), resp_pkg->data_len - sizeof(pkg_len))) {
-    RPC_LOG(RPC_LOG_LEV::ERROR, "serialize innernal pkg fail %s", resp.DebugString().c_str());
+  //user may have no data to response
+  if(!br.isAlloced()) {
+    br.allocRespBuf(1);
+  }
+  RespPkgPtr resp_pkg = br.getRespPkg();
+  if(resp_pkg.get() == nullptr) {
+    RPC_LOG(RPC_LOG_LEV::ERROR, "RespPkgPtr is null");
+    assert(resp_pkg.get() != nullptr);
+    return;
   }
   else {
     ReadLockGuard rg(m_conn_rwlock);
@@ -350,7 +352,6 @@ void RpcServerConnWorker::pushResp(std::string conn_id, RpcInnerResp &resp)
       if( eventfd_write(m_resp_ev_fd, resp_cnt) == -1) {
         RPC_LOG(RPC_LOG_LEV::ERROR, "write resp event fd fail");
       }
-      RPC_LOG(RPC_LOG_LEV::DEBUG, "push %s resp inqueue fd:%d", resp.request_id().c_str(), conn->getFd());
     }
     else {
       RPC_LOG(RPC_LOG_LEV::WARNING, "connection %s gone, drop resp", conn_id.c_str());

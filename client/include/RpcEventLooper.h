@@ -32,7 +32,7 @@ public:
     ~RpcEventLooper();
     void stop();
     void run();
-    RpcStatus sendReq(const std::string &service_name, const std::string &method_name, const std::string &request_data, std::shared_ptr<RpcClientCallBack> cb_obj, std::string &req_id);
+    RpcStatus sendReq(const std::string &service_name, const std::string &method_name, const RawData &request_data, std::shared_ptr<RpcClientCallBack> cb_obj, std::string &req_id);
     std::shared_ptr<RpcClientCallBack> getCb(const std::string &req_id);
     void removeCb(const std::string &req_id);
     void dealTimeoutCb();
@@ -60,9 +60,6 @@ private:
     int m_thread_num;
     std::vector<std::thread *> m_thread_vec;
     std::vector<RpcClientWorker *> m_worker_vec;
-
-
-    
 };
 
 };

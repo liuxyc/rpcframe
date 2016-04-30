@@ -8,6 +8,7 @@
 
 #include "Queue.h"
 #include <memory>
+#include <string.h>
 
 namespace rpcframe
 {
@@ -69,10 +70,10 @@ public:
     response_pkg &operator=(const response_pkg&) = delete;
 };
 
-typedef Queue<std::shared_ptr<request_pkg> > ReqQueue;
-typedef Queue<std::shared_ptr<response_pkg> > RespQueue;
 typedef std::shared_ptr<request_pkg> ReqPkgPtr;
 typedef std::shared_ptr<response_pkg> RespPkgPtr;
+typedef Queue<ReqPkgPtr> ReqQueue;
+typedef Queue<RespPkgPtr> RespQueue;
 };
 
 #endif

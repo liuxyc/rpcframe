@@ -7,12 +7,12 @@ The rpc interface is simple, it send and receive std::string as raw data.
 ## Client side interface:
 ```
 RpcClient(rpcframe::RpcClientConfig &cfg, const std::string &service_name);
-RpcClient::call(const std::string &method_name, const std::string &request_data, std::string &response_data, uint32_t timeout)
-RpcClient::async_call(const std::string &method_name, const std::string &request_data, uint32_t timeout, std::shared_ptr<RpcClientCallBack> cb_obj);
+RpcStatus call(const std::string &method_name, const RawData &request_data, RawData &, uint32_t timeout);
+RpcStatus async_call(const std::string &method_name, const RawData &request_data, uint32_t timeout, std::shared_ptr<RpcClientCallBack> cb_obj);
 ```
 ## Server side implement rpcframe::IService and write member method:
 ```
-rpcframe::RpcStatus method_name(const std::string &req_data, std::string &resp_data, rpcframe::RpcRespBrokerPtr resp_broker);
+rpcframe::RpcStatus method_name(const rpcframe::RawData &req_data, rpcframe::RpcRespBrokerPtr resp_broker);
 ```
 ##HTTP interface:
 ```

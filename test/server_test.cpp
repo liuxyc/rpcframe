@@ -28,18 +28,20 @@ public:
         }
     };
 
-    rpcframe::RpcStatus test_method_async(const std::string &request_data, 
-                                                     std::string &resp_data, 
+    rpcframe::RpcStatus test_method_async(const rpcframe::RawData &req_data, 
                                                      rpcframe::IRpcRespBrokerPtr resp_broker) 
     {
-        printf("test_method_async get %s\n", request_data.c_str());
+        printf("test_method_async get %s\n", req_data.data);
         //make a async response
         m_t.push_back(new std::thread([resp_broker](){
                 //must delete broker after call resp_broker->response, we use std::unique_ptr do it for us
                 //std::unique_ptr<rpcframe::IRpcRespBroker> broker_ptr(resp_broker);
                 std::this_thread::sleep_for(std::chrono::seconds(5));
                 printf("i'm async method\n");
-                resp_broker->response("my feedback async");
+                std::string ss("my feedback async");
+                char *p_ss = resp_broker->allocRespBuf(ss.size() + 1);
+                strcpy(p_ss, ss.c_str());
+                resp_broker->response();
                 }));
         /*
            NOTICE:Don't delete resp_broker if you return rpcframe::RpcStatus::RPC_SERVER_OK, RcpServer will delete it for you.
@@ -70,59 +72,58 @@ public:
     };
     virtual ~MyService(){};
 
-    rpcframe::RpcStatus test_method_5sec_delay(const std::string &request_data, 
-                                               std::string &resp_data, 
+    rpcframe::RpcStatus test_method_5sec_delay(const rpcframe::RawData &req_data, 
                                                rpcframe::IRpcRespBrokerPtr resp_broker) 
     {
         //printf("my method get %s\n", request_data.c_str());
-        resp_data = "my feedback";
-        m_mutex.lock();
-        printf("cnt: %d\n", m_cnt++);
-        //printf("data: %s\n", request_data.c_str());
-        m_mutex.unlock();
-        //make timeout
-        std::this_thread::sleep_for(std::chrono::seconds(5));
-        if (resp_broker->isFromHttp()) {
-            resp_data = "<html><body><h1>this response for http 5 secs delay</h1></body></html>";
-        }
+      std::string resp_data = "my feedback";
+      m_mutex.lock();
+      printf("cnt: %d\n", m_cnt++);
+      //printf("data: %s\n", request_data.c_str());
+      m_mutex.unlock();
+      //make timeout
+      std::this_thread::sleep_for(std::chrono::seconds(5));
+      if (resp_broker->isFromHttp()) {
+        resp_data = "<html><body><h1>this response for http 5 secs delay</h1></body></html>";
+      }
+      resp_broker->allocRespBufFrom(resp_data);
 
-        return rpcframe::RpcStatus::RPC_SERVER_OK;
+      return rpcframe::RpcStatus::RPC_SERVER_OK;
     };
 
-    rpcframe::RpcStatus test_method_random_delay(const std::string &request_data, 
-                                                std::string &resp_data, 
+    rpcframe::RpcStatus test_method_random_delay(const rpcframe::RawData &req_data, 
                                                 rpcframe::IRpcRespBrokerPtr resp_broker) 
     {
-        resp_data = "my feedback_random_delay";
-        //generate 0-5 seconds delay
-        std::random_device rd;
-        uint32_t t = rd() % 5;
-        std::this_thread::sleep_for(std::chrono::seconds(t));
-        return rpcframe::RpcStatus::RPC_SERVER_OK;
+      std::string resp_data = "my feedback_random_delay";
+      //generate 0-5 seconds delay
+      std::random_device rd;
+      uint32_t t = rd() % 5;
+      std::this_thread::sleep_for(std::chrono::seconds(t));
+      resp_broker->allocRespBufFrom(resp_data);
+      return rpcframe::RpcStatus::RPC_SERVER_OK;
     };
 
-    rpcframe::RpcStatus test_method_fast_return(const std::string &request_data, 
-                                                std::string &resp_data, 
+    rpcframe::RpcStatus test_method_fast_return(const rpcframe::RawData &req_data, 
                                                 rpcframe::IRpcRespBrokerPtr resp_broker) 
     {
-        resp_data = std::string("my feedback");
-        return rpcframe::RpcStatus::RPC_SERVER_OK;
+      resp_broker->allocRespBufFrom("my feedback");
+      return rpcframe::RpcStatus::RPC_SERVER_OK;
     };
 
-    rpcframe::RpcStatus test_method_big_resp(const std::string &request_data, 
-                                                        std::string &resp_data, 
-                                                        rpcframe::IRpcRespBrokerPtr resp_broker) 
-    {
-        resp_data = std::string(1024*1024*40, 'a');
-        return rpcframe::RpcStatus::RPC_SERVER_OK;
+    rpcframe::RpcStatus test_method_big_resp(const rpcframe::RawData &req_data, 
+                                            rpcframe::IRpcRespBrokerPtr resp_broker) 
+  {
+      std::string resp_data(1024*1024*40, 'a');
+      resp_broker->allocRespBufFrom(resp_data);
+      return rpcframe::RpcStatus::RPC_SERVER_OK;
     };
 
-    rpcframe::RpcStatus test_method_echo(const std::string &request_data, 
-                                                        std::string &resp_data, 
-                                                        rpcframe::IRpcRespBrokerPtr resp_broker) 
+    rpcframe::RpcStatus test_method_echo(const rpcframe::RawData &req_data, 
+                                        rpcframe::IRpcRespBrokerPtr resp_broker) 
     {
-        resp_data = request_data;
-        return rpcframe::RpcStatus::RPC_SERVER_OK;
+      std::string resp_data(req_data.data, req_data.data_len);
+      resp_broker->allocRespBufFrom(resp_data);
+      return rpcframe::RpcStatus::RPC_SERVER_OK;
     };
 
     int m_cnt;
@@ -150,7 +151,7 @@ int main(int argc, char * argv[])
 
     auto endp = std::make_pair("127.0.0.1", 8801);
     rpcframe::RpcServerConfig cfg(endp);
-    cfg.setThreadNum(8);
+    cfg.setThreadNum(4);
     cfg.enableHttp(8000, 4);
     //cfg.disableHttp();
     rpcframe::RpcServer rpcServer(cfg);

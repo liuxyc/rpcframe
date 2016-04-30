@@ -30,28 +30,30 @@ public:
     };
     virtual ~RpcClientBlocker() {};
 
-    std::pair<RpcStatus, std::string> wait(const std::string &req_id) {
+    RpcStatus wait(const std::string &req_id, RawData &resp_data) {
         std::unique_lock<std::mutex> lk(m_blocker_mutex);
         //NOTICE: don't touch m_resp_data here, because m_resp_data may already fulfilled
         if (!m_done) {
              std::cv_status ret = m_cv.wait_for(lk, std::chrono::seconds(getTimeout()));
              if (ret == std::cv_status::timeout) {
                 RPC_LOG(RPC_LOG_LEV::DEBUG, "%s sync call timeout", req_id.c_str());
-                return std::make_pair(RpcStatus::RPC_CB_TIMEOUT, m_resp_data);
+                resp_data = m_resp_data;
+                return RpcStatus::RPC_CB_TIMEOUT;
              }
         }
-        return std::make_pair(m_cb_st, m_resp_data);
+        resp_data = m_resp_data;
+        return m_cb_st;
     }
 
-    virtual void callback(const RpcStatus status, const std::string &response_data) {
+    virtual void callback(const RpcStatus status, const RawData &resp_data) {
         std::unique_lock<std::mutex> lk(m_blocker_mutex);
-        m_resp_data = response_data;
+        m_resp_data = resp_data;
         m_cb_st = status;
         m_done = true;
         m_cv.notify_all();
     }
 
-    std::string getRespData() {
+    RawData &getRespData() {
         return m_resp_data;
     }
 
@@ -63,7 +65,7 @@ private:
     std::mutex m_blocker_mutex;
     std::condition_variable m_cv;
     std::atomic<bool> m_done;
-    std::string m_resp_data;
+    RawData m_resp_data;
     RpcStatus m_cb_st;
     
 };

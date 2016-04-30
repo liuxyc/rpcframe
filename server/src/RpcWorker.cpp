@@ -11,6 +11,7 @@
 #include <unistd.h>
 #include <sys/prctl.h>
 #include <signal.h>
+#include <arpa/inet.h>
 
 #include "RpcRespBroker.h"
 #include "RpcServerConn.h"
@@ -64,12 +65,22 @@ void RpcWorker::run() {
               during = during.zero();
             }
             m_server->calcReqQTime(during.count());
+            uint32_t proto_len = ntohl(*((uint32_t *)pkg->data));
 
             //must get request id from here
             RpcInnerReq req;
-            if (!req.ParseFromArray(pkg->data, pkg->data_len)) {
+            if (!req.ParseFromArray(pkg->data + sizeof(proto_len), proto_len)) {
                 RPC_LOG(RPC_LOG_LEV::ERROR, "parse internal pkg fail %s", req.DebugString().c_str());
                 continue;
+            }
+            RawData rd;
+            if(req.has_data()) {
+              rd.data = (char *)req.data().data();
+              rd.data_len = req.data().size();
+            }
+            else {
+              rd.data = pkg->data + sizeof(proto_len);
+              rd.data_len = pkg->data_len - sizeof(proto_len) - proto_len;
             }
             RpcServerConnWorker *connworker = pkg->conn_worker;
             if(connworker == nullptr) {
@@ -77,19 +88,16 @@ void RpcWorker::run() {
               continue;
             }
             RPC_LOG(RPC_LOG_LEV::DEBUG, "req %s:%s stay: %d ms", req.request_id().c_str(), req.method_name().c_str(), during.count());
-            std::string resp_data;
             IService *p_service = m_server->getService(req.service_name());
-            RpcInnerResp resp;
-            resp.set_request_id(req.request_id());
+            IRpcRespBrokerPtr rpcbroker = std::make_shared<RpcRespBroker>(connworker, 
+                pkg->connection_id,
+                req.request_id(),
+                (req.type() == RpcInnerReq::TWO_WAY), nullptr);
             if (p_service != nullptr) {
-                IRpcRespBrokerPtr rpcbroker = std::make_shared<RpcRespBroker>(connworker, 
-                    pkg->connection_id,
-                    req.request_id(),
-                    (req.type() == RpcInnerReq::TWO_WAY), nullptr);
 
                 std::chrono::system_clock::time_point begin_call_timepoint = std::chrono::system_clock::now();
                 RpcMethodStatusPtr method_status = nullptr;
-                RpcStatus ret = p_service->runMethod(req.method_name(), req.data(), resp_data, rpcbroker, method_status);
+                RpcStatus ret = p_service->runMethod(req.method_name(), rd, rpcbroker, method_status);
                 during = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - begin_call_timepoint);
                 if(method_status) {
                   if (during.count() < 0) {
@@ -107,14 +115,20 @@ void RpcWorker::run() {
                     continue;
                   }
                 }
-                resp.set_ret_val(static_cast<uint32_t>(ret));
                 switch (ret) {
                     case RpcStatus::RPC_SERVER_OK:
+                      rpcbroker->setReturnVal(ret);
+                        //TODO:if broker already call response, continue loop here
+                        if(rpcbroker->isResponed()) {
+                          continue;
+                        }
                         break;
                     case RpcStatus::RPC_METHOD_NOTFOUND:
+                        rpcbroker->setReturnVal(ret);
                         RPC_LOG(RPC_LOG_LEV::WARNING, "Unknow method request #%s#", req.method_name().c_str());
                         break;
                     case RpcStatus::RPC_SERVER_FAIL:
+                        rpcbroker->setReturnVal(ret);
                         RPC_LOG(RPC_LOG_LEV::WARNING, "method call fail #%s#", req.method_name().c_str());
                         break;
                     case RpcStatus::RPC_SERVER_NONE:
@@ -125,13 +139,12 @@ void RpcWorker::run() {
                 }
             }
             else {
-                resp.set_ret_val(static_cast<uint32_t>(RpcStatus::RPC_SRV_NOTFOUND));
-                RPC_LOG(RPC_LOG_LEV::WARNING, "Unknow service request #%s#", req.service_name().c_str());
+              rpcbroker->setReturnVal(RpcStatus::RPC_SRV_NOTFOUND);
+              RPC_LOG(RPC_LOG_LEV::WARNING, "Unknow service request #%s#", req.service_name().c_str());
             }
             if (req.type() == RpcInnerReq::TWO_WAY) {
-                resp.set_data(resp_data);
                 //put response to connection queue, max worker throughput
-                connworker->pushResp(pkg->connection_id, resp);
+                connworker->pushResp(pkg->connection_id, *(dynamic_cast<RpcRespBroker *>(rpcbroker.get())));
             }
         } 
         else {

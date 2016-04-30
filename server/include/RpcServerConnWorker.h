@@ -21,7 +21,7 @@ class RpcServerConn;
 class RpcServerImpl;
 class IService;
 class RpcStatusService;
-class RpcInnerResp;
+class RpcRespBroker;
 class RpcServerConfig;
 
 class RpcServerConnWorker
@@ -40,7 +40,7 @@ public:
   void removeConnection(int fd);
   void addConnection(int fd, RpcServerConn *conn);
   RpcServerConn *getConnection(int fd);
-  void pushResp(std::string seqid, RpcInnerResp &resp);
+  void pushResp(std::string seqid, RpcRespBroker &rb);
   const RpcServerConfig *getConfig();
 
   void onDataOut(const int fd);

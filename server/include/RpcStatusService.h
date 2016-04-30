@@ -36,7 +36,8 @@ public:
         }
     };
     
-    RpcStatus get_status(const std::string &request_data, std::string &resp_data, IRpcRespBrokerPtr resp_broker) {
+    RpcStatus get_status(const RawData &req, IRpcRespBrokerPtr resp_broker) {
+      std::string resp_data;
       if (resp_broker->isFromHttp()) {
         resp_data = "<html><body><h1>Server Status:<h1>";
         resp_data += "<h3>Pid:" + std::to_string(getpid()) + "</h3>";
@@ -89,6 +90,7 @@ public:
       else {
         //TODO: JSON?
       }
+      resp_broker->allocRespBufFrom(resp_data);
       return rpcframe::RpcStatus::RPC_SERVER_OK;
     };
 

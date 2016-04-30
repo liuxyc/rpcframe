@@ -84,7 +84,7 @@ void RpcEventLooper::removeConnection() {
     m_fd = -1;
     for (auto cb = m_cb_map.begin(); cb != m_cb_map.end(); ) {
         if (cb->second != nullptr) {
-            cb->second->callback_safe(RpcStatus::RPC_DISCONNECTED, std::string(""));
+            cb->second->callback_safe(RpcStatus::RPC_DISCONNECTED, RawData());
         }
         m_cb_map.erase(cb++);
     }
@@ -98,7 +98,7 @@ void RpcEventLooper::addConnection()
         m_conn = new RpcClientConn(m_fd);
         struct epoll_event ev;  
         memset(&ev, 0, sizeof(ev));
-        ev.events = EPOLLIN | EPOLLERR | EPOLLHUP;  
+        ev.events = EPOLLIN;
         ev.data.fd = m_fd;
         epoll_ctl(m_epoll_fd, EPOLL_CTL_ADD, m_fd, &ev);  
     }
@@ -110,19 +110,19 @@ void RpcEventLooper::addConnection()
 RpcStatus RpcEventLooper::sendReq(
         const std::string &service_name, 
         const std::string &method_name, 
-        const std::string &request_data, 
+        const RawData &request_data, 
         std::shared_ptr<RpcClientCallBack> cb_obj, 
         std::string &req_id) {
 
-    if (request_data.length() > m_client->getConfig().m_max_req_size) {
-        RPC_LOG(RPC_LOG_LEV::ERROR, "send data too large %lu", request_data.length());
+    if (request_data.size() > m_client->getConfig().m_max_req_size) {
+        RPC_LOG(RPC_LOG_LEV::ERROR, "send data too large %lu", request_data.size());
         return RpcStatus::RPC_REQ_TOO_LARGE;
     }
     m_mutex.lock();
     if (m_conn == nullptr) {
         if (!connect() || m_conn == nullptr) {
             if (cb_obj != nullptr) {
-                cb_obj->callback_safe(RpcStatus::RPC_SEND_FAIL, "");
+                cb_obj->callback_safe(RpcStatus::RPC_SEND_FAIL, RawData());
             }
             m_mutex.unlock();
             return RpcStatus::RPC_SEND_FAIL;
@@ -172,7 +172,7 @@ RpcStatus RpcEventLooper::sendReq(
                 m_cb_timer_map.erase(tm_id);
             }
             m_cb_map.erase(req_id);
-            cb_obj->callback_safe(send_ret, "");
+            cb_obj->callback_safe(send_ret, RawData());
             m_mutex.unlock();
         }
     }
@@ -224,7 +224,7 @@ void RpcEventLooper::dealTimeoutCb() {
                     if(std::time(nullptr) > tm) {
                         //found a timeout cb
                         //RPC_LOG(RPC_LOG_LEV::WARNING, "%s timeout", cb->getReqId().c_str());
-                        cb->callback_safe(RpcStatus::RPC_CB_TIMEOUT, "");
+                        cb->callback_safe(RpcStatus::RPC_CB_TIMEOUT, RawData());
                         m_cb_map.erase(cb_iter);
                     }
                     else {

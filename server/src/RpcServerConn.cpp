@@ -214,6 +214,7 @@ PkgIOStatus RpcServerConn::sendData()
       }
       if (errno == EAGAIN) {
         //ET trigger case
+        RPC_LOG(RPC_LOG_LEV::INFO, "send data AGAIN");
         return PkgIOStatus::PARTIAL;
       }
       if( errno == EINTR) {
@@ -261,6 +262,7 @@ PkgIOStatus RpcServerConn::sendResponse()
               during = during.zero();
             }
             m_server->calcRespQTime(during.count());
+            RPC_LOG(RPC_LOG_LEV::DEBUG, "will send %d", pkg->data_len);
             return sendData();
         }
     }

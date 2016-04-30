@@ -9,11 +9,9 @@ message RpcInnerReq {
     }
     required RPC_TYPE type = 4;
     required uint32 timeout = 5;  //unit second
-    required bytes data = 6;
+    optional bytes data = 6;
 }
 
 message RpcInnerResp {
     required string request_id = 1; //should be the same with RpcInnerReq::request_id
-    required uint32 ret_val = 2;    //the status returned from server side ref: common/include/RpcDefs.h
-    required bytes data = 3;
 }

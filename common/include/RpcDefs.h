@@ -28,10 +28,27 @@ namespace rpcframe
         RPC_MALLOC_PKG_FAIL,
     };
 
+    class RawDataImpl;
+    class RawData {
+      public:
+        RawData();
+        explicit RawData(const std::string &s);
+        RawData(const char *d, size_t l);
+        explicit RawData(const RawData& r);
+        RawData &operator=(const RawData& r);
+        ~RawData();
+        size_t size() const;
+        char *data;
+        size_t data_len;
+        RawDataImpl *m_impl;
+    };
+
     class IRpcRespBroker;
 
     typedef std::shared_ptr<IRpcRespBroker> IRpcRespBrokerPtr;
-    typedef std::function<rpcframe::RpcStatus(const std::string &, std::string &, IRpcRespBrokerPtr)> RPC_FUNC_T;
+    typedef std::function<rpcframe::RpcStatus(const RawData &req, IRpcRespBrokerPtr)> RPC_FUNC_T;
+
+    const size_t max_protobuf_data_len = 1024 * 1024;
 
 
     /*
