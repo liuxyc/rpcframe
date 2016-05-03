@@ -8,24 +8,23 @@
 #include <vector>
 
 #include "IService.h"
-#include "IRpcRespBroker.h"
+#include "IServiceImpl.h"
 
 namespace rpcframe {
     
-RpcStatus IService::runMethod(const std::string &method_name, 
-    const RawData &req_data,
-    IRpcRespBrokerPtr resp_broker, RpcMethodStatusPtr &method_status) 
-{ 
-  method_status = nullptr;
-  auto method = m_method_map.find(method_name);
-  if (method != m_method_map.end()) { 
-    RPC_FUNC_T p_fun = method->second.m_func; 
-    method_status = method->second.m_status;
-    return p_fun(req_data, resp_broker); 
-  }  
-  else { 
-    return RpcStatus::RPC_METHOD_NOTFOUND;  
-  }  
-}
+  IService::IService() 
+  {
+    m_impl = new IServiceImpl();
+  }
+
+  IService::~IService() 
+  {
+    delete m_impl;
+  }
+  void IService::add_method(const std::string &method_name, const RPC_FUNC_T func)
+  {
+    m_impl->m_method_map.emplace(method_name, rpcframe::RpcMethod(func));
+  
+  }
 
 };

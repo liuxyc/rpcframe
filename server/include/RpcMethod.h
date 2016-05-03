@@ -9,6 +9,7 @@
 #include <cstdint>
 
 #include "RpcDefs.h"
+#include "IService.h"
 
 namespace rpcframe
 {
@@ -40,11 +41,9 @@ class RpcMethod {
     explicit RpcMethod(const RPC_FUNC_T &func);
     ~RpcMethod();
     RpcMethod(RpcMethod &&m);
-    RpcMethod(const RpcMethod &m) = delete;
+    RpcMethod(const RpcMethod &m);
     const RpcMethod &operator=(const RpcMethod &m) = delete;
     RPC_FUNC_T m_func;
     RpcMethodStatusPtr m_status;
 };
-
-
 };

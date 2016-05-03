@@ -11,11 +11,12 @@
 #include <unistd.h>
 #include <sys/prctl.h>
 
-#include "IService.h"
+#include "IServiceImpl.h"
 #include "RpcRespBroker.h"
 #include "RpcServerImpl.h"
 #include "RpcServerConfig.h"
 #include "RpcPackage.h"
+#include "RpcMethod.h"
 #include "rpc.pb.h"
 #include "util.h"
 
@@ -53,7 +54,7 @@ static void ev_handler(struct mg_connection *conn, int ev, void *ev_data) {
             std::chrono::system_clock::time_point begin_call_timepoint = std::chrono::system_clock::now();
             RpcMethodStatusPtr method_status = nullptr;
             RawData rd(hm->body.p, hm->body.len);
-            RpcStatus ret = p_service->runMethod(method_name, rd, rpcbroker, method_status) ;
+            RpcStatus ret = p_service->m_impl->runMethod(method_name, rd, rpcbroker, method_status) ;
             auto during = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - begin_call_timepoint);
             if(method_status->enabled) {
               if (during.count() < 0) {

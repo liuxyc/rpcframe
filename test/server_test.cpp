@@ -28,8 +28,7 @@ public:
         }
     };
 
-    rpcframe::RpcStatus test_method_async(const rpcframe::RawData &req_data, 
-                                                     rpcframe::IRpcRespBrokerPtr resp_broker) 
+    rpcframe::RpcStatus test_method_async(const rpcframe::RawData &req_data, rpcframe::IRpcRespBrokerPtr resp_broker) 
     {
         printf("test_method_async get %s\n", req_data.data);
         //make a async response

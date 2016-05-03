@@ -52,8 +52,13 @@ namespace rpcframe
 
 
     /*
-     * Request/Response binary format:
-     *        | --> uint32_t(the length of data) <-- | --> (data: protobuf format, ref: common/proto/rpc.proto) <--| 
+     * Requestbinary format:
+     * |--> uint32_t(the length of following data) <--|--> uint32_t(the length of protobuf data) <--|--> protobuf data + user data(if user data < 1MB)ref: common/proto/rpc.proto) <--|-->user data(if user data > 1MB)<--|
+     */
+
+    /*
+     * Response binary format:
+     * |--> uint32_t(the length of following data) <--|--> uint32_t(the length of protobuf data) <--|--> protobuf data, ref: common/proto/rpc.proto) <--|--> user data <--|--> return valuse <--| 
      */
 };
 #endif

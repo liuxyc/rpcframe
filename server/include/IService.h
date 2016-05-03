@@ -3,34 +3,29 @@
  * All rights reserved.
  */
 
-#ifndef RPCFRAME_ISERVICE
-#define RPCFRAME_ISERVICE
+#pragma once
 #include <map>
 #include <string>
 #include <vector>
 
 #include "RpcDefs.h"
 #include "IRpcRespBroker.h"
-#include "RpcMethod.h"
 
 namespace rpcframe {
 
+class IServiceImpl;
+
 /*std::move VS RVO ...*/
 #define RPC_ADD_METHOD(class_name, method_name) \
-  m_method_map.emplace(#method_name, rpcframe::RpcMethod(std::bind(&class_name::method_name, this, std::placeholders::_1, std::placeholders::_2))); 
+  add_method(#method_name, std::bind(&class_name::method_name, this, std::placeholders::_1, std::placeholders::_2)); 
 
 class IService
 {
   public:
-    IService() {};
-    virtual ~IService() {};
-
-    RpcStatus runMethod(const std::string &method_name, 
-        const RawData &,
-        IRpcRespBrokerPtr resp_broker, RpcMethodStatusPtr &method_status);
-
-    std::map<std::string, RpcMethod> m_method_map; 
+    IService();
+    virtual ~IService();
+    void add_method(const std::string &method_name, const RPC_FUNC_T func);
+    IServiceImpl *m_impl;
 };
 
 };
-#endif

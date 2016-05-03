@@ -188,7 +188,7 @@ TEST(ClientTest, 3000_sync_async_call)
 
 TEST(ClientTest, small_echo_call)
 {
-  int pkg_cnt = 8 * 1024;
+  int pkg_cnt = 32 * 1024;
   auto endp = std::make_pair("localhost", 8801);
   rpcframe::RpcClientConfig ccfg(endp);
   ccfg.setThreadNum(4);

@@ -52,4 +52,9 @@ RpcMethod::RpcMethod(RpcMethod &&m) {
   m.m_status = nullptr;
 }
 
+RpcMethod::RpcMethod(const RpcMethod &m) {
+  m_func = m.m_func;
+  m_status = m.m_status;
+}
+
 };

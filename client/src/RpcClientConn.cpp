@@ -157,7 +157,7 @@ RpcStatus RpcClientConn::sendReq(
   req.set_request_id(reqid);
   req.set_timeout(timeout);
   bool hasBlob = true;
-  if(request_data.size() < max_protobuf_data_len) {
+  if(request_data.size() > 0 && request_data.size() < max_protobuf_data_len) {
     req.set_data(request_data.data, request_data.data_len);
     hasBlob = false;
   }
@@ -183,13 +183,11 @@ RpcStatus RpcClientConn::sendReq(
     RPC_LOG(RPC_LOG_LEV::ERROR, "Serialize req data fail");
     return RpcStatus::RPC_SEND_FAIL;
   }
-
-  std::time_t begin_tm = std::time(nullptr);
-  RpcStatus rc = sendData(out_data.get(), sizeof(pkg_hdr) + sizeof(proto_hdr) + proto_len, timeout);
-  timeout -= (std::time(nullptr) - begin_tm);
-  if(hasBlob && rc == RpcStatus::RPC_SEND_OK) {
-    rc = sendData((char *)request_data.data, request_data.size(), timeout);
+  if(hasBlob){
+    memcpy((void *)(out_data.get() + sizeof(pkg_hdr)+ sizeof(proto_hdr) + proto_len), request_data.data, request_data.size());
   }
+
+  RpcStatus rc = sendData(out_data.get(), pkg_len + sizeof(pkg_hdr), timeout);
   return rc;
 }
 

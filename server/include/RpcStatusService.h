@@ -7,7 +7,7 @@
 #define RPCFRAME_RPCSTATUSSERVICE
 #include <string>
 
-#include "IService.h"
+#include "IServiceImpl.h"
 #include "RpcServerImpl.h"
 #include "RpcServerConn.h"
 #include "RpcServerConnWorker.h"
@@ -30,8 +30,8 @@ public:
     : m_rpc_server(server) {
         RPC_ADD_METHOD(RpcStatusService, get_status);
         //not static get_status call, hack m_status to nullptr
-        auto st = m_method_map.find("get_status");
-        if(st != m_method_map.end()) {
+        auto st = m_impl->m_method_map.find("get_status");
+        if(st != m_impl->m_method_map.end()) {
           st->second.m_status->enabled = false;
         }
     };
@@ -70,7 +70,7 @@ public:
         for(auto srv: m_rpc_server->m_service_map) {
           resp_data += "<h2>service name:" + srv.first + "<h2>";
           std::vector<std::string> mnames;
-          for (auto &method: srv.second->m_method_map) {
+          for (auto &method: srv.second->m_impl->m_method_map) {
             resp_data += "<h3>&nbsp;&nbsp;method name:" + method.first + "</h3>";
             if(method.second.m_status->enabled) {
               resp_data += "&nbsp;&nbsp;&nbsp;&nbsp;Total Call num:" + std::to_string(method.second.m_status->total_call_nums) + "</br>";

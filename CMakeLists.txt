@@ -47,7 +47,6 @@ SET(PUB_HDR
   ${SERVER_DIR}/include/RpcServer.h 
   ${SERVER_DIR}/include/RpcServerConfig.h 
   ${SERVER_DIR}/include/IService.h
-  ${SERVER_DIR}/include/RpcMethod.h
   ${SERVER_DIR}/include/IRpcRespBroker.h)
 
 ADD_CUSTOM_COMMAND(TARGET rpcframe
@@ -75,4 +74,6 @@ ADD_EXECUTABLE(server_test ${TEST_DIR}/server_test.cpp)
 TARGET_LINK_LIBRARIES(server_test rpcframe protobuf pthread)
 
 ADD_EXECUTABLE(client_test ${TEST_DIR}/client_test.cpp)
+#set (CMAKE_EXE_LINKER_FLAGS "-Wl,--no-as-needed")
+#TARGET_LINK_LIBRARIES(client_test rpcframe protobuf pthread gtest gtest_main profiler)
 TARGET_LINK_LIBRARIES(client_test rpcframe protobuf pthread gtest gtest_main)

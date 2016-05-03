@@ -17,7 +17,8 @@
 #include "RpcServerConn.h"
 #include "RpcServerImpl.h"
 #include "RpcServerConnWorker.h"
-#include "IService.h"
+#include "RpcMethod.h"
+#include "IServiceImpl.h"
 #include "rpc.pb.h"
 #include "util.h"
 
@@ -97,7 +98,7 @@ void RpcWorker::run() {
 
                 std::chrono::system_clock::time_point begin_call_timepoint = std::chrono::system_clock::now();
                 RpcMethodStatusPtr method_status = nullptr;
-                RpcStatus ret = p_service->runMethod(req.method_name(), rd, rpcbroker, method_status);
+                RpcStatus ret = p_service->m_impl->runMethod(req.method_name(), rd, rpcbroker, method_status);
                 during = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - begin_call_timepoint);
                 if(method_status) {
                   if (during.count() < 0) {
