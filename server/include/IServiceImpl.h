@@ -1,10 +1,9 @@
 /*
- * Copyright (c) 2014-2015, Xiaoyu Liu <liuxyc at gmail dot com>
+ * Copyright (c) 2015-2016, Xiaoyu Liu <liuxyc at gmail dot com>
  * All rights reserved.
  */
 
-#ifndef RPCFRAME_ISERVICE
-#define RPCFRAME_ISERVICE
+#pragma once
 #include <map>
 #include <string>
 #include <vector>
@@ -42,4 +41,3 @@ class IServiceImpl
 };
 
 };
-#endif

@@ -1,11 +1,9 @@
 /*
- * Copyright (c) 2014-2015, Xiaoyu Liu <liuxyc at gmail dot com>
+ * Copyright (c) 2015-2016, Xiaoyu Liu <liuxyc at gmail dot com>
  * All rights reserved.
  */
 
-#ifndef RPCFRAME_SPINLOCK_
-#define RPCFRAME_SPINLOCK_
-
+#pragma once
 #include <pthread.h>
 namespace rpcframe {
 class SpinLock
@@ -31,5 +29,3 @@ class SpinLock
 }; 
 
 };
-
-#endif

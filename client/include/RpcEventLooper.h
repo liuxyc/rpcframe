@@ -1,10 +1,9 @@
 /*
- * Copyright (c) 2014-2015, Xiaoyu Liu <liuxyc at gmail dot com>
+ * Copyright (c) 2015-2016, Xiaoyu Liu <liuxyc at gmail dot com>
  * All rights reserved.
  */
 
-#ifndef RPCFRAME_EVENTLOOPER
-#define RPCFRAME_EVENTLOOPER
+#pragma once
 #include <utility>
 #include <unordered_map>
 #include <map>
@@ -63,4 +62,3 @@ private:
 };
 
 };
-#endif

@@ -1,11 +1,9 @@
 /*
- * Copyright (c) 2014-2015, Xiaoyu Liu <liuxyc at gmail dot com>
+ * Copyright (c) 2015-2016, Xiaoyu Liu <liuxyc at gmail dot com>
  * All rights reserved.
  */
 
-#ifndef RPCFRAME_RPCSERVER_CONFIG
-#define RPCFRAME_RPCSERVER_CONFIG
-
+#pragma once
 #include <set>
 #include <string>
 #include <stdint.h>
@@ -42,4 +40,3 @@ public:
 };
 
 };
-#endif

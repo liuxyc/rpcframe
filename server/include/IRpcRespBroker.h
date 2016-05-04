@@ -1,10 +1,9 @@
 /*
- * Copyright (c) 2014-2015, Xiaoyu Liu <liuxyc at gmail dot com>
+ * Copyright (c) 2015-2016, Xiaoyu Liu <liuxyc at gmail dot com>
  * All rights reserved.
  */
 
-#ifndef RPCFRAME_IRPCRESPBROKER
-#define RPCFRAME_IRPCRESPBROKER
+#pragma once
 #include <string>
 #include <memory>
 
@@ -61,7 +60,4 @@ public:
 
     virtual void setReturnVal(RpcStatus rs) = 0;
 };
-
-
 };
-#endif

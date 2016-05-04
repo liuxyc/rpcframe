@@ -1,11 +1,9 @@
 /*
- * Copyright (c) 2014-2015, Xiaoyu Liu <liuxyc at gmail dot com>
+ * Copyright (c) 2015-2016, Xiaoyu Liu <liuxyc at gmail dot com>
  * All rights reserved.
  */
 
-#ifndef RPCFRAME_COMMON_UTIL_H
-#define RPCFRAME_COMMON_UTIL_H
-
+#pragma once
 #include <string>
 #include <vector>
 #include <stdarg.h>
@@ -35,5 +33,3 @@ RPC_LOG_FUNC(level, __PRETTY_FUNCTION__, format, ##__VA_ARGS__); \
 
 };
 
-
-#endif

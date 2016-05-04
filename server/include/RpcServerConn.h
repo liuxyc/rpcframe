@@ -1,10 +1,9 @@
 /*
- * Copyright (c) 2014-2015, Xiaoyu Liu <liuxyc at gmail dot com>
+ * Copyright (c) 2015-2016, Xiaoyu Liu <liuxyc at gmail dot com>
  * All rights reserved.
  */
 
-#ifndef RPCFRAME_RPCSERVERCONN
-#define RPCFRAME_RPCSERVERCONN
+#pragma once
 #include <mutex>
 #include <memory>
 
@@ -50,5 +49,3 @@ private:
     
 };
 };
-
-#endif

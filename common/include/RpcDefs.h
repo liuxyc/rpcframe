@@ -1,10 +1,9 @@
 /*
- * Copyright (c) 2014-2015, Xiaoyu Liu <liuxyc at gmail dot com>
+ * Copyright (c) 2015-2016, Xiaoyu Liu <liuxyc at gmail dot com>
  * All rights reserved.
  */
 
-#ifndef RPCFRAME_RPCDEFS
-#define RPCFRAME_RPCDEFS
+#pragma once
 #include <utility>
 #include <string>
 #include <functional>
@@ -61,4 +60,3 @@ namespace rpcframe
      * |--> uint32_t(the length of following data) <--|--> uint32_t(the length of protobuf data) <--|--> protobuf data, ref: common/proto/rpc.proto) <--|--> user data <--|--> return valuse <--| 
      */
 };
-#endif

@@ -1,11 +1,9 @@
 /*
- * Copyright (c) 2014-2015, Xiaoyu Liu <liuxyc at gmail dot com>
+ * Copyright (c) 2015-2016, Xiaoyu Liu <liuxyc at gmail dot com>
  * All rights reserved.
  */
 
-#ifndef RPCFRAME_RPCPACKAGE
-#define RPCFRAME_RPCPACKAGE
-
+#pragma once
 #include "Queue.h"
 #include <memory>
 #include <string.h>
@@ -75,5 +73,3 @@ typedef std::shared_ptr<response_pkg> RespPkgPtr;
 typedef Queue<ReqPkgPtr> ReqQueue;
 typedef Queue<RespPkgPtr> RespQueue;
 };
-
-#endif
