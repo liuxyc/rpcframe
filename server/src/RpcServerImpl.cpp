@@ -135,9 +135,9 @@ bool RpcServerImpl::startListen() {
     listen_addr.sin_addr.s_addr = inet_addr(hostip.c_str());  
     
     int ireuseadd_on = 1;
+    //setsockopt(m_listen_socket, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &ireuseadd_on, sizeof(ireuseadd_on) );   // linux kernel >=3.9
     setsockopt(m_listen_socket, SOL_SOCKET, SO_REUSEADDR, &ireuseadd_on, sizeof(ireuseadd_on) );  
     //set nonblock
-    //int opts = O_NONBLOCK | SO_REUSEPORT;   // linux kernel >=3.9
     int opts = O_NONBLOCK;  
     if(fcntl(m_listen_socket, F_SETFL, opts) < 0)  
     {  

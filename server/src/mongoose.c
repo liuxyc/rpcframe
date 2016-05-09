@@ -3247,6 +3247,7 @@ static sock_t mg_open_listening_socket(union socket_address *sa, int proto) {
        * scenarios. Therefore, SO_REUSEADDR was disabled on Windows unless
        * SO_EXCLUSIVEADDRUSE is supported and set on a socket.
        */
+      /*!setsockopt(sock, SOL_SOCKET, SO_REUSEADDR |SO_REUSEPORT, (void *) &on, sizeof(on)) &&*/
       !setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (void *) &on, sizeof(on)) &&
 #endif
 #endif /* !MG_SOCKET_SIMPLELINK && !MG_LWIP */
