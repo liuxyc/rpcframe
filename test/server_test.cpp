@@ -157,8 +157,13 @@ int main(int argc, char * argv[])
     MyService ms;
     std::unique_ptr<MyService_async> ms_async(new MyService_async());
     //bind service_name to service instance
-    rpcServer.addService("test_service", &ms);
-    rpcServer.addService("test_service_async", ms_async.get());
+    rpcServer.addService<MyService>("test_service", &ms);
+    rpcServer.addService<MyService_async>("test_service_async", ms_async.get());
+
+    //rpcframe will create instance per work thread
+    //rpcServer.addService<MyService>("test_service", nullptr);
+    //rpcServer.addService<MyService_async>("test_service_async", nullptr);
+    
     g_server_handler = &rpcServer;
     rpcServer.start();
     printf("server_test stoped\n");

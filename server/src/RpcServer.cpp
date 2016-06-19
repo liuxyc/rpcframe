@@ -9,7 +9,6 @@
 #include <string.h>  
 #include <unistd.h>
 
-#include "RpcServerImpl.h"
 
 namespace rpcframe
 {
@@ -21,16 +20,6 @@ RpcServer::RpcServer(RpcServerConfig &cfg)
 
 RpcServer::~RpcServer() {
     delete m_server_impl;
-}
-
-bool RpcServer::addService(const std::string &name, IService *p_service)
-{
-    return m_server_impl->addService(name, p_service);
-}
-
-IService *RpcServer::getService(const std::string &name)
-{
-    return m_server_impl->getService(name);
 }
 
 bool RpcServer::start() {

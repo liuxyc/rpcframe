@@ -7,6 +7,7 @@
 #include "RpcDefs.h"
 #include <atomic>
 #include "mongoose.h"
+#include "RpcWorker.h"
 
 namespace rpcframe
 {
@@ -36,9 +37,11 @@ public:
     bool isStop();
     void sendHttpOk(mg_connection *conn, const std::string &resp);
     void sendHttpFail(mg_connection *conn, int status, const std::string &resp);
+    void addService(const std::string &name, IService *service, bool owner);
 
     RpcHttpServer(const RpcHttpServer &) = delete;
     RpcHttpServer &operator=(const RpcHttpServer &) = delete;
+    std::map<std::string, RpcWorker::ServiceBlock> m_srvmap;
 
 private:
     RpcServerImpl *m_server;

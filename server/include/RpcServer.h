@@ -7,6 +7,7 @@
 #include "RpcDefs.h"
 #include "IService.h"
 #include "RpcServerConfig.h"
+#include "RpcServerImpl.h"
 
 namespace rpcframe
 {
@@ -22,12 +23,17 @@ public:
      * @brief add IService implement to RpcServer
      *
      * @param name  Service name
-     * @param       Service instance
+     * @param       Service instance, 
+     *              if nullptr, will create instance T for each work thread
+     *              not nullptr, all thread will share the instance which you give.
      *
      * @return 
      */
-    bool addService(const std::string &name, IService *);
-    IService *getService(const std::string &name);
+    template <typename T>
+    bool addService(const std::string &name, IService *p_service)
+    {
+      return m_server_impl->addService<T>(name, p_service);
+    }
 
     /**
      * @brief start RpcServer, this method will block

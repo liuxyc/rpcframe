@@ -123,10 +123,10 @@ TEST(ClientTest, big_req_resp)
   std::string req(1024 * 1024 * 2, 'a');
   rpcframe::RawData reqd(req);
   for (int pcnt = 0; pcnt < pkg_cnt; ++pcnt) {
-    ASSERT_EQ(rpcframe::RpcStatus::RPC_SEND_OK, client.async_call("test_method_big_resp", reqd, 50, pCB));
+    ASSERT_EQ(rpcframe::RpcStatus::RPC_SEND_OK, client.async_call("test_method_big_resp", reqd, 100, pCB));
   }
   rpcframe::RawData resp;
-  ASSERT_EQ(rpcframe::RpcStatus::RPC_SERVER_OK, client.call("test_method_big_resp", reqd, resp, 50));
+  ASSERT_EQ(rpcframe::RpcStatus::RPC_SERVER_OK, client.call("test_method_big_resp", reqd, resp, 100));
   ASSERT_EQ(resp.size(), 1024*1024*40 + 1);
   client.waitAllCBDone(5);
 }

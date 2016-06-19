@@ -66,23 +66,24 @@ public:
         resp_data += "<h3>Longest Call time:" + std::to_string(m_rpc_server->max_call_time) + "ms</h3>";
         resp_data += "<h3>Rpc listening on port:" + std::to_string(m_rpc_server->m_cfg.m_port) + " fd:" + std::to_string(m_rpc_server->m_listen_socket) + "</h3>";
         resp_data += "<h1>Service Status</h1>";
-        for(auto srv: m_rpc_server->m_service_map) {
-          resp_data += "<h2>service name:" + srv.first + "<h2>";
-          std::vector<std::string> mnames;
-          for (auto &method: srv.second->m_impl->m_method_map) {
-            resp_data += "<h3>&nbsp;&nbsp;method name:" + method.first + "</h3>";
-            if(method.second.m_status->enabled) {
-              resp_data += "&nbsp;&nbsp;&nbsp;&nbsp;Total Call num:" + std::to_string(method.second.m_status->total_call_nums) + "</br>";
-              resp_data += "&nbsp;&nbsp;&nbsp;&nbsp;Timeout Call num:" + std::to_string(method.second.m_status->timeout_call_nums) + "</br>";
-              resp_data += "&nbsp;&nbsp;&nbsp;&nbsp;Avg Call time:" + std::to_string(method.second.m_status->avg_call_time) + "ms</br>";
-              resp_data += "&nbsp;&nbsp;&nbsp;&nbsp;Longest Call time:" + std::to_string(method.second.m_status->longest_call_time) + "ms</br>";
-              resp_data += "&nbsp;&nbsp;&nbsp;&nbsp;Call from http num:" + std::to_string(method.second.m_status->call_from_http_num) + "</br>";
-            }
-            else {
-              resp_data += "&nbsp;&nbsp;&nbsp;&nbsp;Method statistic disabled</br>";
-            }
-          }
-        }
+        //TODO: need collect stastic data from each thread :(
+        //for(auto srv: m_rpc_server->m_service_map) {
+          //resp_data += "<h2>service name:" + srv.first.first + "<h2>";
+          //std::vector<std::string> mnames;
+          //for (auto &method: srv.second->m_impl->m_method_map) {
+            //resp_data += "<h3>&nbsp;&nbsp;method name:" + method.first + "</h3>";
+            //if(method.second.m_status->enabled) {
+              //resp_data += "&nbsp;&nbsp;&nbsp;&nbsp;Total Call num:" + std::to_string(method.second.m_status->total_call_nums) + "</br>";
+              //resp_data += "&nbsp;&nbsp;&nbsp;&nbsp;Timeout Call num:" + std::to_string(method.second.m_status->timeout_call_nums) + "</br>";
+              //resp_data += "&nbsp;&nbsp;&nbsp;&nbsp;Avg Call time:" + std::to_string(method.second.m_status->avg_call_time) + "ms</br>";
+              //resp_data += "&nbsp;&nbsp;&nbsp;&nbsp;Longest Call time:" + std::to_string(method.second.m_status->longest_call_time) + "ms</br>";
+              //resp_data += "&nbsp;&nbsp;&nbsp;&nbsp;Call from http num:" + std::to_string(method.second.m_status->call_from_http_num) + "</br>";
+            //}
+            //else {
+              //resp_data += "&nbsp;&nbsp;&nbsp;&nbsp;Method statistic disabled</br>";
+            //}
+          //}
+        //}
         resp_data += "</br>";
         resp_data += "</body></html>";
       }

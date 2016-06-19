@@ -48,7 +48,7 @@ static void ev_handler(struct mg_connection *conn, int ev, void *ev_data) {
         if (service_pos != std::string::npos) {
           std::string service_name = url_string.substr(1, service_pos - 1);
           std::string method_name = url_string.substr(service_pos + 1, url_string.size());
-          IService *p_service = server->getService(service_name);
+          IService *p_service = server->m_http_server->m_srvmap[service_name].pSrv;
           if (p_service != nullptr) {
             IRpcRespBrokerPtr rpcbroker = std::make_shared<RpcRespBroker>(nullptr, "http_connection", "http_request",true, conn);
             std::chrono::system_clock::time_point begin_call_timepoint = std::chrono::system_clock::now();
@@ -172,6 +172,11 @@ void RpcHttpServer::stop() {
 
 bool RpcHttpServer::isStop() {
     return m_stop;
+}
+
+void RpcHttpServer::addService(const std::string &name, IService *service, bool owner)
+{
+  m_srvmap[name] = RpcWorker::ServiceBlock(service, owner);
 }
 
 };

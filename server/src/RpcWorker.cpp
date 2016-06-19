@@ -36,11 +36,21 @@ RpcWorker::RpcWorker(ReqQueue *workqueue, RpcServerImpl *server)
 
 RpcWorker::~RpcWorker() {
   delete m_thread;
+  for(auto &p:m_srvmap){
+    if(p.second.owner) {
+      delete p.second.pSrv;
+    }
+  }
 }
 
 void RpcWorker::stop() {
     m_stop = true;
     m_thread->join();
+}
+
+void RpcWorker::addService(const std::string &name, IService *service, bool owner)
+{
+  m_srvmap[name] = ServiceBlock(service, owner);
 }
 
 void RpcWorker::run() {
@@ -89,7 +99,8 @@ void RpcWorker::run() {
               continue;
             }
             RPC_LOG(RPC_LOG_LEV::DEBUG, "req %s:%s stay: %d ms", req.request_id().c_str(), req.method_name().c_str(), during.count());
-            IService *p_service = m_server->getService(req.service_name());
+
+            IService *p_service = m_srvmap[req.service_name()].pSrv;
             IRpcRespBrokerPtr rpcbroker = std::make_shared<RpcRespBroker>(connworker, 
                 pkg->connection_id,
                 req.request_id(),

@@ -17,23 +17,20 @@
 #include <utility>
 
 #include "util.h"
-#include "RpcWorker.h"
-#include "RpcHttpServer.h"
 #include "RpcStatusService.h"
 #include "IService.h"
-#include "RpcServerConfig.h"
 #include "RpcServerConnWorker.h"
 
 namespace rpcframe
 {
 
 RpcServerImpl::RpcServerImpl(RpcServerConfig &cfg)
-: m_cfg(cfg)
+: m_http_server(nullptr)
+, m_cfg(cfg)
 , m_request_q(cfg.m_max_req_qsize)
 , m_listen_socket(-1)
 , m_stop(false)
 , m_conn_num(0)
-, m_http_server(nullptr)
 , avg_req_wait_time(0)
 , avg_resp_wait_time(0)
 , avg_call_time(0)
@@ -50,23 +47,22 @@ RpcServerImpl::RpcServerImpl(RpcServerConfig &cfg)
       m_connworker.push_back(new RpcServerConnWorker(this, connworkername.append(std::to_string(i)).c_str(), &m_request_q));
     }
 
+    m_statusSrv = new RpcStatusService(this); 
     addWorkers(m_cfg.getThreadNum());
     if (cfg.getHttpPort() != -1) {
         m_http_server = new RpcHttpServer(cfg, this);
     }
-    RpcStatusService *ss = new RpcStatusService(this); 
-    m_service_map["status"] = ss;
 }
 
 RpcServerImpl::~RpcServerImpl() {
     stop();
     for(auto rw: m_worker_vec) {
-        delete rw;
+      delete rw;
     }
-    delete m_service_map["status"];
     for(auto cw: m_connworker) {
-        delete cw;
+      delete cw;
     }
+    delete m_statusSrv;
 }
 
 bool RpcServerImpl::addWorkers(const uint32_t numbers) 
@@ -75,6 +71,7 @@ bool RpcServerImpl::addWorkers(const uint32_t numbers)
         try {
             RpcWorker *rw = new RpcWorker(&m_request_q, this);
             m_worker_vec.push_back(rw);
+            rw->addService("status", m_statusSrv, false);
         } catch (...) {
             return false;
         }
@@ -96,25 +93,16 @@ bool RpcServerImpl::removeWorkers(const uint32_t numbers)
     return true;
 }
 
-bool RpcServerImpl::addService(const std::string &name, IService *p_service)
-{
-    if (m_service_map.find(name) != m_service_map.end()) {
-        return false;
-    }
-    m_service_map[name] = p_service;
-    return true;
-}
-
-IService *RpcServerImpl::getService(const std::string &name)
-{
-    auto service_iter = m_service_map.find(name);
-    if (service_iter != m_service_map.end()) {
-        return service_iter->second;
-    }
-    else {
-        return nullptr;
-    }
-}
+//IService *RpcServerImpl::getService(const std::string &name, void *worker)
+//{
+    //auto service_iter = m_service_map.find(std::make_pair(name, worker));
+    //if (service_iter != m_service_map.end()) {
+        //return service_iter->second;
+    //}
+    //else {
+        //return nullptr;
+    //}
+//}
 
 
 bool RpcServerImpl::startListen() {
