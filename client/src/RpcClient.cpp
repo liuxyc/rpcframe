@@ -74,6 +74,15 @@ const RpcClientConfig &RpcClient::getConfig() {
     return m_cfg;
 }
 
+RpcStatus RpcClient::call(const std::string &method_name, const google::protobuf::Message &request_data, RawData &response_data, uint32_t timeout) 
+{
+    std::string req_data;
+    request_data.SerializeToString(&req_data);
+    RawData raw_data(req_data);
+    return call(method_name, raw_data, response_data, timeout);
+
+}
+
 RpcStatus RpcClient::call(const std::string &method_name, const RawData &request_data, RawData &response_data, uint32_t timeout) {
     std::shared_ptr<RpcClientBlocker> rb(new RpcClientBlocker(timeout));
     std::string req_id;
@@ -84,6 +93,14 @@ RpcStatus RpcClient::call(const std::string &method_name, const RawData &request
     m_ev->removeCb(req_id);
     
     return ret_st;
+}
+
+RpcStatus RpcClient::async_call(const std::string &method_name, const google::protobuf::Message &request_data, uint32_t timeout, std::shared_ptr<RpcClientCallBack> cb_obj)
+{
+    std::string req_data;
+    request_data.SerializeToString(&req_data);
+    RawData raw_data(req_data);
+    return async_call(method_name, raw_data, timeout, cb_obj);
 }
 
 RpcStatus RpcClient::async_call(const std::string &method_name, const RawData &request_data, uint32_t timeout, std::shared_ptr<RpcClientCallBack> cb_obj) {

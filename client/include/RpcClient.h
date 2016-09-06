@@ -9,6 +9,7 @@
 #include <thread>
 #include <atomic>
 #include <memory>
+#include <google/protobuf/message.h>
 
 #include "RpcDefs.h"
 
@@ -140,6 +141,7 @@ public:
      * @return 
      */
     RpcStatus call(const std::string &method_name, const RawData &request_data, RawData &, uint32_t timeout);
+    RpcStatus call(const std::string &method_name, const google::protobuf::Message &request_data, RawData &, uint32_t timeout);
 
     /**
      * @brief async call, not thread safe
@@ -152,6 +154,7 @@ public:
      * @return 
      */
     RpcStatus async_call(const std::string &method_name, const RawData &request_data, uint32_t timeout, std::shared_ptr<RpcClientCallBack> cb_obj);
+    RpcStatus async_call(const std::string &method_name, const google::protobuf::Message &request_data, uint32_t timeout, std::shared_ptr<RpcClientCallBack> cb_obj);
 
     const RpcClientConfig &getConfig();
 
