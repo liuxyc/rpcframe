@@ -159,35 +159,31 @@ void RpcServerConnWorker::onDataIn(const int fd) {
   RpcServerConn *conn = getConnection(fd);
   if (conn == nullptr) {
     RPC_LOG(RPC_LOG_LEV::INFO, "rpc server socket already disconnected: %d", fd);  
+    return;
   }
-  else {
-    while(1) {
+  while(1) {
       pkg_ret_t pkgret = conn->getRequest();
       if( pkgret.first < 0 )  
       {  
-        RPC_LOG(RPC_LOG_LEV::INFO, "rpc server socket disconnected: %d", fd);  
-        removeConnection(fd);
-        break;
+          RPC_LOG(RPC_LOG_LEV::INFO, "rpc server socket disconnected: %d", fd);  
+          removeConnection(fd);
+          return;
       }  
-      else 
-      {  
-        if(pkgret.second != nullptr) {
+      if(pkgret.second != nullptr) {
           pkgret.second->gen_time = std::chrono::system_clock::now();
           pkgret.second->conn_worker = this;
           //got a full request, put to worker queue
           if ( !m_req_q->push(pkgret.second)) {
-            //queue fail, drop pkg
-            RPC_LOG(RPC_LOG_LEV::WARNING, "server queue fail, drop pkg");
-            m_server->IncReqInQFail();
+              //queue fail, drop pkg
+              RPC_LOG(RPC_LOG_LEV::WARNING, "server queue fail, drop pkg");
+              m_server->IncReqInQFail();
           }
-        }
-        else {
-          if(pkgret.first == 0) {
-            break;
-          }
-        }  
       }
-    }
+      else {
+          if(pkgret.first == 0) {
+              break;
+          }
+      }  
   }
 }
 

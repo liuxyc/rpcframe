@@ -52,6 +52,10 @@ static void ev_handler(struct mg_connection *conn, int ev, void *ev_data) {
           if (p_service != nullptr) {
             IRpcRespBrokerPtr rpcbroker = std::make_shared<RpcRespBroker>(nullptr, "http_connection", "http_request",true, conn);
             std::chrono::system_clock::time_point begin_call_timepoint = std::chrono::system_clock::now();
+            if (!p_service->m_impl->is_method_allow_http(method_name)) {
+                sendHttpResp(conn, 404, std::string(" Not allowed request"));
+                return;
+            }
             RpcMethodStatusPtr method_status = nullptr;
             RawData rd(hm->body.p, hm->body.len);
             RpcStatus ret = p_service->m_impl->runMethod(method_name, rd, rpcbroker, method_status) ;

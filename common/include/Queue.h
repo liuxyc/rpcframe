@@ -46,14 +46,22 @@ public:
     bool push(const T& item, uint32_t ms_val = 0)
     {
         std::unique_lock<std::mutex> mlock(m_mutex);
-        //timeout == 0, nonblock
-        if (ms_val == 0 && m_queue.size() >= m_max_q_len) {
-            return false;
-        }
-        while (m_queue.size() >= m_max_q_len && ms_val > 0) {
-            std::chrono::milliseconds ms(ms_val);
-            if (m_cond_push.wait_for(mlock, ms) == std::cv_status::timeout)
-                return false;
+        if(m_queue.size() >= m_max_q_len) {
+            if(m_dropOldOnFull) {
+                m_queue.pop();
+            }
+            else {
+                //timeout == 0, nonblock
+                if (ms_val == 0) {
+                    return false;
+                }
+                else {
+                    std::chrono::milliseconds ms(ms_val);
+                    if (m_cond_push.wait_for(mlock, ms) == std::cv_status::timeout) {
+                        return false;
+                    }
+                }
+            }
         }
         m_queue.push(item);
         mlock.unlock();
@@ -69,12 +77,17 @@ public:
     }
     explicit Queue(uint32_t max_queuelen = 10 * 1024 * 1024)
     : m_max_q_len(max_queuelen)
+    , m_dropOldOnFull(false)
     {
     
     };
 
     void setMaxSize(uint32_t max_size) {
       m_max_q_len = max_size;
+    };
+
+    void setDropOnFull(bool drop) {
+      m_dropOldOnFull = drop;
     };
 
     Queue(const Queue&) = delete;            // disable copying
@@ -86,6 +99,7 @@ private:
     std::condition_variable m_cond_pop;
     std::condition_variable m_cond_push;
     uint32_t m_max_q_len;
+    bool m_dropOldOnFull;
 };
 
 };

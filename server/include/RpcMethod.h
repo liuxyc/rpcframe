@@ -38,12 +38,13 @@ typedef RpcMethodStatus* RpcMethodStatusPtr;
 
 class RpcMethod {
   public:
-    explicit RpcMethod(const RPC_FUNC_T &func);
+    explicit RpcMethod(const RPC_FUNC_T &func, bool allow_http);
     ~RpcMethod();
     RpcMethod(RpcMethod &&m);
     RpcMethod(const RpcMethod &m);
     const RpcMethod &operator=(const RpcMethod &m) = delete;
     RPC_FUNC_T m_func;
     RpcMethodStatusPtr m_status;
+    bool m_allow_http;
 };
 };

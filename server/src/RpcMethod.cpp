@@ -36,9 +36,10 @@ void RpcMethodStatus::calcCallTime(uint64_t call_time)
   }
 }
 
-RpcMethod::RpcMethod(const RPC_FUNC_T &func) 
+RpcMethod::RpcMethod(const RPC_FUNC_T &func, bool allow_http) 
   : m_func(func)
   , m_status(new RpcMethodStatus()) 
+  , m_allow_http(allow_http)
 {
 }
 

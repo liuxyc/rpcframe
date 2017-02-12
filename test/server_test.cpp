@@ -65,7 +65,7 @@ public:
         RPC_ADD_METHOD(MyService, test_method_5sec_delay)
         RPC_ADD_METHOD(MyService, test_method_random_delay)
         RPC_ADD_METHOD(MyService, test_method_fast_return)
-        RPC_ADD_METHOD(MyService, test_method_big_resp)
+        RPC_ADD_METHOD_NOHTTP(MyService, test_method_big_resp)
         RPC_ADD_METHOD(MyService, test_method_echo)
         m_cnt = 0;
     };

@@ -21,9 +21,9 @@ namespace rpcframe {
   {
     delete m_impl;
   }
-  void IService::add_method(const std::string &method_name, const RPC_FUNC_T func)
+  void IService::add_method(const std::string &method_name, const RPC_FUNC_T func, bool allow_http)
   {
-    m_impl->m_method_map.emplace(method_name, rpcframe::RpcMethod(func));
+    m_impl->m_method_map.emplace(method_name, rpcframe::RpcMethod(func, allow_http));
   
   }
 

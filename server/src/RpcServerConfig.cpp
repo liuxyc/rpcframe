@@ -19,7 +19,7 @@ RpcServerConfig::RpcServerConfig(std::pair<const char *, int> &endpoint)
 , m_http_port(8000)
 , m_http_thread_num(std::thread::hardware_concurrency())
 , m_max_req_qsize(10 * 1024 * 1024)
-, m_conn_thread_num(4)
+, m_conn_thread_num(std::thread::hardware_concurrency())
 {
 
 }
