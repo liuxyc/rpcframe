@@ -15,12 +15,11 @@
 namespace rpcframe
 {
 
-RpcClientConfig::RpcClientConfig(std::pair<const char *, int> &endpoint)
+RpcClientConfig::RpcClientConfig(const std::vector<Endpoint> &eps)
 : m_thread_num(1)
-, m_hostname(endpoint.first)
-, m_port(endpoint.second)
-, m_connect_timeout(3)
+, m_connect_timeout(1)
 , m_max_req_size(1024 * 1024 * 128)
+, m_eps(eps)
 {
     
     
@@ -29,6 +28,11 @@ RpcClientConfig::RpcClientConfig(std::pair<const char *, int> &endpoint)
 RpcClientConfig::~RpcClientConfig()
 {
    
+}
+
+void RpcClientConfig::reloadEndpoints(const std::vector<Endpoint> &eps)
+{
+    m_eps = eps;
 }
 
 void RpcClientConfig::setThreadNum(uint32_t thread_num)
@@ -52,8 +56,6 @@ uint32_t RpcClientConfig::getThreadNum()
 
 RpcClient::RpcClient(RpcClientConfig &cfg, const std::string &service_name)
 : m_cfg(cfg)
-, m_isConnected(false)
-, m_fd(-1)
 , m_servicename(service_name)
 , m_ev(new RpcEventLooper(this, cfg.getThreadNum()))
 {

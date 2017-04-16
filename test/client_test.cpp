@@ -112,7 +112,7 @@ public:
 TEST(ClientTest, big_req_resp)
 {
   auto endp = std::make_pair("localhost", 8801);
-  rpcframe::RpcClientConfig ccfg(endp);
+  rpcframe::RpcClientConfig ccfg({endp});
   ccfg.setThreadNum(4);
   std::shared_ptr<big_resp_CB> pCB(new big_resp_CB());
   pCB->setShared(true);
@@ -134,7 +134,7 @@ TEST(ClientTest, big_req_resp)
 TEST(ClientTest, unknow_srv_method)
 {
   auto endp = std::make_pair("localhost", 8801);
-  rpcframe::RpcClientConfig ccfg(endp);
+  rpcframe::RpcClientConfig ccfg({endp});
   ccfg.setThreadNum(4);
   std::shared_ptr<srv_notfound_CB> srv_nf_CB(new srv_notfound_CB());
   srv_nf_CB->setShared(true);
@@ -161,7 +161,7 @@ TEST(ClientTest, 3000_sync_async_call)
 {
   int pkg_cnt = 1000;
   auto endp = std::make_pair("localhost", 8801);
-  rpcframe::RpcClientConfig ccfg(endp);
+  rpcframe::RpcClientConfig ccfg({endp});
   ccfg.setThreadNum(4);
   std::shared_ptr<success_CB> pCB(new success_CB());
   pCB->setShared(true);
@@ -190,7 +190,7 @@ TEST(ClientTest, small_echo_call)
 {
   int pkg_cnt = 32 * 1024;
   auto endp = std::make_pair("localhost", 8801);
-  rpcframe::RpcClientConfig ccfg(endp);
+  rpcframe::RpcClientConfig ccfg({endp});
   ccfg.setThreadNum(4);
   //fast async/sync call
   rpcframe::RpcClient newclient(ccfg, "test_service");
@@ -215,7 +215,7 @@ TEST(ClientTest, small_echo_call)
 TEST(ClientTest, hugesize_req)
 {
   auto endp = std::make_pair("localhost", 8801);
-  rpcframe::RpcClientConfig ccfg(endp);
+  rpcframe::RpcClientConfig ccfg({endp});
   ccfg.setThreadNum(4);
   //fast async/sync call
   rpcframe::RpcClient newclient(ccfg, "test_service");
@@ -237,7 +237,7 @@ TEST(ClientTest, DISABLED_huge_echo_call)
 {
   int pkg_cnt = 1024 * 1024;
   auto endp = std::make_pair("localhost", 8801);
-  rpcframe::RpcClientConfig ccfg(endp);
+  rpcframe::RpcClientConfig ccfg({endp});
   ccfg.setThreadNum(4);
   //fast async/sync call
   rpcframe::RpcClient newclient(ccfg, "test_service");
@@ -259,7 +259,7 @@ TEST(ClientTest, DISABLED_huge_echo_call)
 TEST(ClientTest, random_timeout)
 {
   auto endp = std::make_pair("localhost", 8801);
-  rpcframe::RpcClientConfig ccfg(endp);
+  rpcframe::RpcClientConfig ccfg({endp});
   ccfg.setThreadNum(4);
   std::shared_ptr<success_CB> pCB(new success_CB());
   std::shared_ptr<succ_timeout_CB> succ_to_CB(new succ_timeout_CB());
@@ -307,7 +307,7 @@ TEST(ClientTest, random_timeout)
 TEST(ClientTest, server_async_back)
 {
   auto endp = std::make_pair("localhost", 8801);
-  rpcframe::RpcClientConfig ccfg(endp);
+  rpcframe::RpcClientConfig ccfg({endp});
   ccfg.setThreadNum(4);
   std::shared_ptr<success_CB> pCB(new success_CB());
   pCB->setShared(true);
@@ -334,7 +334,7 @@ TEST(ClientTest, concurrent_conn)
 {
   auto thread_func = [](){
     auto endp = std::make_pair("127.0.0.1", 8801);
-    rpcframe::RpcClientConfig ccfg(endp);
+    rpcframe::RpcClientConfig ccfg({endp});
     std::shared_ptr<succ_disconn_CB> pCB(new succ_disconn_CB());
     pCB->setShared(true);
     ccfg.setThreadNum(1);
@@ -364,7 +364,8 @@ TEST(ClientTest, concurrent_conn)
 TEST(ClientTest, concurrent_req)
 {
   auto endp = std::make_pair("127.0.0.1", 8801);
-  rpcframe::RpcClientConfig ccfg(endp);
+  auto endp1 = std::make_pair("127.0.0.1", 8802);
+  rpcframe::RpcClientConfig ccfg({endp, endp1});
   std::shared_ptr<success_CB> pCB(new success_CB());
   pCB->setShared(true);
   ccfg.setThreadNum(4);

@@ -24,6 +24,9 @@ class RpcClientCallBack;
 class RpcClientConn;
 class RpcClientWorker;
 
+
+typedef std::shared_ptr<RpcClientCallBack> RpcCBPtr;
+
 class RpcEventLooper
 {
 public:
@@ -37,22 +40,26 @@ public:
     void dealTimeoutCb();
     void waitAllCBDone(uint32_t timeout);
     RespQueue m_response_q;
+    void addConnection(int fd, RpcClientConn *data);
+    void removeConnection(int fd, RpcClientConn *conn);
 
     RpcEventLooper(const RpcEventLooper &) = delete;
     RpcEventLooper &operator=(const RpcEventLooper &) = delete;
 private:
-    void addConnection();
-    void removeConnection();
-    bool connect();
+    void removeAllConnections();
+    bool connect(const Endpoint &ep);
     static int setNoBlocking(int fd);
     static int noBlockConnect(int sockfd, const char* hostname,int port,int timeout);
+    RpcClientConn *tryGetAvaliableConn();
     RpcClient *m_client;
     std::atomic<bool> m_stop;
     int m_epoll_fd;
-    int m_fd;
-    RpcClientConn *m_conn;
+    std::vector<RpcClientConn *> m_conn_list;
+    std::map<Endpoint, RpcClientConn *> m_ep_conn_map;
     std::mutex m_mutex;
-    std::unordered_map<std::string, std::shared_ptr<RpcClientCallBack> > m_cb_map;
+    std::unordered_map<std::string, RpcCBPtr> m_id_cb_map;
+    std::unordered_map<RpcClientConn*, std::vector<RpcCBPtr> > m_conn_cb_map;
+    //std::unordered_map<int, RpcClientConn *> m_fd_conn_map;
     std::multimap<std::time_t, std::string> m_cb_timer_map;
     uint32_t m_req_seqid;
     std::string m_host_ip;

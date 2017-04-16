@@ -147,11 +147,15 @@ int main(int argc, char * argv[])
     if (sigaction(SIGINT, &sigint, NULL) == -1) {
       perror("set signal handler fail\n");
     }
+    if( argc < 3) {
+        printf("usage: %s [rpc port] [http port]\n", argv[0]);
+        exit(-1);
+    }
 
-    auto endp = std::make_pair("127.0.0.1", 8801);
+    auto endp = std::make_pair("127.0.0.1", std::stoi(argv[1]));
     rpcframe::RpcServerConfig cfg(endp);
     cfg.setThreadNum(4);
-    cfg.enableHttp(8000, 4);
+    cfg.enableHttp(std::stoi(argv[2]), 4);
     //cfg.disableHttp();
     rpcframe::RpcServer rpcServer(cfg);
     MyService ms;

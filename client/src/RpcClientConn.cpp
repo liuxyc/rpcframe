@@ -3,6 +3,7 @@
  * All rights reserved.
  */
 #include "RpcClientConn.h"
+#include "RpcEventLooper.h"
 
 #include <errno.h>
 #include <fcntl.h>  
@@ -10,6 +11,8 @@
 #include <string.h>
 #include <sys/socket.h>  
 #include <unistd.h>
+#include <netinet/tcp.h>  
+#include <arpa/inet.h>  
 
 #include "rpc.pb.h"
 #include "util.h"
@@ -17,27 +20,158 @@
 namespace rpcframe
 {
 
-RpcClientConn::RpcClientConn(int fd)
-: m_fd(fd)
+RpcClientConn::RpcClientConn(const Endpoint &ep, int connect_timeout, RpcEventLooper *evlooper)
+: m_fd(-1)
 , m_cur_left_len(0)
 , m_cur_pkg_size(0)
 , m_rpk(nullptr)
 , is_connected(true)
+, m_ep(ep)
+, m_connect_timeout(connect_timeout)
+, m_evlooper(evlooper)
 {
 }
 
 RpcClientConn::~RpcClientConn()
 {
-    RPC_LOG(RPC_LOG_LEV::DEBUG, "~RpcClientConn() fd %d", m_fd);
-    ::close(m_fd);
-    if (m_rpk != nullptr)
-        delete m_rpk;
+    RPC_LOG(RPC_LOG_LEV::DEBUG, "~RpcClientConn() dest:%s:%d fd %d", m_ep.first.c_str(), m_ep.second, m_fd);
+    setInvalid();
 }
+
 
 int RpcClientConn::getFd() const
 {
     return m_fd;
 }
+
+void RpcClientConn::setInvalid()
+{
+    ::close(m_fd);
+    if (m_rpk != nullptr)
+        delete m_rpk;
+    m_fd = -1;
+    m_last_invalid_time = std::time(nullptr);
+}
+
+bool RpcClientConn::isValid()
+{
+    return m_fd > 0;
+}
+
+bool RpcClientConn::shouldRetry()
+{
+    if(m_fd == -1) {
+        return (std::time(nullptr) - m_last_invalid_time) > 60;
+    }
+    else {
+        return false;
+    }
+}
+
+bool RpcClientConn::connect() 
+{
+    if(m_fd != -1)
+        return true;
+
+    m_fd = ::socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+    if(m_fd < 0)
+    {
+        RPC_LOG(RPC_LOG_LEV::ERROR, "socket creation failed");
+        m_last_invalid_time = std::time(nullptr);
+        return false;
+    }
+
+    if (noBlockConnect(m_fd, m_ep.first.c_str(), m_ep.second, m_connect_timeout) == -1)
+    {
+        m_fd = -1;
+        m_last_invalid_time = std::time(nullptr);
+        return false;
+    }
+
+    int keepAlive = 1;   
+    int keepIdle = 60;   
+    int keepInterval = 5;   
+    int keepCount = 3;   
+    setsockopt(m_fd, SOL_SOCKET, SO_KEEPALIVE, (void*)&keepAlive, sizeof(keepAlive));  
+    setsockopt(m_fd, SOL_TCP, TCP_KEEPIDLE, (void*)&keepIdle, sizeof(keepIdle));  
+    setsockopt(m_fd, SOL_TCP, TCP_KEEPINTVL, (void*)&keepInterval, sizeof(keepInterval));  
+    setsockopt(m_fd, SOL_TCP, TCP_KEEPCNT, (void*)&keepCount, sizeof(keepCount));  
+    m_evlooper->addConnection(m_fd, this);
+    RPC_LOG(RPC_LOG_LEV::INFO, "RpcClientConn connected: %s:%d %d", m_ep.first.c_str(), m_ep.second, m_fd);
+    return true;
+}
+
+int RpcClientConn::setNoBlocking(int fd) 
+{
+    int old_option = fcntl(fd, F_GETFL);
+    int new_option = old_option|O_NONBLOCK;
+    fcntl(fd,F_SETFL, new_option);
+    return old_option;
+}
+
+
+int RpcClientConn::noBlockConnect(int sockfd, const char* hostname, int port, int timeoutv) 
+{
+    int ret = 0;
+    struct sockaddr_in address;
+    bzero(&address, sizeof(address));
+    address.sin_family = AF_INET;
+    std::string hostip;
+    if(!getHostIpByName(hostip, hostname)) {
+        RPC_LOG(RPC_LOG_LEV::ERROR, "gethostbyname %s fail", hostname);
+    }
+    inet_pton(AF_INET, hostip.c_str(), &address.sin_addr);
+    address.sin_port = htons(port);
+    int fdopt = setNoBlocking(sockfd);
+    ret = ::connect(sockfd, (struct sockaddr*)&address, sizeof(address));
+    if(ret == 0) {
+        fcntl(sockfd, F_SETFL,fdopt);
+        return sockfd;
+    }
+    else if(errno != EINPROGRESS) {//if errno not EINPROGRESS, errror
+        RPC_LOG(RPC_LOG_LEV::ERROR, "unblock connect not support");
+        ::close(sockfd);
+        return -1;
+    }
+    fd_set writefds;
+    struct timeval timeout;//connect time out
+    FD_ZERO(&writefds);
+    FD_SET(sockfd, &writefds);
+    timeout.tv_sec = timeoutv;
+    timeout.tv_usec = 0;
+    ret = ::select(sockfd+1, nullptr, &writefds, nullptr, &timeout);
+    if(ret <= 0) {
+      if(ret == 0) { 
+        RPC_LOG(RPC_LOG_LEV::ERROR, "connect %s:%d time out", hostname, port);
+        close(sockfd);
+        return -1;
+      }
+      else {
+        RPC_LOG(RPC_LOG_LEV::ERROR, "select connect server %s:%d error:%s", hostname, port, strerror(errno));
+      }
+    }
+    if(!FD_ISSET(sockfd, &writefds)) {
+        RPC_LOG(RPC_LOG_LEV::ERROR, "no events on sockfd found");
+        close(sockfd);
+        return -1;
+    }
+    int error = 0;
+    socklen_t length = sizeof(error);
+    if(getsockopt(sockfd, SOL_SOCKET, SO_ERROR, &error, &length) < 0) {
+        RPC_LOG(RPC_LOG_LEV::ERROR, "get socket option error");
+        close(sockfd);
+        return -1;
+    }
+    if(error != 0 ) {
+        RPC_LOG(RPC_LOG_LEV::ERROR, "connect server %s:%d error:%s", hostname, port, strerror(error));
+        close(sockfd);
+        return -1;
+    }
+    //set socket back to block
+    fcntl(sockfd, F_SETFL, fdopt); 
+    return sockfd;
+}
+
 
 bool RpcClientConn::readPkgLen(uint32_t &pkg_len)
 {
@@ -144,12 +278,9 @@ pkg_ret_t RpcClientConn::getResponse()
     }
 }
 
-RpcStatus RpcClientConn::sendReq(
-        const std::string &service_name, 
-        const std::string &method_name, 
-        const RawData &request_data, 
-        const std::string &reqid, 
-        bool is_oneway, uint32_t timeout) {
+RpcStatus RpcClientConn::sendReq( const std::string &service_name, const std::string &method_name, 
+        const RawData &request_data, const std::string &reqid, bool is_oneway, uint32_t timeout) 
+{
 
   RpcInnerReq req;
   req.set_service_name(service_name);
@@ -161,18 +292,12 @@ RpcStatus RpcClientConn::sendReq(
     req.set_data(request_data.data, request_data.data_len);
     hasBlob = false;
   }
-  if (is_oneway) {
-    req.set_type(RpcInnerReq::ONE_WAY);
-  }
-  else {
-    req.set_type(RpcInnerReq::TWO_WAY);
-  }
+  req.set_type(is_oneway?RpcInnerReq::ONE_WAY:RpcInnerReq::TWO_WAY);
   int proto_len = req.ByteSize();
   size_t pkg_len = 0;
+  pkg_len = sizeof(proto_len) + proto_len;
   if(hasBlob){
-    pkg_len = sizeof(proto_len) + proto_len + request_data.size();
-  } else {
-    pkg_len = sizeof(proto_len) + proto_len;
+    pkg_len += request_data.size();
   }
   uint32_t pkg_hdr = htonl(pkg_len);
   uint32_t proto_hdr = htonl(proto_len);

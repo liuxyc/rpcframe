@@ -110,17 +110,19 @@ private:
 class RpcClientConfig
 {
 public:
-    explicit RpcClientConfig(std::pair<const char *, int> &);
+    explicit RpcClientConfig(const std::vector<Endpoint> &eps);
     ~RpcClientConfig();
     void setThreadNum(uint32_t thread_num);
     void setMaxReqPkgSize(uint32_t max_req_size);
     uint32_t getThreadNum();
+    void reloadEndpoints(const std::vector<Endpoint> &eps);
 
     uint32_t m_thread_num;
     std::string m_hostname;
     int m_port;
     int m_connect_timeout;
     uint32_t m_max_req_size;
+    std::vector<Endpoint> m_eps;
 };
 
 //NOTICE: start/stop RpcClient is heavy, keep the instance as long as possiable
@@ -131,7 +133,7 @@ public:
     ~RpcClient();
 
     /**
-     * @brief sync call, not thread safe
+     * @brief sync call
      *
      * @param method_name
      * @param request_data
@@ -144,7 +146,7 @@ public:
     RpcStatus call(const std::string &method_name, const google::protobuf::Message &request_data, RawData &, uint32_t timeout);
 
     /**
-     * @brief async call, not thread safe
+     * @brief async call
      *
      * @param method_name
      * @param request_data
@@ -165,8 +167,6 @@ public:
 
 private:
     RpcClientConfig m_cfg;
-    bool m_isConnected;
-    int m_fd;
     std::string m_servicename;
     std::unique_ptr<RpcEventLooper> m_ev;
     std::mutex m_mutex;

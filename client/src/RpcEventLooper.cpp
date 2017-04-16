@@ -35,8 +35,6 @@ namespace rpcframe
 RpcEventLooper::RpcEventLooper(RpcClient *client, int thread_num)
 : m_client(client)
 , m_stop(false)
-, m_fd(-1)
-, m_conn(nullptr)
 , m_req_seqid(0)
 , m_thread_num(thread_num)
 {
@@ -57,11 +55,20 @@ RpcEventLooper::RpcEventLooper(RpcClient *client, int thread_num)
         m_worker_vec.push_back(worker);
         m_thread_vec.push_back(worker_th);
     }
+    for(auto &ep: client->getConfig().m_eps) {
+        RpcClientConn *conn = new RpcClientConn(ep, m_client->getConfig().m_connect_timeout, this);
+        m_ep_conn_map[ep] = conn;
+        conn->connect();
+
+    }
 
 }
 
 RpcEventLooper::~RpcEventLooper() {
     RPC_LOG(RPC_LOG_LEV::DEBUG, "~RpcEventLooper()");
+    for(auto &ec:m_ep_conn_map) {
+        delete ec.second;
+    }
 
 }
 
@@ -77,74 +84,112 @@ void RpcEventLooper::stop() {
     }
 }
 
-void RpcEventLooper::removeConnection() {
+void RpcEventLooper::removeConnection(int fd, RpcClientConn *conn) {
     std::lock_guard<std::mutex> mlock(m_mutex);
-    delete m_conn;
-    m_conn = nullptr;
-    m_fd = -1;
-    for (auto cb = m_cb_map.begin(); cb != m_cb_map.end(); ) {
-        if (cb->second != nullptr) {
-            cb->second->callback_safe(RpcStatus::RPC_DISCONNECTED, RawData());
+    struct epoll_event event_del;  
+    event_del.data.fd = fd;
+    event_del.events = 0;  
+    epoll_ctl(m_epoll_fd, EPOLL_CTL_DEL, event_del.data.fd, &event_del);
+    conn->setInvalid();
+    auto callbacks = m_conn_cb_map.find(conn);
+    if(callbacks != m_conn_cb_map.end()) {
+        for (auto cb : callbacks->second) {
+            if (cb != nullptr) {
+                cb->callback_safe(RpcStatus::RPC_DISCONNECTED, RawData());
+                m_id_cb_map.erase(cb->getReqId());
+            }
         }
-        m_cb_map.erase(cb++);
+        callbacks->second.clear();
     }
+
+}
+
+void RpcEventLooper::removeAllConnections() {
+    std::lock_guard<std::mutex> mlock(m_mutex);
+    for (auto cb : m_id_cb_map) {
+        if (cb.second != nullptr) {
+            cb.second->callback_safe(RpcStatus::RPC_DISCONNECTED, RawData());
+        }
+    }
+    m_id_cb_map.clear();
     m_cb_timer_map.clear();
 }
 
 
-void RpcEventLooper::addConnection()
+void RpcEventLooper::addConnection(int fd, RpcClientConn *data)
 {
-    if (m_fd != -1) {
-        m_conn = new RpcClientConn(m_fd);
+    if (fd != -1) {
         struct epoll_event ev;  
         memset(&ev, 0, sizeof(ev));
         ev.events = EPOLLIN;
-        ev.data.fd = m_fd;
-        epoll_ctl(m_epoll_fd, EPOLL_CTL_ADD, m_fd, &ev);  
+        ev.data.fd = fd;
+        ev.data.ptr = data;
+        epoll_ctl(m_epoll_fd, EPOLL_CTL_ADD, fd, &ev);  
     }
     else {
         RPC_LOG(RPC_LOG_LEV::ERROR, "invalid fd");
     }
 }
 
-RpcStatus RpcEventLooper::sendReq(
-        const std::string &service_name, 
-        const std::string &method_name, 
-        const RawData &request_data, 
-        std::shared_ptr<RpcClientCallBack> cb_obj, 
-        std::string &req_id) {
+RpcClientConn *RpcEventLooper::tryGetAvaliableConn() 
+{
+    std::lock_guard<std::mutex> mlock(m_mutex);
+    int max_ep_num = m_client->getConfig().m_eps.size();
+    if(max_ep_num == 0) {
+        return nullptr;
+    }
+    int n = m_req_seqid % max_ep_num;
+    RpcClientConn *conn = m_ep_conn_map[m_client->getConfig().m_eps[n]];
+    int try_times = 0;
+    while(!conn->isValid()) {
+        if (conn->shouldRetry() && conn->connect()) {
+            return conn;
+        }
+        if(try_times >= max_ep_num) {
+            //if all connection is invalid, just return the last selected
+            break;
+        }
+        //select next
+        conn = m_ep_conn_map[m_client->getConfig().m_eps[++n % max_ep_num]];
+        ++try_times;
+    }
+    return conn;
+}
 
+RpcStatus RpcEventLooper::sendReq( const std::string &service_name, const std::string &method_name, 
+        const RawData &request_data, std::shared_ptr<RpcClientCallBack> cb_obj, std::string &req_id) 
+{
+    //data limit check
     if (request_data.size() > m_client->getConfig().m_max_req_size) {
         RPC_LOG(RPC_LOG_LEV::ERROR, "send data too large %lu", request_data.size());
         return RpcStatus::RPC_REQ_TOO_LARGE;
     }
-    m_mutex.lock();
-    if (m_conn == nullptr) {
-        if (!connect() || m_conn == nullptr) {
-            if (cb_obj != nullptr) {
-                cb_obj->callback_safe(RpcStatus::RPC_SEND_FAIL, RawData());
-            }
-            m_mutex.unlock();
-            return RpcStatus::RPC_SEND_FAIL;
+    
+    RpcClientConn *conn = tryGetAvaliableConn();
+    if (conn == nullptr) {
+        //no avaliable connection
+        RPC_LOG(RPC_LOG_LEV::ERROR, "no avaliable connection");
+        if (cb_obj != nullptr) {
+            cb_obj->callback_safe(RpcStatus::RPC_SEND_FAIL, RawData());
         }
+        return RpcStatus::RPC_SEND_FAIL;
     }
     //gen readable request_id 
-    std::stringstream ssm;
-    ssm << (int)getpid()
+    std::stringstream reqid_stream;
+    reqid_stream << (int)getpid()
         << "_" << std::this_thread::get_id() 
-        << "_" << m_conn->getFd() 
+        << "_" << conn->getFd() 
         << "_" << std::time(nullptr)
         << "_" << m_host_ip
         << "_" << m_req_seqid;
-    m_mutex.unlock();
-    req_id = ssm.str();
+    req_id = reqid_stream.str();
     std::time_t tm_id;
     uint32_t cb_timeout = 0;
     if (cb_obj != nullptr) {
         //if has timeout set, put this callback to timeout map
         cb_obj->setReqId(req_id);
         m_mutex.lock();
-        m_cb_map.insert(std::make_pair(req_id, cb_obj));
+        m_id_cb_map.insert(std::make_pair(req_id, cb_obj));
         m_mutex.unlock();
         cb_timeout = cb_obj->getTimeout();
         if( cb_timeout > 0) {
@@ -156,10 +201,8 @@ RpcStatus RpcEventLooper::sendReq(
     }
     RpcStatus send_ret = RpcStatus::RPC_SEND_FAIL;
     m_mutex.lock();
-    if (m_conn != nullptr) {
-        ++m_req_seqid;
-        send_ret = m_conn->sendReq(service_name, method_name, request_data, req_id, (cb_obj == nullptr), cb_timeout);
-    }
+    ++m_req_seqid;
+    send_ret = conn->sendReq(service_name, method_name, request_data, req_id, (cb_obj == nullptr), cb_timeout);
     m_mutex.unlock();
     if (send_ret == RpcStatus::RPC_SEND_OK) {
         RPC_LOG(RPC_LOG_LEV::DEBUG, "send %s", req_id.c_str());
@@ -171,7 +214,7 @@ RpcStatus RpcEventLooper::sendReq(
             if( cb_timeout > 0) {
                 m_cb_timer_map.erase(tm_id);
             }
-            m_cb_map.erase(req_id);
+            m_id_cb_map.erase(req_id);
             cb_obj->callback_safe(send_ret, RawData());
             m_mutex.unlock();
         }
@@ -182,8 +225,8 @@ RpcStatus RpcEventLooper::sendReq(
 
 std::shared_ptr<RpcClientCallBack> RpcEventLooper::getCb(const std::string &req_id) {
     std::lock_guard<std::mutex> mlock(m_mutex);
-    auto cb_iter = m_cb_map.find(req_id);
-    if ( cb_iter != m_cb_map.end()) {
+    auto cb_iter = m_id_cb_map.find(req_id);
+    if ( cb_iter != m_id_cb_map.end()) {
         return cb_iter->second;
     }
     else {
@@ -195,49 +238,51 @@ void RpcEventLooper::waitAllCBDone(uint32_t timeout) {
     while(timeout) {
       {
         std::lock_guard<std::mutex> mlock(m_mutex);
-        if(m_cb_map.empty()) {
+        if(m_id_cb_map.empty()) {
           break;
         }
       }
       sleep(1);
+      RPC_LOG(RPC_LOG_LEV::WARNING, "waiting callback done");
     }
 }
 
 void RpcEventLooper::removeCb(const std::string &req_id) {
     std::lock_guard<std::mutex> mlock(m_mutex);
-    m_cb_map.erase(req_id);
+    m_id_cb_map.erase(req_id);
 }
 
 void RpcEventLooper::dealTimeoutCb() {
     std::lock_guard<std::mutex> mlock(m_mutex);
-    if (!m_cb_timer_map.empty()) {
-        //search timeout cb
-        for(auto cb_timer_it = m_cb_timer_map.begin(); 
-                cb_timer_it != m_cb_timer_map.end();) {
-            auto cur_it = cb_timer_it++;
-            std::string reqid = cur_it->second;
-            auto cb_iter = m_cb_map.find(reqid);
-            if (cb_iter != m_cb_map.end()) { 
-                std::shared_ptr<RpcClientCallBack> cb = cb_iter->second;
-                if(cb != nullptr) {
-                    std::time_t tm = cur_it->first;
-                    if(std::time(nullptr) > tm) {
-                        //found a timeout cb
-                        //RPC_LOG(RPC_LOG_LEV::WARNING, "%s timeout", cb->getReqId().c_str());
-                        cb->callback_safe(RpcStatus::RPC_CB_TIMEOUT, RawData());
-                        m_cb_map.erase(cb_iter);
-                    }
-                    else {
-                        //got item not timeout, stop search
-                        break;
-                    }
+    if (m_cb_timer_map.empty()) {
+        return;
+    }
+    //search timeout cb
+    for(auto cb_timer_it = m_cb_timer_map.begin(); 
+            cb_timer_it != m_cb_timer_map.end();) {
+        auto cur_it = cb_timer_it++;
+        std::string reqid = cur_it->second;
+        auto cb_iter = m_id_cb_map.find(reqid);
+        if (cb_iter != m_id_cb_map.end()) { 
+            std::shared_ptr<RpcClientCallBack> cb = cb_iter->second;
+            if(cb != nullptr) {
+                std::time_t tm = cur_it->first;
+                if(std::time(nullptr) > tm) {
+                    //found a timeout cb
+                    //RPC_LOG(RPC_LOG_LEV::WARNING, "%s timeout", cb->getReqId().c_str());
+                    cb->callback_safe(RpcStatus::RPC_CB_TIMEOUT, RawData());
+                    m_id_cb_map.erase(cb_iter);
                 }
                 else {
-                    RPC_LOG(RPC_LOG_LEV::ERROR, "found timeout nullptr cb");
+                    //got item not timeout, stop search
+                    break;
                 }
             }
-            m_cb_timer_map.erase(cur_it);
+            else {
+                RPC_LOG(RPC_LOG_LEV::ERROR, "found timeout nullptr cb");
+            }
         }
+        m_cb_timer_map.erase(cur_it);
     }
 }
 
@@ -246,15 +291,13 @@ void RpcEventLooper::run() {
     struct epoll_event events[_MAX_SOCKFD_COUNT];  
     while(1) {
         if (m_stop) {
-            RPC_LOG(RPC_LOG_LEV::INFO, "RpcEventLooper stoped");
-            removeConnection();
+            removeAllConnections();
             break;
         }
 
         int nfds = epoll_wait(m_epoll_fd, events, _MAX_SOCKFD_COUNT, 1000);  
         if (m_stop) {
-            RPC_LOG(RPC_LOG_LEV::INFO, "RpcEventLooper stoped");
-            removeConnection();
+            removeAllConnections();
             break;
         }
 
@@ -265,9 +308,10 @@ void RpcEventLooper::run() {
         for (int i = 0; i < nfds; i++) 
         {  
             int client_socket = events[i].data.fd;  
+            RpcClientConn *conn = (RpcClientConn *)(events[i].data.ptr);
             if (events[i].events & EPOLLIN)//data come in
             {  
-                pkg_ret_t pkgret = m_conn->getResponse();
+                pkg_ret_t pkgret = conn->getResponse();
                 //pkgret: <int, pkgptr>
                 //int: -1 get pkg data fail
                 //      0 get pkg data success(may partial data)
@@ -277,11 +321,7 @@ void RpcEventLooper::run() {
                 if( pkgret.first < 0 )  
                 {  
                     RPC_LOG(RPC_LOG_LEV::WARNING, "rpc client socket disconnected: %d", client_socket);  
-                    struct epoll_event event_del;  
-                    event_del.data.fd = client_socket;
-                    event_del.events = 0;  
-                    epoll_ctl(m_epoll_fd, EPOLL_CTL_DEL, event_del.data.fd, &event_del);
-                    removeConnection();
+                    removeConnection(client_socket, conn);
                 }  
                 else 
                 {  
@@ -299,102 +339,8 @@ void RpcEventLooper::run() {
         }  
         //RPC_LOG(RPC_LOG_LEV::DEBUG, "epoll loop");
     }
+    RPC_LOG(RPC_LOG_LEV::INFO, "RpcEventLooper stoped");
     close(m_epoll_fd);
 }
 
-bool RpcEventLooper::connect() {
-    m_fd = ::socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
-    if(m_fd < 0)
-    {
-        RPC_LOG(RPC_LOG_LEV::ERROR, "socket creation failed");
-        return false;
-    }
-
-    if (noBlockConnect(m_fd, m_client->getConfig().m_hostname.c_str(), 
-                       m_client->getConfig().m_port, m_client->getConfig().m_connect_timeout) == -1)
-    {
-        RPC_LOG(RPC_LOG_LEV::ERROR, "Connect error.");
-        return false;
-    }
-
-    int keepAlive = 1;   
-    int keepIdle = 60;   
-    int keepInterval = 5;   
-    int keepCount = 3;   
-    setsockopt(m_fd, SOL_SOCKET, SO_KEEPALIVE, (void*)&keepAlive, sizeof(keepAlive));  
-    setsockopt(m_fd, SOL_TCP, TCP_KEEPIDLE, (void*)&keepIdle, sizeof(keepIdle));  
-    setsockopt(m_fd, SOL_TCP, TCP_KEEPINTVL, (void*)&keepInterval, sizeof(keepInterval));  
-    setsockopt(m_fd, SOL_TCP, TCP_KEEPCNT, (void*)&keepCount, sizeof(keepCount));  
-    addConnection();
-    return true;
-}
-
-
-int RpcEventLooper::setNoBlocking(int fd) {
-    int old_option = fcntl(fd, F_GETFL);
-    int new_option = old_option|O_NONBLOCK;
-    fcntl(fd,F_SETFL, new_option);
-    return old_option;
-}
-
-int RpcEventLooper::noBlockConnect(int sockfd, const char* hostname, int port, int timeoutv) {
-    int ret = 0;
-    struct sockaddr_in address;
-    bzero(&address, sizeof(address));
-    address.sin_family = AF_INET;
-    std::string hostip;
-    if(!getHostIpByName(hostip, hostname)) {
-        RPC_LOG(RPC_LOG_LEV::ERROR, "gethostbyname fail");
-    }
-    inet_pton(AF_INET, hostip.c_str(), &address.sin_addr);
-    address.sin_port = htons(port);
-    int fdopt = setNoBlocking(sockfd);
-    ret = ::connect(sockfd, (struct sockaddr*)&address, sizeof(address));
-    if(ret == 0) {
-        fcntl(sockfd, F_SETFL,fdopt);
-        return sockfd;
-    }
-    else if(errno != EINPROGRESS) {//if errno not EINPROGRESS, errror
-        RPC_LOG(RPC_LOG_LEV::ERROR, "unblock connect not support");
-        ::close(sockfd);
-        return -1;
-    }
-    fd_set writefds;
-    struct timeval timeout;//connect time out
-    FD_ZERO(&writefds);
-    FD_SET(sockfd, &writefds);
-    timeout.tv_sec = timeoutv;
-    timeout.tv_usec = 0;
-    ret = ::select(sockfd+1, nullptr, &writefds, nullptr, &timeout);
-    if(ret <= 0) {
-      if(ret == 0) { 
-        RPC_LOG(RPC_LOG_LEV::ERROR, "connect %s time out", hostname);
-        close(sockfd);
-        return -1;
-      }
-      else {
-        RPC_LOG(RPC_LOG_LEV::ERROR, "select connect host %s error:%s", hostname, strerror(errno));
-      }
-    }
-    if(!FD_ISSET(sockfd, &writefds)) {
-        RPC_LOG(RPC_LOG_LEV::ERROR, "no events on sockfd found");
-        close(sockfd);
-        return -1;
-    }
-    int error = 0;
-    socklen_t length = sizeof(error);
-    if(getsockopt(sockfd, SOL_SOCKET, SO_ERROR, &error, &length) < 0) {
-        RPC_LOG(RPC_LOG_LEV::ERROR, "get socket option error");
-        close(sockfd);
-        return -1;
-    }
-    if(error != 0 ) {
-        RPC_LOG(RPC_LOG_LEV::ERROR, "connect host %s error:%s", hostname, strerror(error));
-        close(sockfd);
-        return -1;
-    }
-    //set socket back to block
-    fcntl(sockfd, F_SETFL, fdopt); 
-    return sockfd;
-}
 };
