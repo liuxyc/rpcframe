@@ -372,6 +372,9 @@ TEST(ClientTest, concurrent_req)
   rpcframe::RpcClient client(ccfg, "test_service");
   auto thread_func = [&client, &pCB](){
     for(auto i = 0; i < 100; ++i) {
+      if(i == 95) {
+          client.reloadEndpoints({{"127.0.0.1", 8803}, {"127.0.0.1", 8804}, {"127.0.0.1", 8801}});
+      }
       std::string s1(i, '*');
       rpcframe::RawData req(s1);
       ASSERT_EQ(rpcframe::RpcStatus::RPC_SEND_OK, client.async_call("test_method_fast_return", req, 10, pCB));
@@ -382,7 +385,7 @@ TEST(ClientTest, concurrent_req)
   };
 
   std::vector<std::thread> thread_vec;
-  for(auto i = 0; i < 100; ++i) {
+  for(auto i = 0; i < 1; ++i) {
     thread_vec.emplace_back(thread_func);
   }
   for(auto &th: thread_vec) {

@@ -30,11 +30,6 @@ RpcClientConfig::~RpcClientConfig()
    
 }
 
-void RpcClientConfig::reloadEndpoints(const std::vector<Endpoint> &eps)
-{
-    m_eps = eps;
-}
-
 void RpcClientConfig::setThreadNum(uint32_t thread_num)
 {
     if (thread_num > 0) {
@@ -72,8 +67,15 @@ RpcClient::~RpcClient() {
 
 }
 
-const RpcClientConfig &RpcClient::getConfig() {
+const RpcClientConfig &RpcClient::getConfig() 
+{
     return m_cfg;
+}
+
+void RpcClient::reloadEndpoints(const std::vector<Endpoint> &eps)
+{
+    m_cfg.m_eps = eps;
+    m_ev->refreshEndpoints();
 }
 
 RpcStatus RpcClient::call(const std::string &method_name, const google::protobuf::Message &request_data, RawData &response_data, uint32_t timeout) 

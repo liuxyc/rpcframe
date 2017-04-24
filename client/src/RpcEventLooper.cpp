@@ -59,7 +59,6 @@ RpcEventLooper::RpcEventLooper(RpcClient *client, int thread_num)
         RpcClientConn *conn = new RpcClientConn(ep, m_client->getConfig().m_connect_timeout, this);
         m_ep_conn_map[ep] = conn;
         conn->connect();
-
     }
 
 }
@@ -145,7 +144,7 @@ RpcClientConn *RpcEventLooper::tryGetAvaliableConn()
         if (conn->shouldRetry() && conn->connect()) {
             return conn;
         }
-        if(try_times >= max_ep_num) {
+        if(try_times > max_ep_num) {
             //if all connection is invalid, just return the last selected
             break;
         }
@@ -154,6 +153,19 @@ RpcClientConn *RpcEventLooper::tryGetAvaliableConn()
         ++try_times;
     }
     return conn;
+}
+
+void RpcEventLooper::refreshEndpoints() 
+{
+    std::lock_guard<std::mutex> mlock(m_mutex);
+    //TODO:delete unused connection?
+    for(auto &ep: m_client->getConfig().m_eps) {
+        if(m_ep_conn_map.find(ep) == m_ep_conn_map.end()) {
+            RpcClientConn *conn = new RpcClientConn(ep, m_client->getConfig().m_connect_timeout, this);
+            m_ep_conn_map[ep] = conn;
+            conn->connect();
+        }
+    }
 }
 
 RpcStatus RpcEventLooper::sendReq( const std::string &service_name, const std::string &method_name, 

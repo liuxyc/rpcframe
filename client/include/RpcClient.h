@@ -115,7 +115,6 @@ public:
     void setThreadNum(uint32_t thread_num);
     void setMaxReqPkgSize(uint32_t max_req_size);
     uint32_t getThreadNum();
-    void reloadEndpoints(const std::vector<Endpoint> &eps);
 
     uint32_t m_thread_num;
     std::string m_hostname;
@@ -159,6 +158,7 @@ public:
     RpcStatus async_call(const std::string &method_name, const google::protobuf::Message &request_data, uint32_t timeout, std::shared_ptr<RpcClientCallBack> cb_obj);
 
     const RpcClientConfig &getConfig();
+    void reloadEndpoints(const std::vector<Endpoint> &eps);
 
     void waitAllCBDone(uint32_t timeout);
 

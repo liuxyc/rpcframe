@@ -42,6 +42,7 @@ public:
     RespQueue m_response_q;
     void addConnection(int fd, RpcClientConn *data);
     void removeConnection(int fd, RpcClientConn *conn);
+    void refreshEndpoints();
 
     RpcEventLooper(const RpcEventLooper &) = delete;
     RpcEventLooper &operator=(const RpcEventLooper &) = delete;
