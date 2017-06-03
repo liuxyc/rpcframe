@@ -353,7 +353,7 @@ TEST(ClientTest, concurrent_conn)
   };
 
   std::vector<std::thread> thread_vec;
-  for(auto i = 0; i < 100; ++i) {
+  for(auto i = 0; i < 10; ++i) {
     thread_vec.emplace_back(thread_func);
   }
 
