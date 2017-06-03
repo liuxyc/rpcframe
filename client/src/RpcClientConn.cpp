@@ -283,6 +283,7 @@ RpcStatus RpcClientConn::sendReq( const std::string &service_name, const std::st
 {
 
   RpcInnerReq req;
+  req.set_version(RPCFRAME_VER);
   req.set_service_name(service_name);
   req.set_method_name(method_name);
   req.set_request_id(reqid);

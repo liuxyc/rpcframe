@@ -18,7 +18,7 @@ namespace rpcframe
         RPC_REQ_TOO_LARGE,
         RPC_DISCONNECTED,
         RPC_SEND_TIMEOUT,
-        RPC_CB_TIMEOUT,
+        RPC_CB_TIMEOUT = 5,
         RPC_SRV_NOTFOUND,
         RPC_METHOD_NOTFOUND,
         RPC_SERVER_OK,

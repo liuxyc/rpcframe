@@ -1,17 +1,19 @@
 package rpcframe;
 message RpcInnerReq {
-    required string service_name = 1;
-    required string method_name = 2;
-    required string request_id = 3;
+    required int32 version = 1;
+    required string service_name = 2;
+    required string method_name = 3;
+    required string request_id = 4;
     enum RPC_TYPE {
         ONE_WAY = 0;
         TWO_WAY = 1;
     }
-    required RPC_TYPE type = 4;
-    required uint32 timeout = 5;  //unit second
-    optional bytes data = 6;
+    required RPC_TYPE type = 5;
+    required uint32 timeout = 6;  //unit second
+    optional bytes data = 7;
 }
 
 message RpcInnerResp {
-    required string request_id = 1; //should be the same with RpcInnerReq::request_id
+    required int32 version = 1;
+    required string request_id = 2; //should be the same with RpcInnerReq::request_id
 }

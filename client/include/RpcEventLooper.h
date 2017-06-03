@@ -51,6 +51,7 @@ private:
     bool connect(const Endpoint &ep);
     static int setNoBlocking(int fd);
     static int noBlockConnect(int sockfd, const char* hostname,int port,int timeout);
+    void GenReqID(std::string &id, RpcClientConn *conn);
     RpcClientConn *tryGetAvaliableConn();
     RpcClient *m_client;
     std::atomic<bool> m_stop;

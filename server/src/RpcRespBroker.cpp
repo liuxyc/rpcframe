@@ -30,6 +30,7 @@ RpcRespBroker::RpcRespBroker(RpcServerConnWorker *conn_worker,
 , m_http_conn(http_conn)
 , m_return_val_pos(0)
 {
+  m_resp_proto.set_version(RPCFRAME_VER);
   m_resp_proto.set_request_id(m_req_id);
 };
 

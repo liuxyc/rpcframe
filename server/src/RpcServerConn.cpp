@@ -214,7 +214,7 @@ PkgIOStatus RpcServerConn::sendData()
       }
       if (errno == EAGAIN) {
         //ET trigger case
-        RPC_LOG(RPC_LOG_LEV::INFO, "send data AGAIN");
+        //RPC_LOG(RPC_LOG_LEV::INFO, "send data AGAIN");
         return PkgIOStatus::PARTIAL;
       }
       if( errno == EINTR) {
@@ -271,6 +271,16 @@ PkgIOStatus RpcServerConn::sendResponse()
 
 bool RpcServerConn::isSending() const {
     return (m_sent_pkg != nullptr);
+}
+
+void RpcServerConn::setEpollStruct(EpollStruct *eps)
+{
+    m_eps = eps;
+}
+
+EpollStruct *RpcServerConn::getEpollStruct()
+{
+    return m_eps;
 }
 
 };

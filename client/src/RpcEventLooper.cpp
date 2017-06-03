@@ -85,10 +85,7 @@ void RpcEventLooper::stop() {
 
 void RpcEventLooper::removeConnection(int fd, RpcClientConn *conn) {
     std::lock_guard<std::mutex> mlock(m_mutex);
-    struct epoll_event event_del;  
-    event_del.data.fd = fd;
-    event_del.events = 0;  
-    epoll_ctl(m_epoll_fd, EPOLL_CTL_DEL, event_del.data.fd, &event_del);
+    epoll_ctl(m_epoll_fd, EPOLL_CTL_DEL, fd, nullptr);
     conn->setInvalid();
     auto callbacks = m_conn_cb_map.find(conn);
     if(callbacks != m_conn_cb_map.end()) {
@@ -121,7 +118,6 @@ void RpcEventLooper::addConnection(int fd, RpcClientConn *data)
         struct epoll_event ev;  
         memset(&ev, 0, sizeof(ev));
         ev.events = EPOLLIN;
-        ev.data.fd = fd;
         ev.data.ptr = data;
         epoll_ctl(m_epoll_fd, EPOLL_CTL_ADD, fd, &ev);  
     }
@@ -168,6 +164,18 @@ void RpcEventLooper::refreshEndpoints()
     }
 }
 
+void RpcEventLooper::GenReqID(std::string &id, RpcClientConn *conn)
+{
+    std::stringstream reqid_stream;
+    reqid_stream << (int)getpid()
+        << "_" << std::this_thread::get_id() 
+        << "_" << conn->getFd() 
+        << "_" << std::time(nullptr)
+        << "_" << m_host_ip
+        << "_" << m_req_seqid;
+    id = reqid_stream.str();
+}
+
 RpcStatus RpcEventLooper::sendReq( const std::string &service_name, const std::string &method_name, 
         const RawData &request_data, std::shared_ptr<RpcClientCallBack> cb_obj, std::string &req_id) 
 {
@@ -187,14 +195,7 @@ RpcStatus RpcEventLooper::sendReq( const std::string &service_name, const std::s
         return RpcStatus::RPC_SEND_FAIL;
     }
     //gen readable request_id 
-    std::stringstream reqid_stream;
-    reqid_stream << (int)getpid()
-        << "_" << std::this_thread::get_id() 
-        << "_" << conn->getFd() 
-        << "_" << std::time(nullptr)
-        << "_" << m_host_ip
-        << "_" << m_req_seqid;
-    req_id = reqid_stream.str();
+    GenReqID(req_id, conn);
     std::time_t tm_id;
     uint32_t cb_timeout = 0;
     if (cb_obj != nullptr) {
@@ -319,8 +320,8 @@ void RpcEventLooper::run() {
 
         for (int i = 0; i < nfds; i++) 
         {  
-            int client_socket = events[i].data.fd;  
             RpcClientConn *conn = (RpcClientConn *)(events[i].data.ptr);
+            int client_socket = conn->getFd();
             if (events[i].events & EPOLLIN)//data come in
             {  
                 pkg_ret_t pkgret = conn->getResponse();

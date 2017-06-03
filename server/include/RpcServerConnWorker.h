@@ -24,6 +24,18 @@ class RpcStatusService;
 class RpcRespBroker;
 class RpcServerConfig;
 
+
+class EpollStruct 
+{
+public:
+    EpollStruct(int pfd, void *pptr)
+    : fd(pfd)
+    , ptr(pptr)
+    {};
+    int fd;
+    void *ptr;
+};
+
 class RpcServerConnWorker
 {
   friend RpcStatusService;
@@ -37,22 +49,21 @@ public:
   void stop();
 
   void setSocketKeepAlive(int fd);
-  void removeConnection(int fd);
+  void removeConnection(const EpollStruct *eps);
   void addConnection(int fd, RpcServerConn *conn);
-  RpcServerConn *getConnection(int fd);
   void pushResp(std::string seqid, RpcRespBroker &rb);
   const RpcServerConfig *getConfig();
 
-  void onDataOut(const int fd);
-  bool onDataOutEvent();
+  void onDataOut(EpollStruct *eps);
+  bool onDataOutEvent(EpollStruct *eps);
   void onAccept();
-  void onDataIn(const int fd);
+  void onDataIn(const EpollStruct *eps);
   void setWorkQ(ReqQueue *q);
   void dumpConnIDs(std::vector<std::string> &ids);
 
+
 private:
   RpcServerImpl *m_server;
-  std::unordered_map<int, RpcServerConn *> m_conn_map;
   std::unordered_map<std::string, RpcServerConn *> m_conn_set;
   uint32_t m_seqid;
   ReqQueue *m_req_q;

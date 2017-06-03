@@ -11,6 +11,8 @@
 namespace rpcframe
 {
 
+#define RPCFRAME_VER 1
+
 class RpcServerConnWorker;
 
 enum class PkgIOStatus {

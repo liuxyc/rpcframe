@@ -348,6 +348,7 @@ TEST(ClientTest, concurrent_conn)
       rpcframe::RawData resp_data;
       rpcframe::RpcStatus ret_st = client.call("test_method_echo", req1, resp_data, 20);
       ASSERT_TRUE(ret_st == rpcframe::RpcStatus::RPC_DISCONNECTED || ret_st == rpcframe::RpcStatus::RPC_SERVER_OK);
+      ASSERT_TRUE(!strcmp(req1.data,resp_data.data));
     }
   };
 
@@ -361,7 +362,7 @@ TEST(ClientTest, concurrent_conn)
   }
 }
 
-TEST(ClientTest, concurrent_req)
+TEST(ClientTest, concurrent_req_faillover)
 {
   auto endp = std::make_pair("127.0.0.1", 8801);
   auto endp1 = std::make_pair("127.0.0.1", 8802);

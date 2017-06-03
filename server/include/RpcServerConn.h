@@ -15,6 +15,7 @@ namespace rpcframe {
 typedef std::pair<int, std::shared_ptr<request_pkg> > pkg_ret_t;
 
 class RpcServerImpl;
+class EpollStruct;
 
 class RpcServerConn
 {
@@ -28,6 +29,8 @@ public:
     PkgIOStatus sendResponse();
     int getFd() const ;
     bool isSending() const ;
+    void setEpollStruct(EpollStruct *eps);
+    EpollStruct *getEpollStruct();
 
     RespQueue m_response_q;
     std::string m_seqid;
@@ -46,6 +49,7 @@ private:
     RespPkgPtr m_sent_pkg;
     const uint32_t MAX_REQ_LIMIT_BYTE;
     RpcServerImpl *m_server;
+    EpollStruct *m_eps;
     
 };
 };
