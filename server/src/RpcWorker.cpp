@@ -13,7 +13,6 @@
 #include <signal.h>
 #include <arpa/inet.h>
 
-#include "RpcRespBroker.h"
 #include "RpcServerConn.h"
 #include "RpcServerImpl.h"
 #include "RpcServerConnWorker.h"
@@ -100,11 +99,15 @@ void RpcWorker::run() {
             }
             RPC_LOG(RPC_LOG_LEV::DEBUG, "req %s:%s stay: %d ms", req.request_id().c_str(), req.method_name().c_str(), during.count());
 
+            IRpcRespBrokerPtr rpcbroker = std::make_shared<RpcRespBroker>(connworker, pkg->connection_id,
+                req.request_id(), (req.type() == RpcInnerReq::TWO_WAY), nullptr);
+            if(m_srvmap.find(req.service_name()) == m_srvmap.end()) {
+                rpcbroker->setReturnVal(RpcStatus::RPC_SRV_NOTFOUND);
+                RPC_LOG(RPC_LOG_LEV::WARNING, "Unknow service request #%s#", req.service_name().c_str());
+                pushResponse(rpcbroker, pkg->connection_id, req.type(), connworker);
+                continue;
+            }
             IService *p_service = m_srvmap[req.service_name()].pSrv;
-            IRpcRespBrokerPtr rpcbroker = std::make_shared<RpcRespBroker>(connworker, 
-                pkg->connection_id,
-                req.request_id(),
-                (req.type() == RpcInnerReq::TWO_WAY), nullptr);
             if (p_service != nullptr) {
 
                 std::chrono::system_clock::time_point begin_call_timepoint = std::chrono::system_clock::now();
@@ -150,19 +153,21 @@ void RpcWorker::run() {
                         break;
                 }
             }
-            else {
-              rpcbroker->setReturnVal(RpcStatus::RPC_SRV_NOTFOUND);
-              RPC_LOG(RPC_LOG_LEV::WARNING, "Unknow service request #%s#", req.service_name().c_str());
-            }
-            if (req.type() == RpcInnerReq::TWO_WAY) {
-                //put response to connection queue, max worker throughput
-                connworker->pushResp(pkg->connection_id, *(dynamic_cast<RpcRespBroker *>(rpcbroker.get())));
-            }
+            pushResponse(rpcbroker, pkg->connection_id, req.type(), connworker);
         } 
         else {
             //RPC_LOG(RPC_LOG_LEV::DEBUG, "thread: %lu, no data", std::this_thread::get_id());
         }
     }
+}
+
+void RpcWorker::pushResponse(IRpcRespBrokerPtr &rpcbroker, std::string &connid, int type, RpcServerConnWorker *connworker)
+{
+    if (type == RpcInnerReq::TWO_WAY) {
+        //put response to connection queue, max worker throughput
+        connworker->pushResp(connid, *(dynamic_cast<RpcRespBroker *>(rpcbroker.get())));
+    }
+
 }
 
 };

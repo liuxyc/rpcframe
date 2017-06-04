@@ -28,7 +28,7 @@ class IService
   public:
     IService();
     virtual ~IService();
-    void add_method(const std::string &method_name, const RPC_FUNC_T func, bool allow_http = true);
+    void add_method(const std::string &method_name, const RPC_FUNC_T &func, bool allow_http = true);
     IServiceImpl *m_impl;
 };
 

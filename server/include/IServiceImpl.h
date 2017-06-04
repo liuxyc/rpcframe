@@ -4,7 +4,7 @@
  */
 
 #pragma once
-#include <map>
+#include <unordered_map>
 #include <string>
 #include <vector>
 
@@ -33,8 +33,8 @@ class IServiceImpl
         }  
     }
 
-    void add_method(const std::string &method_name, const RpcMethod &method) {
-        m_method_map.emplace(method_name, method);
+    void add_method(const std::string &method_name, const RPC_FUNC_T &func, bool allow_http) {
+        m_method_map.emplace(method_name, rpcframe::RpcMethod(func, allow_http));
     }
 
     bool is_method_allow_http(const std::string &method_name) {
@@ -45,7 +45,7 @@ class IServiceImpl
         return false;
     }
 
-    std::map<std::string, RpcMethod> m_method_map; 
+    std::unordered_map<std::string, RpcMethod> m_method_map; 
 };
 
 };

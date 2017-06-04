@@ -51,6 +51,7 @@ RpcServerImpl::RpcServerImpl(RpcServerConfig &cfg)
     addWorkers(m_cfg.getThreadNum());
     if (cfg.getHttpPort() != -1) {
         m_http_server = new RpcHttpServer(cfg, this);
+        m_http_server->addService("status", m_statusSrv, false);
     }
 }
 

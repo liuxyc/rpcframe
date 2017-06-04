@@ -50,12 +50,14 @@ RpcMethod::~RpcMethod() {
 RpcMethod::RpcMethod(RpcMethod &&m) {
   m_func = m.m_func;
   m_status = m.m_status;
+  m_allow_http = m.m_allow_http;
   m.m_status = nullptr;
 }
 
 RpcMethod::RpcMethod(const RpcMethod &m) {
   m_func = m.m_func;
   m_status = m.m_status;
+  m_allow_http = m.m_allow_http;
 }
 
 };
