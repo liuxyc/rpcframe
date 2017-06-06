@@ -47,17 +47,12 @@ public:
      *
      * @return 
      */
-    template <typename T> 
     bool addService(const std::string &name, IService *p_service)
     {
-        IService *pService = p_service;
         for(auto &worker:m_worker_vec) {
-            if(p_service == nullptr) {
-              pService = new T();
-            }
-            worker->addService(name, pService, (p_service == nullptr));
+            worker->addService(name, p_service, false);
         }
-        m_http_server->addService(name, pService, (p_service == nullptr));
+        m_http_server->addService(name, p_service, false);
         return true;
     }
 
@@ -97,6 +92,7 @@ private:
     std::atomic<uint64_t> m_conn_num;
     std::vector<RpcServerConnWorker *> m_connworker;
     IService *m_statusSrv;
+    IService *m_service;
 
     uint64_t avg_req_wait_time;
     uint64_t avg_resp_wait_time;

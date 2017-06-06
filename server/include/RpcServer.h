@@ -7,7 +7,6 @@
 #include "RpcDefs.h"
 #include "IService.h"
 #include "RpcServerConfig.h"
-#include "RpcServerImpl.h"
 
 namespace rpcframe
 {
@@ -32,7 +31,10 @@ public:
     template <typename T>
     bool addService(const std::string &name, IService *p_service)
     {
-      return m_server_impl->addService<T>(name, p_service);
+        if(p_service == nullptr) {
+            p_service = new T();
+        }
+        return addServiceImp(name, p_service);
     }
 
     /**
@@ -45,6 +47,7 @@ public:
 
     RpcServer(const RpcServer &) = delete;
     RpcServer &operator=(const RpcServer &) = delete;
+    bool addServiceImp(const std::string &name, IService *p_service);
 
 private:
     RpcServerImpl *m_server_impl;
