@@ -31,10 +31,10 @@
 namespace rpcframe
 {
 
-RpcServerConnWorker::RpcServerConnWorker(RpcServerImpl *server, const char *name, ReqQueue *req_q)
+RpcServerConnWorker::RpcServerConnWorker(RpcServerImpl *server, const char *name)
 : m_server(server)
 , m_seqid(0)
-, m_req_q(req_q)
+//, m_req_q(req_q)
 , m_epoll_fd(-1)
 , m_listen_socket(-1)
 , m_resp_ev_fd(-1)
@@ -47,7 +47,7 @@ RpcServerConnWorker::~RpcServerConnWorker() {
   stop();
 }
 
-void RpcServerConnWorker::onDataOut(EpollStruct *eps)
+bool RpcServerConnWorker::onDataOut(EpollStruct *eps)
 {
     int fd = eps->fd;
     RpcServerConn *conn = (RpcServerConn *)eps->ptr;
@@ -55,6 +55,7 @@ void RpcServerConnWorker::onDataOut(EpollStruct *eps)
     PkgIOStatus sent_ret = conn->sendResponse();
     if (sent_ret == PkgIOStatus::FAIL) {
         removeConnection(eps);
+        return false;
     }
     else if (sent_ret == PkgIOStatus::PARTIAL){
         RPC_LOG(RPC_LOG_LEV::DEBUG, "OUT sent partial to %d", fd);
@@ -77,6 +78,7 @@ void RpcServerConnWorker::onDataOut(EpollStruct *eps)
             epoll_ctl(m_epoll_fd, EPOLL_CTL_MOD, eps->fd, &event_mod);
         }
     }
+    return true;
 }
 
 bool RpcServerConnWorker::onDataOutEvent(EpollStruct *eps) {
@@ -146,7 +148,7 @@ void RpcServerConnWorker::onAccept() {
   }
 }
 
-void RpcServerConnWorker::onDataIn(const EpollStruct *eps)
+bool RpcServerConnWorker::onDataIn(const EpollStruct *eps)
 {
   //data come in
   int fd = eps->fd;
@@ -158,13 +160,13 @@ void RpcServerConnWorker::onDataIn(const EpollStruct *eps)
       {  
           RPC_LOG(RPC_LOG_LEV::INFO, "rpc server socket disconnected: %d", fd);  
           removeConnection(eps);
-          return;
+          return false;
       }  
       if(pkgret.second != nullptr) {
           pkgret.second->gen_time = std::chrono::system_clock::now();
           pkgret.second->conn_worker = this;
           //got a full request, put to worker queue
-          if ( !m_req_q->push(pkgret.second)) {
+          if ( !m_server->pushReqToWorkers(pkgret.second)) {
               //queue fail, drop pkg
               RPC_LOG(RPC_LOG_LEV::WARNING, "server queue fail, drop pkg");
               m_server->IncReqInQFail();
@@ -177,6 +179,7 @@ void RpcServerConnWorker::onDataIn(const EpollStruct *eps)
           }
       }  
   }
+  return true;
 }
 
 bool RpcServerConnWorker::start(int listen_fd) 
@@ -249,13 +252,17 @@ bool RpcServerConnWorker::start(int listen_fd)
             continue;
           }
           else {
-            onDataIn(eps);
+            if(!onDataIn(eps)) {
+                continue;
+            }
           }
         }  
 
         if(events[i].events & EPOLLOUT)
         {  
-          onDataOut(eps);
+          if(!onDataOut(eps)) {
+              continue;
+          }
         }
 
         if(events[i].events & EPOLLERR) {
@@ -284,13 +291,13 @@ void RpcServerConnWorker::setSocketKeepAlive(int fd)
 
 void RpcServerConnWorker::removeConnection(const EpollStruct *eps)
 {
+  WriteLockGuard wg(m_conn_rwlock);
   int fd = eps->fd;
   RpcServerConn *conn = (RpcServerConn *)eps->ptr;
   epoll_ctl(m_epoll_fd, EPOLL_CTL_DEL, fd, nullptr);
-  delete eps;
-  WriteLockGuard wg(m_conn_rwlock);
   m_conn_set.erase(conn->m_seqid);
   delete conn;
+  delete eps;
   m_server->DecConnCount();
 }
 
@@ -354,10 +361,10 @@ void RpcServerConnWorker::stop() {
   RPC_LOG(RPC_LOG_LEV::INFO, "stoped");
 }
 
-void RpcServerConnWorker::setWorkQ(ReqQueue *q)
-{
-  m_req_q = q;
-}
+//void RpcServerConnWorker::setWorkQ(ReqQueue *q)
+//{
+  //m_req_q = q;
+//}
 
 void RpcServerConnWorker::dumpConnIDs(std::vector<std::string> &ids)
 {

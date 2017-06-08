@@ -72,6 +72,6 @@ public:
 
 typedef std::shared_ptr<request_pkg> ReqPkgPtr;
 typedef std::shared_ptr<response_pkg> RespPkgPtr;
-typedef Queue<ReqPkgPtr> ReqQueue;
+//typedef Queue<ReqPkgPtr> ReqQueue;
 typedef Queue<RespPkgPtr> RespQueue;
 };

@@ -17,6 +17,7 @@
 #include "RpcWorker.h"
 #include "RpcServerConfig.h"
 #include "RpcHttpServer.h"
+#include "ThreadPool.h"
 
 namespace rpcframe
 {
@@ -49,15 +50,16 @@ public:
      */
     bool addService(const std::string &name, IService *p_service)
     {
-        for(auto &worker:m_worker_vec) {
-            worker->addService(name, p_service, false);
+        std::vector<RpcWorker *> real_workers;
+        m_worker_thread_pool->getWorkers(real_workers);
+        for(auto w: real_workers) {
+            w->addService(name, p_service, false);
         }
         m_http_server->addService(name, p_service, false);
         return true;
     }
 
-    bool addWorkers(const uint32_t numbers);
-    bool removeWorkers(const uint32_t numbers);
+    bool pushReqToWorkers(ReqPkgPtr);
 
     /**
      * @brief start RpcServer, this method will block
@@ -83,14 +85,13 @@ public:
 private:
     bool startListen();
     RpcServerConfig &m_cfg;
-    std::vector<RpcWorker *> m_worker_vec;
     //ServiceMap m_service_map;
-    ReqQueue m_request_q;
     RespQueue m_response_q;
     int m_listen_socket;
     std::atomic<bool> m_stop;
     std::atomic<uint64_t> m_conn_num;
     std::vector<RpcServerConnWorker *> m_connworker;
+    ThreadPool<ReqPkgPtr, RpcWorker> *m_worker_thread_pool;
     IService *m_statusSrv;
     IService *m_service;
 

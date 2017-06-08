@@ -13,6 +13,7 @@
 #include "RWLock.h"
 #include "RpcDefs.h"
 #include "RpcPackage.h"
+#include "ThreadPool.h"
 
 namespace rpcframe
 {
@@ -40,7 +41,7 @@ class RpcServerConnWorker
 {
   friend RpcStatusService;
 public:
-  RpcServerConnWorker(RpcServerImpl *server, const char *name, ReqQueue *req_q);
+  RpcServerConnWorker(RpcServerImpl *server, const char *name);
   RpcServerConnWorker &operator=(const RpcServerConfig &cfg) = delete;
   ~RpcServerConnWorker();
 
@@ -54,11 +55,11 @@ public:
   void pushResp(std::string seqid, RpcRespBroker &rb);
   const RpcServerConfig *getConfig();
 
-  void onDataOut(EpollStruct *eps);
+  bool onDataOut(EpollStruct *eps);
   bool onDataOutEvent(EpollStruct *eps);
   void onAccept();
-  void onDataIn(const EpollStruct *eps);
-  void setWorkQ(ReqQueue *q);
+  bool onDataIn(const EpollStruct *eps);
+  //void setWorkQ(ReqQueue *q);
   void dumpConnIDs(std::vector<std::string> &ids);
 
 
@@ -66,7 +67,7 @@ private:
   RpcServerImpl *m_server;
   std::unordered_map<std::string, RpcServerConn *> m_conn_set;
   uint32_t m_seqid;
-  ReqQueue *m_req_q;
+  //ReqQueue *m_req_q;
   Queue<std::string> m_resp_conn_q;
   RWLock m_conn_rwlock;
   int m_epoll_fd;

@@ -27,7 +27,6 @@ namespace rpcframe
 RpcServerImpl::RpcServerImpl(RpcServerConfig &cfg)
 : m_http_server(nullptr)
 , m_cfg(cfg)
-, m_request_q(cfg.m_max_req_qsize)
 , m_listen_socket(-1)
 , m_stop(false)
 , m_conn_num(0)
@@ -42,13 +41,21 @@ RpcServerImpl::RpcServerImpl(RpcServerConfig &cfg)
 , req_inqueue_fail(0)
 , resp_inqueue_fail(0)
 {
-    for(uint32_t i = 0; i < m_cfg.getConnThreadNum(); ++i) {
-      std::string connworkername("connworker_");
-      m_connworker.push_back(new RpcServerConnWorker(this, connworkername.append(std::to_string(i)).c_str(), &m_request_q));
+    m_statusSrv = new RpcStatusService(this); 
+
+    m_worker_thread_pool = new ThreadPool<ReqPkgPtr, RpcWorker>(m_cfg.getThreadNum(), this);
+    m_worker_thread_pool->setTaskQSize(cfg.m_max_req_qsize);
+    std::vector<RpcWorker *> real_workers;
+    m_worker_thread_pool->getWorkers(real_workers);
+    for(auto w: real_workers) {
+        w->addService("status", m_statusSrv, false);
     }
 
-    m_statusSrv = new RpcStatusService(this); 
-    addWorkers(m_cfg.getThreadNum());
+    for(uint32_t i = 0; i < m_cfg.getConnThreadNum(); ++i) {
+      std::string connworkername("connworker_");
+      m_connworker.push_back(new RpcServerConnWorker(this, connworkername.append(std::to_string(i)).c_str()));
+    }
+
     if (cfg.getHttpPort() != -1) {
         m_http_server = new RpcHttpServer(cfg, this);
         m_http_server->addService("status", m_statusSrv, false);
@@ -57,42 +64,17 @@ RpcServerImpl::RpcServerImpl(RpcServerConfig &cfg)
 
 RpcServerImpl::~RpcServerImpl() {
     stop();
-    for(auto rw: m_worker_vec) {
-      delete rw;
-    }
     for(auto cw: m_connworker) {
       delete cw;
     }
     delete m_statusSrv;
 }
 
-bool RpcServerImpl::addWorkers(const uint32_t numbers) 
+bool RpcServerImpl::pushReqToWorkers(ReqPkgPtr req) 
 {
-    for(uint32_t i = 0; i < numbers; ++i) {
-        try {
-            RpcWorker *rw = new RpcWorker(&m_request_q, this);
-            m_worker_vec.push_back(rw);
-            rw->addService("status", m_statusSrv, false);
-        } catch (...) {
-            return false;
-        }
-    }
-    return true;
+    return m_worker_thread_pool->addTask(req);
 }
 
-bool RpcServerImpl::removeWorkers(const uint32_t numbers)
-{
-    if (numbers > m_worker_vec.size() || m_worker_vec.size() == 0) {
-        return false;
-    }
-    for(uint32_t i = 0; i < numbers; ++i) {
-        auto last_worker = m_worker_vec.rbegin();
-        (*last_worker)->stop();
-        delete *last_worker;
-        m_worker_vec.pop_back();
-    }
-    return true;
-}
 
 //IService *RpcServerImpl::getService(const std::string &name, void *worker)
 //{
@@ -181,7 +163,7 @@ void RpcServerImpl::stop() {
     }
     m_http_server->stop();
     delete m_http_server;
-    removeWorkers(m_worker_vec.size());
+    delete m_worker_thread_pool;
     RPC_LOG(RPC_LOG_LEV::INFO, "stoped");
 }
 

@@ -25,15 +25,8 @@ public:
      * @brief Callback base class
      *        we suggest each async_call have it's own CallBack instance
      */
-    RpcClientCallBack() 
-    : m_timeout(0)
-    , m_reqid("")
-    , m_has_timeout(false)
-    , m_is_done(false)
-    , m_is_shared(false)
-    {
-    };
-    virtual ~RpcClientCallBack(){};
+    RpcClientCallBack();
+    virtual ~RpcClientCallBack();
 
     /**
      * @brief implement this method for your callback
@@ -44,55 +37,24 @@ public:
      */
     virtual void callback(const RpcStatus status, const RawData &) = 0;
 
-    void callback_safe(const RpcStatus status, const RawData &resp_data) {
-        //if a callback instance shared by many call, not use internal "m_is_done"
-        if (m_is_shared) {
-            callback(status, resp_data);
-        } 
-        else {
-            std::lock_guard<std::mutex> lock(m_mutex);
-            if (!m_is_done) {
-                callback(status, resp_data);
-                m_is_done = true;
-            }
-        }
+    void callback_safe(const RpcStatus status, const RawData &resp_data);
 
-    }
+    std::string getType();
 
-    std::string getType() {
-        return m_type_mark;
-    }
-
-    void setType(const std::string &type) {
-        m_type_mark = type;
-    }
-    void setTimeout(uint32_t timeout) {
-        m_timeout = timeout;
-    }
-    uint32_t getTimeout() {
-        return m_timeout;
-    }
-    void setReqId(const std::string &reqid) {
-        m_reqid = reqid;
-    }
-    std::string getReqId() {
-        return m_reqid;
-    }
-    void markTimeout() {
-        m_has_timeout = true;
-    }
-    bool isTimeout() {
-        return m_has_timeout;
-    }
+    void setType(const std::string &type);
+    void setTimeout(uint32_t timeout);
+    uint32_t getTimeout();
+    void setReqId(const std::string &reqid);
+    std::string getReqId();
+    void markTimeout();
+    bool isTimeout();
     /**
      * @brief set a CallbackObject as shared will have "timeout/success come both" issue
      *        because we can't identify the callback source
      *
      * @param isshared bool, default is false
      */
-    void setShared(bool isshared) {
-        m_is_shared = isshared;
-    }
+    void setShared(bool isshared);
 
 protected:
     std::string m_type_mark;
@@ -161,6 +123,21 @@ public:
     void reloadEndpoints(const std::vector<Endpoint> &eps);
 
     void waitAllCBDone(uint32_t timeout);
+
+    template <typename T>
+    static T *createProtoBufMsg(RawData *rawdata) {
+       T *pbmsg = new T();
+       pbmsg->ParseFromString({rawdata->data, rawdata->data_len});
+       return pbmsg;
+
+    }
+
+    template <typename T>
+    static void destoryProtoBufMsg(T *pbmsg) {
+        if(pbmsg != nullptr) {
+            delete pbmsg;
+        }
+    }
 
     RpcClient(const RpcClient &) = delete;
     RpcClient &operator=(const RpcClient &) = delete;

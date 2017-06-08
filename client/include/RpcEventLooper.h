@@ -15,6 +15,7 @@
 #include "Queue.h"
 #include "RpcDefs.h"
 #include "RpcPackage.h"
+#include "ThreadPool.h"
 
 namespace rpcframe
 {
@@ -39,7 +40,6 @@ public:
     void removeCb(const std::string &req_id);
     void dealTimeoutCb();
     void waitAllCBDone(uint32_t timeout);
-    RespQueue m_response_q;
     void addConnection(int fd, RpcClientConn *data);
     void removeConnection(int fd, RpcClientConn *conn);
     void refreshEndpoints();
@@ -61,13 +61,11 @@ private:
     std::mutex m_mutex;
     std::unordered_map<std::string, RpcCBPtr> m_id_cb_map;
     std::unordered_map<RpcClientConn*, std::vector<RpcCBPtr> > m_conn_cb_map;
-    //std::unordered_map<int, RpcClientConn *> m_fd_conn_map;
     std::multimap<std::time_t, std::string> m_cb_timer_map;
     uint32_t m_req_seqid;
     std::string m_host_ip;
     int m_thread_num;
-    std::vector<std::thread *> m_thread_vec;
-    std::vector<RpcClientWorker *> m_worker_vec;
+    ThreadPool<RespPkgPtr, RpcClientWorker> *m_thread_pool;
 };
 
 };

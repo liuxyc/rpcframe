@@ -42,7 +42,7 @@ public:
         resp_data = "<html><body><h1>Server Status:<h1>";
         resp_data += "<h3>Pid:" + std::to_string(getpid()) + "</h3>";
         resp_data += "<h3>Running:" + std::to_string(!m_rpc_server->m_stop) + "</h3>";
-        resp_data += "<h3>Worker num:" + std::to_string(m_rpc_server->m_worker_vec.size()) + "</h3>";
+        resp_data += "<h3>Worker num:" + std::to_string(m_rpc_server->m_cfg.getThreadNum()) + "</h3>";
         resp_data += "<h3>Conn Worker num:" + std::to_string(m_rpc_server->m_connworker.size()) + "</h3>";
         resp_data += "<h3>Max conn limit:" + std::to_string(m_rpc_server->m_cfg.m_max_conn_num) + "</h3>";
         resp_data += "<h3>Rejected conn num:" + std::to_string(m_rpc_server->rejected_conn) + "</h3>";
@@ -55,7 +55,7 @@ public:
           }
         }
         resp_data += "<h3>Current conn num:" + std::to_string(m_rpc_server->GetConnCount()) + "</h3>";
-        resp_data += "<h3>Req Q size:" + std::to_string(m_rpc_server->m_request_q.size()) + "</h3>";
+        resp_data += "<h3>Req Q size:" + std::to_string(m_rpc_server->m_worker_thread_pool->getTaskQSize()) + "</h3>";
         resp_data += "<h3>Req InQueue fail num:" + std::to_string(m_rpc_server->req_inqueue_fail) + "</h3>";
         resp_data += "<h3>Resp Q size:" + std::to_string(m_rpc_server->m_response_q.size()) + "</h3>";
         resp_data += "<h3>Resp InQueue fail num:" + std::to_string(m_rpc_server->resp_inqueue_fail) + "</h3>";
@@ -68,8 +68,10 @@ public:
         resp_data += "<h3>Longest Call time:" + std::to_string(m_rpc_server->max_call_time) + "ms</h3>";
         resp_data += "<h3>Rpc listening on port:" + std::to_string(m_rpc_server->m_cfg.m_port) + " fd:" + std::to_string(m_rpc_server->m_listen_socket) + "</h3>";
         resp_data += "<h1>Service Status</h1>";
-        auto worker = m_rpc_server->m_worker_vec.begin();
-        for(auto srv : (*worker)->m_srvmap) {
+        std::vector<RpcWorker *> real_workers;
+        m_rpc_server->m_worker_thread_pool->getWorkers(real_workers);
+        auto worker = real_workers[0];
+        for(auto srv : worker->m_srvmap) {
             resp_data += "<h2>&nbsp;service name:" + srv.first + "</h2>";
             for (auto &method: srv.second.pSrv->m_impl->m_method_map) {
                 resp_data += "<h3>&nbsp;&nbsp;method name:" + method.first + "</h3>";

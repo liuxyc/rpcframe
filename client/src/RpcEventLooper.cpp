@@ -49,12 +49,8 @@ RpcEventLooper::RpcEventLooper(RpcClient *client, int thread_num)
         RPC_LOG(RPC_LOG_LEV::ERROR, "set epoll fd noblock fail");
     }  
 
-    for(int i = 0; i < m_thread_num; ++i) {
-        RpcClientWorker *worker = new RpcClientWorker(this);
-        std::thread *worker_th = new std::thread(&RpcClientWorker::run, worker);
-        m_worker_vec.push_back(worker);
-        m_thread_vec.push_back(worker_th);
-    }
+    m_thread_pool = new ThreadPool<RespPkgPtr, RpcClientWorker>(m_thread_num, this);
+
     for(auto &ep: client->getConfig().m_eps) {
         RpcClientConn *conn = new RpcClientConn(ep, m_client->getConfig().m_connect_timeout, this);
         m_ep_conn_map[ep] = conn;
@@ -73,14 +69,7 @@ RpcEventLooper::~RpcEventLooper() {
 
 void RpcEventLooper::stop() {
     m_stop = true;
-    for(int i = 0; i < m_thread_num; ++i) {
-        m_worker_vec[i]->stop();
-    }
-    for(int i = 0; i < m_thread_num; ++i) {
-        m_thread_vec[i]->join();
-        delete m_worker_vec[i];
-        delete m_thread_vec[i];
-    }
+    delete m_thread_pool;
 }
 
 void RpcEventLooper::removeConnection(int fd, RpcClientConn *conn) {
@@ -340,7 +329,7 @@ void RpcEventLooper::run() {
                 {  
                     if (pkgret.second != nullptr) {
                         //got a full response, put to worker queue
-                        m_response_q.push(pkgret.second);
+                        m_thread_pool->addTask(pkgret.second);
                     }
                 }  
             }  

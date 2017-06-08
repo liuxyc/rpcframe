@@ -120,4 +120,62 @@ void RpcClient::waitAllCBDone(uint32_t timeout)
 {
   m_ev->waitAllCBDone(timeout);
 }
+
+RpcClientCallBack::RpcClientCallBack() 
+: m_timeout(0)
+, m_reqid("")
+, m_has_timeout(false)
+, m_is_done(false)
+, m_is_shared(false)
+{
+}
+
+RpcClientCallBack::~RpcClientCallBack()
+{
+}
+
+
+void RpcClientCallBack::callback_safe(const RpcStatus status, const RawData &resp_data) {
+    //if a callback instance shared by many call, not use internal "m_is_done"
+    if (m_is_shared) {
+        callback(status, resp_data);
+    } 
+    else {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        if (!m_is_done) {
+            callback(status, resp_data);
+            m_is_done = true;
+        }
+    }
+
+}
+
+std::string RpcClientCallBack::getType() {
+    return m_type_mark;
+}
+
+void RpcClientCallBack::setType(const std::string &type) {
+    m_type_mark = type;
+}
+void RpcClientCallBack::setTimeout(uint32_t timeout) {
+    m_timeout = timeout;
+}
+uint32_t RpcClientCallBack::getTimeout() {
+    return m_timeout;
+}
+void RpcClientCallBack::setReqId(const std::string &reqid) {
+    m_reqid = reqid;
+}
+std::string RpcClientCallBack::getReqId() {
+    return m_reqid;
+}
+void RpcClientCallBack::markTimeout() {
+    m_has_timeout = true;
+}
+bool RpcClientCallBack::isTimeout() {
+    return m_has_timeout;
+}
+void RpcClientCallBack::setShared(bool isshared) {
+    m_is_shared = isshared;
+}
 };

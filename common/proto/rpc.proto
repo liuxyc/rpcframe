@@ -1,3 +1,4 @@
+syntax = "proto2"; 
 package rpcframe;
 message RpcInnerReq {
     required int32 version = 1;

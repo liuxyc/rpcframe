@@ -2,8 +2,61 @@
 #include "Queue.h"
 #include "SpinLock.h"
 #include "RWLock.h"
+#include "ThreadPool.h"
 #include "util.h"
 #include <thread>
+
+
+class RealTask
+{
+public:
+    std::string name;
+    int val;
+};
+
+class RealWorker
+{
+public:
+    RealWorker(int val, bool test, std::string names) {
+    }
+    void run(RealTask *rt) {
+        printf("name %s val %d\n", rt->name.c_str(), rt->val);
+        delete rt;
+    }
+};
+
+class RealWorkerSharePtr
+{
+public:
+    RealWorkerSharePtr(int val, bool test, std::string names) {
+    }
+    void run(std::shared_ptr<RealTask> rt) {
+        printf("name %s val %d\n", rt->name.c_str(), rt->val);
+    }
+};
+
+TEST(ThreadPoolTest, full)
+{
+    //for raw pointer task
+    rpcframe::ThreadPool<RealTask *, RealWorker> tp(10, 666, true, "abc");
+    for(auto i = 0; i < 1000; ++i) {
+        RealTask *rt = new RealTask;
+        rt->name = "real_task_" + std::to_string(i);
+        rt->val = i;
+        tp.addTask(rt, 100);
+    }
+    //for shared_ptr Task
+    rpcframe::ThreadPool<std::shared_ptr<RealTask>, RealWorkerSharePtr> tpshared(10, 888, true, "abc");
+    for(auto i = 0; i < 1000; ++i) {
+        std::shared_ptr<RealTask> rt(new RealTask);
+        rt->name = "real_task_shared_" + std::to_string(i);
+        rt->val = i;
+        tpshared.addTask(rt, 100);
+    }
+    sleep(5);
+}
+
+
 
 TEST(QueueTest, full)
 {

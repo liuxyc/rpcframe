@@ -34,22 +34,18 @@ class RpcWorker
         IService *pSrv;
         bool owner;
     };
-    RpcWorker(ReqQueue *workqueue, RpcServerImpl *server);
+    RpcWorker(RpcServerImpl *server);
     RpcWorker &operator=(const RpcWorker &worker) = delete;
     RpcWorker(const RpcWorker &worker) = delete;
     ~RpcWorker();
     void stop();
-    void run();
+    void run(std::shared_ptr<request_pkg> pkg);
     void addService(const std::string &name, IService *service, bool owner);
     std::map<std::string, ServiceBlock> m_srvmap;
   private:
     void pushResponse(IRpcRespBrokerPtr &rpcbroker, std::string &connid, int type, RpcServerConnWorker *connworker);
-    ReqQueue *m_work_q;
     RpcServerImpl *m_server;
     IService *m_service;
-    std::atomic<bool> m_stop;
-    std::thread *m_thread;
-
 };
 
 };
