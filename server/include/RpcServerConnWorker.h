@@ -26,6 +26,12 @@ class RpcRespBroker;
 class RpcServerConfig;
 
 
+enum class ConnType
+{
+    RPC_CONN = 0,
+    HTTP_CONN = 1,
+};
+
 class EpollStruct 
 {
 public:
@@ -41,7 +47,7 @@ class RpcServerConnWorker
 {
   friend RpcStatusService;
 public:
-  RpcServerConnWorker(RpcServerImpl *server, const char *name);
+  RpcServerConnWorker(RpcServerImpl *server, const char *name, ConnType ctype);
   RpcServerConnWorker &operator=(const RpcServerConfig &cfg) = delete;
   ~RpcServerConnWorker();
 
@@ -75,6 +81,7 @@ private:
   int m_resp_ev_fd;
   std::atomic<bool> m_stop;
   std::string m_name;
+  ConnType m_conn_type;
 };
 
 };

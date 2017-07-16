@@ -25,7 +25,7 @@ public:
      *
      * @return 
      */
-    virtual bool response() = 0;
+    virtual bool response(RpcStatus rs) = 0;
 
     /**
      * @brief check whether need response

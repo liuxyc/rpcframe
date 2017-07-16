@@ -40,7 +40,7 @@ public:
                 std::string ss("my feedback async");
                 char *p_ss = resp_broker->allocRespBuf(ss.size() + 1);
                 strcpy(p_ss, ss.c_str());
-                resp_broker->response();
+                resp_broker->response(rpcframe::RpcStatus::RPC_SERVER_OK);
                 }));
         /*
            NOTICE:Don't delete resp_broker if you return rpcframe::RpcStatus::RPC_SERVER_OK, RcpServer will delete it for you.

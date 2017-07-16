@@ -20,7 +20,8 @@
 #include <sstream>
 
 #include "RpcServerImpl.h"
-#include "RpcServerConn.h"
+#include "RpcServerRpcConn.h"
+#include "RpcServerHttpConn.h"
 #include "util.h"
 #include "rpc.pb.h"
 #include "RpcServerConfig.h"
@@ -31,7 +32,7 @@
 namespace rpcframe
 {
 
-RpcServerConnWorker::RpcServerConnWorker(RpcServerImpl *server, const char *name)
+RpcServerConnWorker::RpcServerConnWorker(RpcServerImpl *server, const char *name, ConnType ctype)
 : m_server(server)
 , m_seqid(0)
 //, m_req_q(req_q)
@@ -40,6 +41,7 @@ RpcServerConnWorker::RpcServerConnWorker(RpcServerImpl *server, const char *name
 , m_resp_ev_fd(-1)
 , m_stop(false)
 , m_name(name)
+, m_conn_type(ctype)
 {
 }
 
@@ -142,7 +144,17 @@ void RpcServerConnWorker::onAccept() {
     id += std::to_string(++m_seqid);
     setSocketKeepAlive(new_client_socket);
     fcntl(new_client_socket, F_SETFL, fcntl(new_client_socket, F_GETFL) | O_NONBLOCK);
-    RpcServerConn *pConn = new RpcServerConn(new_client_socket, id.c_str(), m_server);
+    RpcServerConn *pConn = nullptr;
+    switch(m_conn_type) {
+        case ConnType::RPC_CONN:
+            pConn = new RpcServerRpcConn(new_client_socket, id.c_str(), m_server);
+            break;
+        case ConnType::HTTP_CONN:
+            pConn = new RpcServerHttpConn(new_client_socket, id.c_str(), m_server);
+            break;
+        default:
+            break;
+    }
     addConnection(new_client_socket, pConn);
     RPC_LOG(RPC_LOG_LEV::INFO, "new_client_socket: %d", new_client_socket);  
   }
@@ -171,6 +183,7 @@ bool RpcServerConnWorker::onDataIn(const EpollStruct *eps)
               RPC_LOG(RPC_LOG_LEV::WARNING, "server queue fail, drop pkg");
               m_server->IncReqInQFail();
           }
+          break;
       }
       else {
           if(pkgret.first == 0) {

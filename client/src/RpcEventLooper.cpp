@@ -64,12 +64,12 @@ RpcEventLooper::~RpcEventLooper() {
     for(auto &ec:m_ep_conn_map) {
         delete ec.second;
     }
+    delete m_thread_pool;
 
 }
 
 void RpcEventLooper::stop() {
     m_stop = true;
-    delete m_thread_pool;
 }
 
 void RpcEventLooper::removeConnection(int fd, RpcClientConn *conn) {

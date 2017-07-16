@@ -125,7 +125,7 @@ public:
     void waitAllCBDone(uint32_t timeout);
 
     template <typename T>
-    static T *createProtoBufMsg(RawData *rawdata) {
+    static T *createProtoBufMsg(const RawData *rawdata) {
        T *pbmsg = new T();
        pbmsg->ParseFromString({rawdata->data, rawdata->data_len});
        return pbmsg;

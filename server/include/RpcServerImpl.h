@@ -16,7 +16,7 @@
 #include "RpcPackage.h"
 #include "RpcWorker.h"
 #include "RpcServerConfig.h"
-#include "RpcHttpServer.h"
+//#include "RpcHttpServer.h"
 #include "ThreadPool.h"
 
 namespace rpcframe
@@ -25,7 +25,7 @@ namespace rpcframe
 class RpcServerConn;
 class RpcServerConnWorker;
 class IService;
-class RpcHttpServer;
+//class RpcHttpServer;
 class RpcStatusService;
 class RpcInnerResp;
 
@@ -55,7 +55,7 @@ public:
         for(auto w: real_workers) {
             w->addService(name, p_service, false);
         }
-        m_http_server->addService(name, p_service, false);
+        //m_http_server->addService(name, p_service, false);
         return true;
     }
 
@@ -79,18 +79,20 @@ public:
     void IncReqInQFail();
     void IncRespInQFail();
     const RpcServerConfig *getConfig();
-    std::vector<RpcServerConnWorker *> &getConnWorker();
+    std::vector<RpcServerConnWorker *> &getRpcConnWorker();
 
-    RpcHttpServer *m_http_server;
+    //RpcHttpServer *m_http_server;
 private:
-    bool startListen();
+    int startListen(int port);
+    int m_rpclisten;
+    int m_httplisten;
     RpcServerConfig &m_cfg;
     //ServiceMap m_service_map;
     RespQueue m_response_q;
-    int m_listen_socket;
     std::atomic<bool> m_stop;
     std::atomic<uint64_t> m_conn_num;
-    std::vector<RpcServerConnWorker *> m_connworker;
+    std::vector<RpcServerConnWorker *> m_rpcconnworker;
+    std::vector<RpcServerConnWorker *> m_httpconnworker;
     ThreadPool<ReqPkgPtr, RpcWorker> *m_worker_thread_pool;
     IService *m_statusSrv;
     IService *m_service;

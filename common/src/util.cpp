@@ -15,7 +15,7 @@
 
 namespace rpcframe {
 
-RPC_LOG_LEV g_log_level = RPC_LOG_LEV::INFO;
+RPC_LOG_LEV g_log_level = RPC_LOG_LEV::DEBUG;
 
 bool getHostIp(std::string &str_ip) {
     char hname[256] = {0};

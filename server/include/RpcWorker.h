@@ -11,7 +11,6 @@
 #include "RpcPackage.h"
 #include "RpcRespBroker.h"
 
-struct mg_connection;
 namespace rpcframe
 {
 
@@ -39,7 +38,7 @@ class RpcWorker
     RpcWorker(const RpcWorker &worker) = delete;
     ~RpcWorker();
     void stop();
-    void run(std::shared_ptr<request_pkg> pkg);
+    void run(ReqPkgPtr pkg);
     void addService(const std::string &name, IService *service, bool owner);
     std::map<std::string, ServiceBlock> m_srvmap;
   private:

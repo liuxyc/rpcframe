@@ -21,9 +21,9 @@ class RpcServerConn
 {
 public:
     RpcServerConn(int fd, const char *seqid, RpcServerImpl *server);
-    ~RpcServerConn();
+    virtual ~RpcServerConn();
 
-    pkg_ret_t getRequest();
+    virtual pkg_ret_t getRequest() = 0;
     void reset();
 
     PkgIOStatus sendResponse();
@@ -35,9 +35,7 @@ public:
     RespQueue m_response_q;
     std::string m_seqid;
 
-private:
-    bool readPkgLen(uint32_t &pkg_len);
-    PkgIOStatus readPkgData();
+protected:
     PkgIOStatus sendData();
     int m_fd;
     uint32_t m_cur_left_len;
@@ -50,6 +48,5 @@ private:
     const uint32_t MAX_REQ_LIMIT_BYTE;
     RpcServerImpl *m_server;
     EpollStruct *m_eps;
-    
 };
 };

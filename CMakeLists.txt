@@ -9,6 +9,7 @@ SET(OUTPUT_DIR ${PROJECT_SOURCE_DIR}/output)
 SET(PROTO_DIR ${PROJECT_SOURCE_DIR}/common/proto)
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -g3 -Wall -O0")  
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g3 -Wall -O0")
+set( CMAKE_EXPORT_COMPILE_COMMANDS ON )
 
 EXECUTE_PROCESS(
   COMMAND rm -f ${PROTO_DIR}/*.cc ${PROTO_DIR}/*.h
@@ -16,7 +17,7 @@ EXECUTE_PROCESS(
   ${PROTO_DIR}/rpc.proto
   WORKING_DIRECTORY  ${PROTO_DIR})
 
-FILE(GLOB rpcframe_src ${SERVER_DIR}/src/*.cpp ${CLIENT_DIR}/src/*.cpp ${COMMON_DIR}/src/*.cpp ${PROTO_DIR}/*.cc)
+FILE(GLOB rpcframe_src ${SERVER_DIR}/src/*.cpp ${CLIENT_DIR}/src/*.cpp ${COMMON_DIR}/src/*.cpp ${COMMON_DIR}/src/*.c ${PROTO_DIR}/*.cc)
 SET(mongoose_src ${SERVER_DIR}/src/mongoose.c)
 
 SET_SOURCE_FILES_PROPERTIES(${rpcframe_src} PROPERTIES 

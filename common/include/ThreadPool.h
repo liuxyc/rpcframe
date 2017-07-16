@@ -11,8 +11,8 @@
 namespace rpcframe
 {
 
-// WorkerT must have method void run(TaskT *)
 
+// WorkerT must have method void run(TaskT *)
 template <typename TaskT, typename WorkerT>
 class ThreadPool
 {
@@ -25,15 +25,14 @@ public:
         Worker(TaskQueue *q, WorkerT *real_worker, uint32_t queuetimeout)
         : m_q(q)
         , m_stop(false)
+        , m_thread(new std::thread(&Worker::run, this))
         , m_q_timeout(queuetimeout)
         , m_real_worker(real_worker)
         {
-            m_thread = new std::thread(&Worker::run, this);
         }
         ~Worker()
         {
             m_thread->join();
-            delete m_thread;
             delete m_real_worker;
         }
 
@@ -70,7 +69,7 @@ public:
     private:
         TaskQueue *m_q;
         std::atomic<bool> m_stop;
-        std::thread *m_thread;
+        std::unique_ptr<std::thread> m_thread;
         uint32_t m_q_timeout;
         WorkerT *m_real_worker;
     };
@@ -81,17 +80,13 @@ public:
     {
         for(auto i = 0UL; i < thread_num; ++i) {
             WorkerT *real_worker = new WorkerT(WArgs...);
-            Worker *worker = new Worker(&m_taskQ, real_worker, 100);
-            m_worker_threads.push_back(worker);
+            m_worker_threads.emplace_back(new Worker(&m_taskQ, real_worker, 100));
         }
     }
     ~ThreadPool()
     {
-        for(auto w: m_worker_threads) {
+        for(auto &w: m_worker_threads) {
             w->stop();
-        }
-        for(auto w: m_worker_threads) {
-            delete w;
         }
     }
 
@@ -119,7 +114,7 @@ public:
 
 private:
     TaskQueue m_taskQ;
-    std::vector<Worker *> m_worker_threads;
+    std::vector<std::unique_ptr<Worker>> m_worker_threads;
 };
 
 

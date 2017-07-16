@@ -31,6 +31,7 @@ public:
     , data_len(size)
     , connection_id(conn_id)
     , conn_worker(nullptr)
+    , is_from_http(false)
     {
         data = new char[size];
     };
@@ -43,6 +44,7 @@ public:
     std::string connection_id;
     RpcServerConnWorker *conn_worker;
     std::chrono::system_clock::time_point gen_time;
+    bool is_from_http;
 
     request_pkg(const request_pkg &) = delete;
     request_pkg &operator=(const request_pkg &) = delete;

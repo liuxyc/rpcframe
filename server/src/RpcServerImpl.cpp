@@ -10,6 +10,11 @@
 #include <string.h>  
 #include <unistd.h>
 #include <sys/prctl.h>
+#include <netinet/in.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <arpa/inet.h>
 
 #include <thread>
 #include <chrono>
@@ -25,9 +30,10 @@ namespace rpcframe
 {
 
 RpcServerImpl::RpcServerImpl(RpcServerConfig &cfg)
-: m_http_server(nullptr)
+//: m_http_server(nullptr)
+: m_rpclisten(-1)
+, m_httplisten(-1)
 , m_cfg(cfg)
-, m_listen_socket(-1)
 , m_stop(false)
 , m_conn_num(0)
 , avg_req_wait_time(0)
@@ -52,19 +58,26 @@ RpcServerImpl::RpcServerImpl(RpcServerConfig &cfg)
     }
 
     for(uint32_t i = 0; i < m_cfg.getConnThreadNum(); ++i) {
-      std::string connworkername("connworker_");
-      m_connworker.push_back(new RpcServerConnWorker(this, connworkername.append(std::to_string(i)).c_str()));
+      std::string connworkername("rpcconnworker_");
+      m_rpcconnworker.push_back(new RpcServerConnWorker(this, connworkername.append(std::to_string(i)).c_str(), ConnType::RPC_CONN));
     }
 
     if (cfg.getHttpPort() != -1) {
-        m_http_server = new RpcHttpServer(cfg, this);
-        m_http_server->addService("status", m_statusSrv, false);
+        for(uint32_t i = 0; i < m_cfg.getConnThreadNum(); ++i) {
+            std::string connworkername("httpconnworker_");
+            m_httpconnworker.push_back(new RpcServerConnWorker(this, connworkername.append(std::to_string(i)).c_str(), ConnType::HTTP_CONN));
+        }
+        //m_http_server = new RpcHttpServer(cfg, this);
+        //m_http_server->addService("status", m_statusSrv, false);
     }
 }
 
 RpcServerImpl::~RpcServerImpl() {
     stop();
-    for(auto cw: m_connworker) {
+    for(auto cw: m_rpcconnworker) {
+      delete cw;
+    }
+    for(auto cw: m_httpconnworker) {
       delete cw;
     }
     delete m_statusSrv;
@@ -88,17 +101,17 @@ bool RpcServerImpl::pushReqToWorkers(ReqPkgPtr req)
 //}
 
 
-bool RpcServerImpl::startListen() {
-    m_listen_socket = socket(AF_INET,SOCK_STREAM,0);  
-    if ( 0 > m_listen_socket )  
+int RpcServerImpl::startListen(int port) {
+    int listen_socket = socket(AF_INET,SOCK_STREAM,0);  
+    if ( 0 > listen_socket )  
     {  
         RPC_LOG(RPC_LOG_LEV::ERROR, "socket error!");  
-        return false;  
+        return -1;  
     }  
     
     sockaddr_in listen_addr;  
     listen_addr.sin_family = AF_INET;  
-    listen_addr.sin_port = htons(m_cfg.m_port);  
+    listen_addr.sin_port = htons(port);  
     std::string hostip;
     if(!getHostIpByName(hostip, m_cfg.m_hostname.c_str())) {
         RPC_LOG(RPC_LOG_LEV::ERROR, "gethostbyname fail");
@@ -106,45 +119,54 @@ bool RpcServerImpl::startListen() {
     listen_addr.sin_addr.s_addr = inet_addr(hostip.c_str());  
     
     int ireuseadd_on = 1;
-    //setsockopt(m_listen_socket, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &ireuseadd_on, sizeof(ireuseadd_on) );   // linux kernel >=3.9
-    setsockopt(m_listen_socket, SOL_SOCKET, SO_REUSEADDR, &ireuseadd_on, sizeof(ireuseadd_on) );  
+    //setsockopt(listen_socket, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &ireuseadd_on, sizeof(ireuseadd_on) );   // linux kernel >=3.9
+    setsockopt(listen_socket, SOL_SOCKET, SO_REUSEADDR, &ireuseadd_on, sizeof(ireuseadd_on) );  
     //set nonblock
     int opts = O_NONBLOCK;  
-    if(fcntl(m_listen_socket, F_SETFL, opts) < 0)  
+    if(fcntl(listen_socket, F_SETFL, opts) < 0)  
     {  
       RPC_LOG(RPC_LOG_LEV::ERROR, "set listen fd nonblock fail");  
-      return false;
+      return -1;
     }  
 
-    if (bind(m_listen_socket, (sockaddr *) &listen_addr, sizeof (listen_addr) ) != 0 )  
+    if (bind(listen_socket, (sockaddr *) &listen_addr, sizeof (listen_addr) ) != 0 )  
     {  
-        RPC_LOG(RPC_LOG_LEV::ERROR, "bind %s:%d error", hostip.c_str(), m_cfg.m_port);  
-        return false;  
+        RPC_LOG(RPC_LOG_LEV::ERROR, "bind %s:%d error", hostip.c_str(), port);  
+        return -1;  
     }  
     
-    if (listen(m_listen_socket, 20) < 0 )  
+    if (listen(listen_socket, 20) < 0 )  
     {  
         RPC_LOG(RPC_LOG_LEV::ERROR, "listen error!");  
-        return false;  
+        return -1;  
     }  
     else {  
-        RPC_LOG(RPC_LOG_LEV::INFO, "Listening on %s:%d", hostip.c_str(), m_cfg.m_port);  
+        RPC_LOG(RPC_LOG_LEV::INFO, "Listening on %s:%d", hostip.c_str(), port);  
     }  
-    return true;
+    return listen_socket;
 }
 
 bool RpcServerImpl::start() {
     if (m_cfg.getHttpPort() != -1) {
-        m_http_server->start();
+        if((m_httplisten = startListen(m_cfg.getHttpPort())) == -1) {
+            RPC_LOG(RPC_LOG_LEV::ERROR, "start http listen failed");
+            return false;
+        }
+        //m_http_server->start();
     }
-    if(!startListen()) {
-        RPC_LOG(RPC_LOG_LEV::ERROR, "start listen failed");
+    if((m_rpclisten = startListen(m_cfg.m_port)) == -1) {
+        RPC_LOG(RPC_LOG_LEV::ERROR, "start rpc listen failed");
         return false;
     }
     std::vector<std::unique_ptr<std::thread> > thread_vec;
-    for(auto connw: m_connworker) {
+    for(auto connw: m_rpcconnworker) {
       thread_vec.push_back(std::unique_ptr<std::thread>(new std::thread([connw, this](){
-            connw->start(this->m_listen_socket);
+            connw->start(m_rpclisten);
+          })));
+    }
+    for(auto connw: m_httpconnworker) {
+      thread_vec.push_back(std::unique_ptr<std::thread>(new std::thread([connw, this](){
+            connw->start(m_httplisten);
           })));
     }
     for(auto &th: thread_vec) {
@@ -158,11 +180,14 @@ void RpcServerImpl::stop() {
       return;
     }
     m_stop = true;
-    for(auto connw: m_connworker) {
+    for(auto connw: m_rpcconnworker) {
       connw->stop();
     }
-    m_http_server->stop();
-    delete m_http_server;
+    for(auto connw: m_httpconnworker) {
+      connw->stop();
+    }
+    //m_http_server->stop();
+    //delete m_http_server;
     delete m_worker_thread_pool;
     RPC_LOG(RPC_LOG_LEV::INFO, "stoped");
 }
@@ -240,9 +265,9 @@ const RpcServerConfig *RpcServerImpl::getConfig()
   return &m_cfg;
 }
 
-std::vector<RpcServerConnWorker *> &RpcServerImpl::getConnWorker() 
+std::vector<RpcServerConnWorker *> &RpcServerImpl::getRpcConnWorker() 
 {
-  return m_connworker;
+  return m_rpcconnworker;
 }
 
 void RpcServerImpl::DecConnCount()

@@ -12,6 +12,7 @@
 #include <sys/prctl.h>
 #include <signal.h>
 #include <arpa/inet.h>
+#include <string.h>
 
 #include "RpcServerConn.h"
 #include "RpcServerImpl.h"
@@ -75,10 +76,10 @@ void RpcWorker::run(std::shared_ptr<request_pkg> pkg)
         RPC_LOG(RPC_LOG_LEV::ERROR, "connworker is null, %s %s", req.method_name().c_str(), req.request_id().c_str());
         return;
     }
-    RPC_LOG(RPC_LOG_LEV::DEBUG, "req %s:%s stay: %d ms", req.request_id().c_str(), req.method_name().c_str(), during.count());
+    RPC_LOG(RPC_LOG_LEV::DEBUG, "req %s:%s stay in queue: %d ms", req.request_id().c_str(), req.method_name().c_str(), during.count());
 
     IRpcRespBrokerPtr rpcbroker = std::make_shared<RpcRespBroker>(connworker, pkg->connection_id,
-            req.request_id(), (req.type() == RpcInnerReq::TWO_WAY), nullptr);
+            req.request_id(), (req.type() == RpcInnerReq::TWO_WAY), pkg->is_from_http);
     if(m_srvmap.find(req.service_name()) == m_srvmap.end()) {
         rpcbroker->setReturnVal(RpcStatus::RPC_SRV_NOTFOUND);
         RPC_LOG(RPC_LOG_LEV::WARNING, "Unknow service request #%s#", req.service_name().c_str());
@@ -86,8 +87,13 @@ void RpcWorker::run(std::shared_ptr<request_pkg> pkg)
         return;
     }
     IService *p_service = m_srvmap[req.service_name()].pSrv;
+    if (pkg->is_from_http && !p_service->m_impl->is_method_allow_http(req.method_name())) {
+        RPC_LOG(RPC_LOG_LEV::WARNING, "Not allowed request: %s", req.method_name().c_str());
+        rpcbroker->setReturnVal(RpcStatus::RPC_METHOD_NOTFOUND);
+        pushResponse(rpcbroker, pkg->connection_id, req.type(), connworker);
+        return;
+    }
     if (p_service != nullptr) {
-
         std::chrono::system_clock::time_point begin_call_timepoint = std::chrono::system_clock::now();
         RpcMethodStatusPtr method_status = nullptr;
         RpcStatus ret = p_service->m_impl->runMethod(req.method_name(), rd, rpcbroker, method_status);
@@ -140,7 +146,6 @@ void RpcWorker::pushResponse(IRpcRespBrokerPtr &rpcbroker, std::string &connid, 
         //put response to connection queue, max worker throughput
         connworker->pushResp(connid, *(dynamic_cast<RpcRespBroker *>(rpcbroker.get())));
     }
-
 }
 
 };

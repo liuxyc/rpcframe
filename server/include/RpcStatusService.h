@@ -43,10 +43,10 @@ public:
         resp_data += "<h3>Pid:" + std::to_string(getpid()) + "</h3>";
         resp_data += "<h3>Running:" + std::to_string(!m_rpc_server->m_stop) + "</h3>";
         resp_data += "<h3>Worker num:" + std::to_string(m_rpc_server->m_cfg.getThreadNum()) + "</h3>";
-        resp_data += "<h3>Conn Worker num:" + std::to_string(m_rpc_server->m_connworker.size()) + "</h3>";
+        resp_data += "<h3>Conn Worker num:" + std::to_string(m_rpc_server->m_rpcconnworker.size()) + "</h3>";
         resp_data += "<h3>Max conn limit:" + std::to_string(m_rpc_server->m_cfg.m_max_conn_num) + "</h3>";
         resp_data += "<h3>Rejected conn num:" + std::to_string(m_rpc_server->rejected_conn) + "</h3>";
-        for(auto connw: m_rpc_server->getConnWorker()) {
+        for(auto connw: m_rpc_server->getRpcConnWorker()) {
           resp_data += "&nbsp;&nbsp;conn worker:" + connw->m_name + "</br>";
           std::vector<std::string> conn_ids;
           connw->dumpConnIDs(conn_ids);
@@ -66,7 +66,7 @@ public:
         resp_data += "<h3>Avg Resp wait time:" + std::to_string(m_rpc_server->avg_resp_wait_time) + "ms</h3>";
         resp_data += "<h3>Avg Call time:" + std::to_string(m_rpc_server->avg_call_time) + "ms</h3>";
         resp_data += "<h3>Longest Call time:" + std::to_string(m_rpc_server->max_call_time) + "ms</h3>";
-        resp_data += "<h3>Rpc listening on port:" + std::to_string(m_rpc_server->m_cfg.m_port) + " fd:" + std::to_string(m_rpc_server->m_listen_socket) + "</h3>";
+        resp_data += "<h3>Rpc listening on port:" + std::to_string(m_rpc_server->m_cfg.m_port) + " fd:" + std::to_string(m_rpc_server->m_rpclisten) + "</h3>";
         resp_data += "<h1>Service Status</h1>";
         std::vector<RpcWorker *> real_workers;
         m_rpc_server->m_worker_thread_pool->getWorkers(real_workers);
