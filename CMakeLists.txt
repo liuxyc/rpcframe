@@ -18,16 +18,16 @@ EXECUTE_PROCESS(
   WORKING_DIRECTORY  ${PROTO_DIR})
 
 FILE(GLOB rpcframe_src ${SERVER_DIR}/src/*.cpp ${CLIENT_DIR}/src/*.cpp ${COMMON_DIR}/src/*.cpp ${COMMON_DIR}/src/*.c ${PROTO_DIR}/*.cc)
-SET(mongoose_src ${SERVER_DIR}/src/mongoose.c)
+#SET(mongoose_src ${SERVER_DIR}/src/mongoose.c)
 
 SET_SOURCE_FILES_PROPERTIES(${rpcframe_src} PROPERTIES 
   LANGUAGE CXX   
   COMPILE_DEFINITIONS MG_ENABLE_THREADS
 )
-SET_SOURCE_FILES_PROPERTIES(${mongoose_src} PROPERTIES 
-  LANGUAGE C
-  COMPILE_DEFINITIONS MG_ENABLE_THREADS
-)
+#SET_SOURCE_FILES_PROPERTIES(${mongoose_src} PROPERTIES 
+  #LANGUAGE C
+  #COMPILE_DEFINITIONS MG_ENABLE_THREADS
+#)
 
 INCLUDE_DIRECTORIES(  
   ${CLIENT_DIR}/include
@@ -40,7 +40,7 @@ LINK_DIRECTORIES(
   /usr/src/gtest
   )  
 
-ADD_LIBRARY(rpcframe STATIC ${rpcframe_src} ${mongoose_src})
+ADD_LIBRARY(rpcframe STATIC ${rpcframe_src})
 
 SET(PUB_HDR 
   ${CLIENT_DIR}/include/RpcClient.h 
