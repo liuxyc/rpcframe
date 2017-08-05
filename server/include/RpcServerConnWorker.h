@@ -14,6 +14,7 @@
 #include "RpcDefs.h"
 #include "RpcPackage.h"
 #include "ThreadPool.h"
+#include "Epoll.h"
 
 namespace rpcframe
 {
@@ -76,7 +77,7 @@ private:
   //ReqQueue *m_req_q;
   Queue<std::string> m_resp_conn_q;
   RWLock m_conn_rwlock;
-  int m_epoll_fd;
+  Epoll m_epoll;
   int m_listen_socket;
   int m_resp_ev_fd;
   std::atomic<bool> m_stop;

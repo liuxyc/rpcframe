@@ -11,7 +11,6 @@
 #include <stdio.h>  
 #include <stdlib.h>  
 #include <string.h>  
-#include <sys/epoll.h>  
 #include <sys/socket.h>  
 #include <sys/types.h>
 #include <time.h>
@@ -41,12 +40,8 @@ RpcEventLooper::RpcEventLooper(RpcClient *client, int thread_num)
     if(!getHostIp(m_host_ip)) {
         RPC_LOG(RPC_LOG_LEV::ERROR, "[ERROR]get hostip fail!");
     }
-    m_epoll_fd = epoll_create(_MAX_SOCKFD_COUNT);  
-    //set noblock
-    int opts = O_NONBLOCK;  
-    if(fcntl(m_epoll_fd,F_SETFL,opts)<0)  
-    {  
-        RPC_LOG(RPC_LOG_LEV::ERROR, "set epoll fd noblock fail");
+    if(m_epoll.Create(_MAX_SOCKFD_COUNT) < 0) {  
+        RPC_LOG(RPC_LOG_LEV::ERROR, "create epoll fail");
     }  
 
     m_thread_pool = new ThreadPool<RespPkgPtr, RpcClientWorker>(m_thread_num, this);
@@ -74,7 +69,7 @@ void RpcEventLooper::stop() {
 
 void RpcEventLooper::removeConnection(int fd, RpcClientConn *conn) {
     std::lock_guard<std::mutex> mlock(m_mutex);
-    epoll_ctl(m_epoll_fd, EPOLL_CTL_DEL, fd, nullptr);
+    m_epoll.Del(fd);
     conn->setInvalid();
     auto callbacks = m_conn_cb_map.find(conn);
     if(callbacks != m_conn_cb_map.end()) {
@@ -104,11 +99,7 @@ void RpcEventLooper::removeAllConnections() {
 void RpcEventLooper::addConnection(int fd, RpcClientConn *data)
 {
     if (fd != -1) {
-        struct epoll_event ev;  
-        memset(&ev, 0, sizeof(ev));
-        ev.events = EPOLLIN;
-        ev.data.ptr = data;
-        epoll_ctl(m_epoll_fd, EPOLL_CTL_ADD, fd, &ev);  
+        m_epoll.Add(fd, data, EPOLLIN);
     }
     else {
         RPC_LOG(RPC_LOG_LEV::ERROR, "invalid fd");
@@ -290,14 +281,13 @@ void RpcEventLooper::dealTimeoutCb() {
 
 void RpcEventLooper::run() {
     prctl(PR_SET_NAME, "RpcClient", 0, 0, 0); 
-    struct epoll_event events[_MAX_SOCKFD_COUNT];  
     while(1) {
         if (m_stop) {
             removeAllConnections();
             break;
         }
 
-        int nfds = epoll_wait(m_epoll_fd, events, _MAX_SOCKFD_COUNT, 1000);  
+        int nfds = m_epoll.Wait(1000);  
         if (m_stop) {
             removeAllConnections();
             break;
@@ -309,9 +299,9 @@ void RpcEventLooper::run() {
 
         for (int i = 0; i < nfds; i++) 
         {  
-            RpcClientConn *conn = (RpcClientConn *)(events[i].data.ptr);
+            RpcClientConn *conn = (RpcClientConn *)(m_epoll.getData(i));
             int client_socket = conn->getFd();
-            if (events[i].events & EPOLLIN)//data come in
+            if (m_epoll.getEvent(i) & EPOLLIN)//data come in
             {  
                 pkg_ret_t pkgret = conn->getResponse();
                 //pkgret: <int, pkgptr>
@@ -336,13 +326,12 @@ void RpcEventLooper::run() {
             else  
             {  
                 RPC_LOG(RPC_LOG_LEV::WARNING, "EPOLL ERROR");
-                epoll_ctl(m_epoll_fd, EPOLL_CTL_DEL, client_socket, &events[i]);  
+                m_epoll.Del(client_socket);
             }  
         }  
         //RPC_LOG(RPC_LOG_LEV::DEBUG, "epoll loop");
     }
     RPC_LOG(RPC_LOG_LEV::INFO, "RpcEventLooper stoped");
-    close(m_epoll_fd);
 }
 
 };

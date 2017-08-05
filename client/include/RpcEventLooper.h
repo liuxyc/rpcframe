@@ -16,6 +16,7 @@
 #include "RpcDefs.h"
 #include "RpcPackage.h"
 #include "ThreadPool.h"
+#include "Epoll.h"
 
 namespace rpcframe
 {
@@ -55,7 +56,6 @@ private:
     RpcClientConn *tryGetAvaliableConn();
     RpcClient *m_client;
     std::atomic<bool> m_stop;
-    int m_epoll_fd;
     std::vector<RpcClientConn *> m_conn_list;
     std::map<Endpoint, RpcClientConn *> m_ep_conn_map;
     std::mutex m_mutex;
@@ -66,6 +66,8 @@ private:
     std::string m_host_ip;
     int m_thread_num;
     ThreadPool<RespPkgPtr, RpcClientWorker> *m_thread_pool;
+    Epoll m_epoll;
+    
 };
 
 };
