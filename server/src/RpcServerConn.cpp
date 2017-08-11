@@ -115,21 +115,19 @@ PkgIOStatus RpcServerConn::sendResponse()
     if (m_sent_pkg != nullptr) {
         return sendData();
     }
-    else {
-        RespPkgPtr pkg = nullptr;
-        if (m_response_q.pop(pkg, 0)) {
-            m_sent_len = 0;
-            m_sent_pkg = pkg;
-            std::chrono::system_clock::time_point out_q_timepoint = std::chrono::system_clock::now();
-            RPC_LOG(RPC_LOG_LEV::DEBUG, "resp stay: %d ms",  std::chrono::duration_cast<std::chrono::milliseconds>( out_q_timepoint - pkg->gen_time ).count());
-            auto during = std::chrono::duration_cast<std::chrono::milliseconds>(out_q_timepoint - pkg->gen_time);
-            if( during.count() < 0) {
-              during = during.zero();
-            }
-            m_server->calcRespQTime(during.count());
-            RPC_LOG(RPC_LOG_LEV::DEBUG, "will send %d", pkg->data_len);
-            return sendData();
+    RespPkgPtr pkg = nullptr;
+    if (m_response_q.pop(pkg, 0)) {
+        m_sent_len = 0;
+        m_sent_pkg = pkg;
+        std::chrono::system_clock::time_point out_q_timepoint = std::chrono::system_clock::now();
+        RPC_LOG(RPC_LOG_LEV::DEBUG, "resp stay: %d ms",  std::chrono::duration_cast<std::chrono::milliseconds>( out_q_timepoint - pkg->gen_time ).count());
+        auto during = std::chrono::duration_cast<std::chrono::milliseconds>(out_q_timepoint - pkg->gen_time);
+        if( during.count() < 0) {
+            during = during.zero();
         }
+        m_server->calcRespQTime(during.count());
+        RPC_LOG(RPC_LOG_LEV::DEBUG, "will send %d", pkg->data_len);
+        return sendData();
     }
     return PkgIOStatus::NODATA;
 }

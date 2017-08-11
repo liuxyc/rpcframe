@@ -6,6 +6,7 @@
 #pragma once
 #include <string>
 #include <memory>
+#include <google/protobuf/message.h>
 
 #include "RpcDefs.h"
 
@@ -57,6 +58,7 @@ public:
      */
     virtual char *allocRespBuf(size_t len) = 0;
     virtual char *allocRespBufFrom(const std::string &resp) = 0;
+    virtual char *allocRespBufFrom(const google::protobuf::Message &resp) = 0;
 
     virtual void setReturnVal(RpcStatus rs) = 0;
 };

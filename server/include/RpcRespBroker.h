@@ -30,6 +30,7 @@ public:
     bool isFromHttp() override;
     char *allocRespBuf(size_t len) override;
     char *allocRespBufFrom(const std::string &resp) override;
+    char *allocRespBufFrom(const google::protobuf::Message &resp) override;
     void setReturnVal(RpcStatus rs) override;
 
     RespPkgPtr getRespPkg();

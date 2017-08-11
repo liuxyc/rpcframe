@@ -298,39 +298,37 @@ void RpcServerConnWorker::addConnection(int fd, RpcServerConn *conn)
 
 void RpcServerConnWorker::pushResp(std::string conn_id, RpcRespBroker &br)
 {
-  //user may have no data to response
-  if(!br.isAlloced()) {
-    br.allocRespBuf(1);
-  }
-  RespPkgPtr resp_pkg = br.getRespPkg();
-  if(resp_pkg.get() == nullptr) {
-    RPC_LOG(RPC_LOG_LEV::ERROR, "RespPkgPtr is null");
-    assert(resp_pkg.get() != nullptr);
-    return;
-  }
-  else {
+    //user may have no data to response
+    if(!br.isAlloced()) {
+        br.allocRespBuf(1);
+    }
+    RespPkgPtr resp_pkg = br.getRespPkg();
+    if(resp_pkg.get() == nullptr) {
+        RPC_LOG(RPC_LOG_LEV::ERROR, "RespPkgPtr is null");
+        assert(resp_pkg.get() != nullptr);
+        return;
+    }
     ReadLockGuard rg(m_conn_rwlock);
     auto conn_iter = m_conn_set.find(conn_id);
     if (conn_iter != m_conn_set.end()) {
-      RpcServerConn *conn = conn_iter->second;
-      resp_pkg->gen_time = std::chrono::system_clock::now();
-      if (!conn->m_response_q.push(resp_pkg)) {
-        RPC_LOG(RPC_LOG_LEV::WARNING, "server resp queue fail, drop resp pkg");
-        m_server->IncRespInQFail();
-        return;
-      }
-      m_resp_conn_q.push(conn_id);
+        RpcServerConn *conn = conn_iter->second;
+        resp_pkg->gen_time = std::chrono::system_clock::now();
+        if (!conn->m_response_q.push(resp_pkg)) {
+            RPC_LOG(RPC_LOG_LEV::WARNING, "server resp queue fail, drop resp pkg");
+            m_server->IncRespInQFail();
+            return;
+        }
+        m_resp_conn_q.push(conn_id);
 
-      eventfd_t resp_cnt = 1;
-      if( eventfd_write(m_resp_ev_fd, resp_cnt) == -1) {
-        RPC_LOG(RPC_LOG_LEV::ERROR, "write resp event fd fail");
-      }
+        eventfd_t resp_cnt = 1;
+        if( eventfd_write(m_resp_ev_fd, resp_cnt) == -1) {
+            RPC_LOG(RPC_LOG_LEV::ERROR, "write resp event fd fail");
+        }
     }
     else {
-      RPC_LOG(RPC_LOG_LEV::WARNING, "connection %s gone, drop resp", conn_id.c_str());
+        RPC_LOG(RPC_LOG_LEV::WARNING, "connection %s gone, drop resp", conn_id.c_str());
     }
-  }
-  return;
+    return;
 }
 
 void RpcServerConnWorker::stop() {

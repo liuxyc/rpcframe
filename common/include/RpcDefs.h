@@ -48,7 +48,7 @@ namespace rpcframe
     typedef std::function<rpcframe::RpcStatus(const RawData &req, IRpcRespBrokerPtr)> RPC_FUNC_T;
     typedef std::pair<std::string, int> Endpoint;
 
-    const size_t max_protobuf_data_len = 1024 * 1024;
+    const size_t max_protobuf_data_len = 10 * 1024 * 1024;
 
 
     /*

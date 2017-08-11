@@ -51,21 +51,19 @@ bool RpcRespBroker::isFromHttp() {
 }
 
 bool RpcRespBroker::response(RpcStatus rs) {
-  if(m_need_resp) {
+    if(!m_need_resp) {
+        return false;
+    }
     if (m_from_http) {
-      allocHttpResp(getHttpCode(rs), m_resp_pkg->data);
+        allocHttpResp(getHttpCode(rs), m_resp_pkg->data);
     }
     else {
-      //put response to connection queue
-      setReturnVal(rs);
+        //put response to connection queue
+        setReturnVal(rs);
     }
     m_is_responed = true;
     m_connworker->pushResp(m_conn_id, *this);
-  }
-  else {
-    return false;
-  }
-  return true;
+    return true;
 }
 
 char *RpcRespBroker::allocRespBufFrom(const std::string &resp)
@@ -79,6 +77,24 @@ char *RpcRespBroker::allocRespBufFrom(const std::string &resp)
         p_ss[resp.size()] = '\0';
         return p_ss;
     }
+}
+
+char *RpcRespBroker::allocRespBufFrom(const google::protobuf::Message &resp)
+{
+    char *p_ss = nullptr;
+    if (m_from_http) {
+        p_ss = allocHttpBuf(200, resp.ByteSize());
+        if(!resp.SerializeToArray(p_ss, resp.ByteSize())) {
+            return nullptr;
+        }
+    }
+    else {
+        p_ss = allocRespBuf(resp.ByteSize());
+        if(!resp.SerializeToArray(p_ss, resp.ByteSize())) {
+            return nullptr;
+        }
+    }
+    return p_ss;
 }
 
 char *RpcRespBroker::allocRespBuf(size_t len)
