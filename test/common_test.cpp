@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2015-2017, Xiaoyu Liu <liuxyc at gmail dot com>
+ * All rights reserved.
+ */
+
 #include "gtest/gtest.h"
 #include "Queue.h"
 #include "SpinLock.h"
