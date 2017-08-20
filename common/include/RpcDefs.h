@@ -50,6 +50,21 @@ namespace rpcframe
 
     const size_t max_protobuf_data_len = 10 * 1024 * 1024;
 
+    //help to create google protobuf msg from RawData
+    template <typename T>
+    static T *createProtoBufMsg(const RawData &rawdata) {
+       T *pbmsg = new T();
+       pbmsg->ParseFromString({rawdata.data, rawdata.data_len});
+       return pbmsg;
+
+    }
+    template <typename T>
+    static void destoryProtoBufMsg(T *pbmsg) {
+        if(pbmsg != nullptr) {
+            delete pbmsg;
+        }
+    }
+
 
     /*
      * Requestbinary format:

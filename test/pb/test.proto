@@ -1,0 +1,6 @@
+syntax = "proto2"; 
+message TestPkg {
+    required int32 id = 1;
+    required string arg1 = 2;
+    required int32 arg2 = 3;
+}

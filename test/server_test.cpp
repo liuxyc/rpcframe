@@ -13,6 +13,7 @@
 #include <cstring>
 
 #include "RpcServer.h"
+#include "pb/test.pb.h"
 
 class MyService_async: public rpcframe::IService
 {
@@ -67,6 +68,7 @@ public:
         RPC_ADD_METHOD(MyService, test_method_fast_return)
         RPC_ADD_METHOD_NOHTTP(MyService, test_method_big_resp)
         RPC_ADD_METHOD(MyService, test_method_echo)
+        RPC_ADD_METHOD(MyService, test_method_pb)
         m_cnt = 0;
     };
     virtual ~MyService(){};
@@ -123,6 +125,16 @@ public:
       std::string resp_data(req_data.data, req_data.data_len);
       resp_broker->allocRespBufFrom(resp_data);
       return rpcframe::RpcStatus::RPC_SERVER_OK;
+    };
+
+    rpcframe::RpcStatus test_method_pb(const rpcframe::RawData &req_data, 
+                                        rpcframe::IRpcRespBrokerPtr resp_broker) 
+    {
+        std::unique_ptr<TestPkg> tp(rpcframe::createProtoBufMsg<TestPkg>(req_data));
+        tp->set_arg1("server confirmed");
+        tp->set_arg2(tp->arg2() + 1);
+        resp_broker->allocRespBufFrom(*tp);
+        return rpcframe::RpcStatus::RPC_SERVER_OK;
     };
 
     int m_cnt;

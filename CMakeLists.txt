@@ -5,6 +5,7 @@ SET(SERVER_DIR ${PROJECT_SOURCE_DIR}/server)
 SET(CLIENT_DIR ${PROJECT_SOURCE_DIR}/client)
 SET(COMMON_DIR ${PROJECT_SOURCE_DIR}/common)
 SET(TEST_DIR ${PROJECT_SOURCE_DIR}/test)
+SET(TEST_PROTO_DIR ${PROJECT_SOURCE_DIR}/test/pb)
 SET(OUTPUT_DIR ${PROJECT_SOURCE_DIR}/output)
 SET(PROTO_DIR ${PROJECT_SOURCE_DIR}/common/proto)
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -g3 -Wall -O0")  
@@ -16,6 +17,12 @@ EXECUTE_PROCESS(
   COMMAND protoc -I=${PROTO_DIR} --cpp_out=${PROTO_DIR}
   ${PROTO_DIR}/rpc.proto
   WORKING_DIRECTORY  ${PROTO_DIR})
+
+EXECUTE_PROCESS(
+    COMMAND rm -f ${TEST_PROTO_DIR}/*.cc ${TEST_PROTO_DIR}/*.h
+    COMMAND protoc -I=${TEST_PROTO_DIR} --cpp_out=${TEST_PROTO_DIR}
+    ${TEST_PROTO_DIR}/test.proto
+    WORKING_DIRECTORY  ${TEST_PROTO_DIR})
 
 FILE(GLOB rpcframe_src ${SERVER_DIR}/src/*.cpp ${CLIENT_DIR}/src/*.cpp ${COMMON_DIR}/src/*.cpp ${COMMON_DIR}/src/*.c ${PROTO_DIR}/*.cc)
 #SET(mongoose_src ${SERVER_DIR}/src/mongoose.c)
@@ -69,12 +76,15 @@ ADD_CUSTOM_COMMAND(TARGET rpcframe
 ADD_EXECUTABLE(common_test ${TEST_DIR}/common_test.cpp)
 TARGET_LINK_LIBRARIES(common_test rpcframe gtest gtest_main protobuf pthread)
 
-ADD_EXECUTABLE(server_test ${TEST_DIR}/server_test.cpp)
+
+FILE(GLOB server_test_src ${TEST_DIR}/server_test.cpp ${TEST_PROTO_DIR}/*.cc)
+ADD_EXECUTABLE(server_test ${server_test_src})
 #set (CMAKE_EXE_LINKER_FLAGS "-Wl,--no-as-needed")
 #TARGET_LINK_LIBRARIES(server_test rpcframe protobuf pthread profiler)
 TARGET_LINK_LIBRARIES(server_test rpcframe protobuf pthread)
 
-ADD_EXECUTABLE(client_test ${TEST_DIR}/client_test.cpp)
+FILE(GLOB client_test_src ${TEST_DIR}/client_test.cpp ${TEST_PROTO_DIR}/*.cc)
+ADD_EXECUTABLE(client_test ${client_test_src})
 #set (CMAKE_EXE_LINKER_FLAGS "-Wl,--no-as-needed")
 #TARGET_LINK_LIBRARIES(client_test rpcframe protobuf pthread gtest gtest_main profiler)
 TARGET_LINK_LIBRARIES(client_test rpcframe protobuf pthread gtest gtest_main)

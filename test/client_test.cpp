@@ -11,6 +11,7 @@
 #include <iostream>
 #include <random>
 #include "RpcClient.h"
+#include "pb/test.pb.h"
 
 class success_CB : public rpcframe::RpcClientCallBack 
 {
@@ -106,6 +107,23 @@ public:
 
     virtual void callback(const rpcframe::RpcStatus status, const rpcframe::RawData &response_data) {
         ASSERT_EQ(status, rpcframe::RpcStatus::RPC_REQ_TOO_LARGE);
+    }
+};
+
+class pb_req_resp : public rpcframe::RpcClientCallBack 
+{
+public:
+    pb_req_resp(int reqid)
+    : m_reqid(reqid)
+    {};
+    virtual ~pb_req_resp() {};
+    int m_reqid;
+
+    virtual void callback(const rpcframe::RpcStatus status, const rpcframe::RawData &response_data) {
+        ASSERT_EQ(status, rpcframe::RpcStatus::RPC_SERVER_OK);
+        std::unique_ptr<TestPkg> tp(rpcframe::createProtoBufMsg<TestPkg>(response_data));
+        ASSERT_EQ("server confirmed", tp->arg1());
+        ASSERT_EQ(m_reqid + 1, tp->arg2());
     }
 };
 
@@ -392,4 +410,26 @@ TEST(ClientTest, concurrent_req_faillover)
   for(auto &th: thread_vec) {
     th.join();
   }
+}
+
+TEST(ClientTest, pb_req_resp_call)
+{
+  int pkg_cnt = 32 * 1024;
+  auto endp = std::make_pair("localhost", 8801);
+  rpcframe::RpcClientConfig ccfg({endp});
+  ccfg.setThreadNum(4);
+  //fast async/sync call
+  rpcframe::RpcClient newclient(ccfg, "test_service");
+  for (int pcnt = 1; pcnt <= pkg_cnt; ++pcnt) {
+    ccfg.setMaxReqPkgSize(pcnt);
+    TestPkg tp;
+    tp.set_id(pcnt);
+    tp.set_arg1("client_req");
+    tp.set_arg2(pcnt);
+    ASSERT_EQ(rpcframe::RpcStatus::RPC_SEND_OK, newclient.async_call("test_method_pb", 
+          tp,
+          10, 
+          std::make_shared<pb_req_resp>(pcnt)));
+  }
+  newclient.waitAllCBDone(5);
 }

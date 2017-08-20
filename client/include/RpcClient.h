@@ -124,21 +124,6 @@ public:
 
     void waitAllCBDone(uint32_t timeout);
 
-    template <typename T>
-    static T *createProtoBufMsg(const RawData *rawdata) {
-       T *pbmsg = new T();
-       pbmsg->ParseFromString({rawdata->data, rawdata->data_len});
-       return pbmsg;
-
-    }
-
-    template <typename T>
-    static void destoryProtoBufMsg(T *pbmsg) {
-        if(pbmsg != nullptr) {
-            delete pbmsg;
-        }
-    }
-
     RpcClient(const RpcClient &) = delete;
     RpcClient &operator=(const RpcClient &) = delete;
 
