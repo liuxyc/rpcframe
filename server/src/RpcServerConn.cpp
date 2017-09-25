@@ -30,6 +30,7 @@ RpcServerConn::RpcServerConn(int fd, const char *id, RpcServerImpl *server)
 , m_sent_pkg(nullptr)
 , MAX_REQ_LIMIT_BYTE(server->getConfig()->m_max_req_size)
 , m_server(server)
+, m_eps(nullptr)
 {
     //generate a connection id, this id used for track and identify RpcServerConn instance
     m_seqid = std::to_string(std::time(nullptr)) + "_";

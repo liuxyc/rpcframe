@@ -53,7 +53,7 @@ private:
     RpcInnerResp m_resp_proto;
     RespPkgPtr m_resp_pkg;
     uint32_t m_return_val_pos;
-    uint32_t m_user_data_pos;
+    uint32_t m_user_data_pos = 0;
 };
 
 };

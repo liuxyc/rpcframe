@@ -297,12 +297,11 @@ void RpcEventLooper::run() {
         //FIXME:dealTimeoutCb() may block event loop
         dealTimeoutCb();
 
-        for (int i = 0; i < nfds; i++) 
-        {  
+        for (int i = 0; i < nfds; i++) {  
             RpcClientConn *conn = (RpcClientConn *)(m_epoll.getData(i));
             int client_socket = conn->getFd();
-            if (m_epoll.getEvent(i) & EPOLLIN)//data come in
-            {  
+            if (m_epoll.getEvent(i) & EPOLLIN) {  
+                //data comein
                 pkg_ret_t pkgret = conn->getResponse();
                 //pkgret: <int, pkgptr>
                 //int: -1 get pkg data fail
@@ -310,8 +309,7 @@ void RpcEventLooper::run() {
                 //int: 0 
                 //  pkgptr: nullptr, partial data
                 //  pkgptr: not nullptr, full pkg data 
-                if( pkgret.first < 0 )  
-                {  
+                if( pkgret.first < 0 )  {  
                     RPC_LOG(RPC_LOG_LEV::WARNING, "rpc client socket disconnected: %d", client_socket);  
                     removeConnection(client_socket, conn);
                 }  

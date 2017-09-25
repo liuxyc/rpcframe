@@ -107,9 +107,7 @@ void RpcWorker::run(std::shared_ptr<request_pkg> pkg)
             RPC_LOG(RPC_LOG_LEV::DEBUG, "%s call take: %llu ms", req.method_name().c_str(), during.count());
             auto timeout_during = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now() - pkg->gen_time);
             if (req.timeout() > 0 && timeout_during.count() > req.timeout() + 3) {
-                if(method_status) {
-                    ++(method_status->timeout_call_nums);
-                }
+                ++(method_status->timeout_call_nums);
                 RPC_LOG(RPC_LOG_LEV::WARNING, "req %s:%s should already timeout on client %d->%d, will not response", req.request_id().c_str(), req.method_name().c_str(), timeout_during.count(), req.timeout() + 3);
                 return;
             }

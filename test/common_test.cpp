@@ -62,6 +62,26 @@ TEST(ThreadPoolTest, full)
 }
 
 
+TEST(HashThreadPoolTest, full)
+{
+    //for raw pointer task
+    rpcframe::HashThreadPool<RealTask *, RealWorker> tp(10, 666, true, "abc");
+    for(auto i = 0; i < 1000; ++i) {
+        RealTask *rt = new RealTask;
+        rt->name = "real_task_" + std::to_string(i);
+        rt->val = i;
+        tp.addTask(rt, std::to_string(rt->val), 100);
+    }
+    //for shared_ptr Task
+    rpcframe::HashThreadPool<std::shared_ptr<RealTask>, RealWorkerSharePtr> tpshared(10, 888, true, "abc");
+    for(auto i = 0; i < 1000; ++i) {
+        std::shared_ptr<RealTask> rt(new RealTask);
+        rt->name = "real_task_shared_" + std::to_string(i);
+        rt->val = i;
+        tpshared.addTask(rt, std::to_string(rt->val), 100);
+    }
+    sleep(5);
+}
 
 TEST(QueueTest, full)
 {

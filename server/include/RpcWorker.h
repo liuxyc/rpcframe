@@ -44,7 +44,6 @@ class RpcWorker
   private:
     void pushResponse(IRpcRespBrokerPtr &rpcbroker, std::string &connid, int type, RpcServerConnWorker *connworker);
     RpcServerImpl *m_server;
-    IService *m_service;
 };
 
 };
