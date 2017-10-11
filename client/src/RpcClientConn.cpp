@@ -86,6 +86,10 @@ bool RpcClientConn::connect()
     setsockopt(m_fd, SOL_TCP, TCP_KEEPIDLE, (void*)&keepIdle, sizeof(keepIdle));  
     setsockopt(m_fd, SOL_TCP, TCP_KEEPINTVL, (void*)&keepInterval, sizeof(keepInterval));  
     setsockopt(m_fd, SOL_TCP, TCP_KEEPCNT, (void*)&keepCount, sizeof(keepCount));  
+    int flag = 1;
+    if(setsockopt(m_fd, IPPROTO_TCP, TCP_NODELAY, (char *)&flag, sizeof(flag) ) == -1){
+        RPC_LOG(RPC_LOG_LEV::WARNING, "couldn't setsockopt(tcp_nodelay)");
+    }
     m_evlooper->addConnection(m_fd, this);
     RPC_LOG(RPC_LOG_LEV::INFO, "RpcClientConn connected: %s:%d %d", m_ep.first.c_str(), m_ep.second, m_fd);
     return true;

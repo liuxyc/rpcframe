@@ -57,6 +57,7 @@ public:
   void stop();
 
   void setSocketKeepAlive(int fd);
+  void setSocketNoDelay(int fd);
   void removeConnection(const EpollStruct *eps);
   void addConnection(int fd, RpcServerConn *conn);
   void pushResp(std::string seqid, RpcRespBroker &rb);

@@ -261,6 +261,14 @@ bool RpcServerConnWorker::start(int listen_fd)
   return true;
 }
 
+void RpcServerConnWorker::setSocketNoDelay(int fd)
+{
+    int flag = 1;
+    if(setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (char *)&flag, sizeof(flag) ) == -1){
+        RPC_LOG(RPC_LOG_LEV::WARNING, "couldn't setsockopt(tcp_nodelay)");
+    }
+}
+
 void RpcServerConnWorker::setSocketKeepAlive(int fd)
 {
   int keepAlive = 1;   
