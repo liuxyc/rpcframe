@@ -74,7 +74,7 @@ bool getHostIpByName(std::string &str_ip, const char *hname) {
 
 std::vector<std::string> log_level_map = {"DEBUG", "INFO", "WARNING", "ERROR", "FATAL"};
 
-void RPC_LOG_FUNC(RPC_LOG_LEV level, const char* func_name, const char *format, ... ){
+void RPC_LOG_FUNC(RPC_LOG_LEV level, const char* file_name, int lineno, const char *func_name, const char *format, ... ){
   if(level < g_log_level) {
     return;
   }
@@ -89,7 +89,7 @@ void RPC_LOG_FUNC(RPC_LOG_LEV level, const char* func_name, const char *format, 
   log_ss << "[" << log_level_map[(int)level] << " ";
   log_ss << tm.tv_sec << "." << tm.tv_usec * 1000 << " ";
   log_ss << std::hex << std::this_thread::get_id() << "]";
-  log_ss << "[" << func_name << "] ";
+  log_ss << std::dec << "[" << file_name << ":" << lineno << " " << func_name << "] ";
   log_ss << logbuf;
   if(writenum > 4096) {
     log_ss << " LOG HAS BEEN TRUNCATED..." << std::dec << writenum;

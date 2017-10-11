@@ -26,10 +26,10 @@ extern std::vector<std::string> log_level_map;
 
 extern RPC_LOG_LEV g_log_level;
 
-extern void RPC_LOG_FUNC(RPC_LOG_LEV level, const char *func_name, const char *format, ... );
+extern void RPC_LOG_FUNC(RPC_LOG_LEV level, const char *file_name, int lineno, const char* func_name, const char *format, ... );
 
 #define RPC_LOG(level, format, ...) \
-RPC_LOG_FUNC(level, __PRETTY_FUNCTION__, format, ##__VA_ARGS__); \
+RPC_LOG_FUNC(level, __FILE__, __LINE__, __FUNCTION__, format, ##__VA_ARGS__); \
 
 };
 

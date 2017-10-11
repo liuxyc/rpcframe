@@ -8,11 +8,9 @@
 #include <errno.h>
 #include <fcntl.h>  
 #include <netinet/in.h>  
-#include <string.h>
-#include <sys/socket.h>  
-#include <unistd.h>
 #include <netinet/tcp.h>  
 #include <arpa/inet.h>  
+
 
 #include "rpc.pb.h"
 #include "util.h"
@@ -73,15 +71,7 @@ bool RpcClientConn::connect()
     if(m_fd != -1)
         return true;
 
-    m_fd = ::socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
-    if(m_fd < 0)
-    {
-        RPC_LOG(RPC_LOG_LEV::ERROR, "socket creation failed");
-        m_last_invalid_time = std::time(nullptr);
-        return false;
-    }
-
-    if (noBlockConnect(m_fd, m_ep.first.c_str(), m_ep.second, m_connect_timeout) == -1)
+    if (connectHost(m_ep.first.c_str(), m_ep.second, m_connect_timeout) == -1)
     {
         m_fd = -1;
         m_last_invalid_time = std::time(nullptr);
@@ -110,20 +100,59 @@ int RpcClientConn::setNoBlocking(int fd)
 }
 
 
-int RpcClientConn::noBlockConnect(int sockfd, const char* hostname, int port, int timeoutv) 
+int RpcClientConn::connectHost(const char* hostname, int port, int timeoutv) 
 {
     int ret = 0;
-    struct sockaddr_in address;
-    bzero(&address, sizeof(address));
-    address.sin_family = AF_INET;
-    std::string hostip;
-    if(!getHostIpByName(hostip, hostname)) {
-        RPC_LOG(RPC_LOG_LEV::ERROR, "gethostbyname %s fail", hostname);
+    struct addrinfo hints;
+    struct addrinfo *result, *rp;
+
+    /* Obtain address(es) matching host/port */
+
+    memset(&hints, 0, sizeof(struct addrinfo));
+    hints.ai_family = AF_UNSPEC;    /* Allow IPv4 or IPv6 */
+    hints.ai_socktype = SOCK_STREAM; /* Datagram socket */
+    hints.ai_flags = 0;
+    hints.ai_protocol = IPPROTO_TCP;          /* Any protocol */
+
+    ret = getaddrinfo(hostname, std::to_string(port).c_str(), &hints, &result);
+    if (ret != 0) {
+        RPC_LOG(RPC_LOG_LEV::ERROR, "getaddrinfo:%s", gai_strerror(ret));
+        return -1;
     }
-    inet_pton(AF_INET, hostip.c_str(), &address.sin_addr);
-    address.sin_port = htons(port);
+
+    /* getaddrinfo() returns a list of address structures.
+       Try each address until we successfully connect(2).
+       If socket(2) (or connect(2)) fails, we (close the socket
+       and) try the next address. */
+
+    for (rp = result; rp != NULL; rp = rp->ai_next) {
+        m_fd = socket(rp->ai_family, rp->ai_socktype,
+                rp->ai_protocol);
+        if (m_fd == -1)
+            continue;
+
+        if (noBlockConnect(m_fd, rp->ai_addr, rp->ai_addrlen, timeoutv) != -1)
+            break;                  /* Success */
+
+        close(m_fd);
+        m_fd = -1;
+    }
+
+    if (rp == NULL) {               /* No address succeeded */
+        RPC_LOG(RPC_LOG_LEV::ERROR, "can not connect");
+        return -1;
+    }
+
+    freeaddrinfo(result);           /* No longer needed */    
+    return 0;
+}
+
+
+int RpcClientConn::noBlockConnect(int sockfd, struct sockaddr *address, socklen_t addr_len, int timeoutv) 
+{
+    int ret = 0;
     int fdopt = setNoBlocking(sockfd);
-    ret = ::connect(sockfd, (struct sockaddr*)&address, sizeof(address));
+    ret = ::connect(sockfd, address, addr_len);
     if(ret == 0) {
         fcntl(sockfd, F_SETFL,fdopt);
         return sockfd;
@@ -142,12 +171,12 @@ int RpcClientConn::noBlockConnect(int sockfd, const char* hostname, int port, in
     ret = ::select(sockfd+1, nullptr, &writefds, nullptr, &timeout);
     if(ret <= 0) {
       if(ret == 0) { 
-        RPC_LOG(RPC_LOG_LEV::ERROR, "connect %s:%d time out", hostname, port);
+        RPC_LOG(RPC_LOG_LEV::ERROR, "connect %s:%d time out", m_ep.first.c_str(), m_ep.second);
         close(sockfd);
         return -1;
       }
       else {
-        RPC_LOG(RPC_LOG_LEV::ERROR, "select connect server %s:%d error:%s", hostname, port, strerror(errno));
+        RPC_LOG(RPC_LOG_LEV::ERROR, "select connect server %s:%d error:%s", m_ep.first.c_str(), m_ep.second, strerror(errno));
       }
     }
     if(!FD_ISSET(sockfd, &writefds)) {
@@ -163,13 +192,13 @@ int RpcClientConn::noBlockConnect(int sockfd, const char* hostname, int port, in
         return -1;
     }
     if(error != 0 ) {
-        RPC_LOG(RPC_LOG_LEV::ERROR, "connect server %s:%d error:%s", hostname, port, strerror(error));
+        RPC_LOG(RPC_LOG_LEV::ERROR, "connect server %s:%d error:%s", m_ep.first.c_str(), m_ep.second, strerror(error));
         close(sockfd);
         return -1;
     }
     //set socket back to block
     fcntl(sockfd, F_SETFL, fdopt); 
-    return sockfd;
+    return 0;
 }
 
 

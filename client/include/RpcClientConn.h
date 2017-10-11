@@ -10,6 +10,13 @@
 #include "Queue.h"
 #include "RpcPackage.h"
 #include "RpcDefs.h"
+#include <sys/types.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <netdb.h>
 
 namespace rpcframe {
 
@@ -29,7 +36,8 @@ public:
     void setInvalid();
     bool isValid();
     bool shouldRetry();
-    int noBlockConnect(int sockfd, const char* hostname, int port, int timeoutv);
+    int connectHost(const char* hostname, int port, int timeoutv);
+    int noBlockConnect(int sockfd, struct sockaddr *address, socklen_t addr_len, int timeoutv);
     bool connect();
     int setNoBlocking(int fd);
 
