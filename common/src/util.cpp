@@ -43,7 +43,7 @@ bool getHostIpByName(std::string &str_ip, const char *hname) {
   struct hostent hbuf;
   struct hostent *result;
 
-  while ((rc = gethostbyname_r(hname, &hbuf, buf, 1024, &result, &err)) == ERANGE) {
+  while ((rc = gethostbyname_r(hname, &hbuf, buf, len, &result, &err)) == ERANGE) {
     /* expand buf */
     len *= 2;
     char *tmp = (char *)realloc(buf, len);

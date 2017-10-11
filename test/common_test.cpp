@@ -235,3 +235,14 @@ TEST(LogTest, print)
   rpcframe::RPC_LOG(rpcframe::RPC_LOG_LEV::FATAL, "%s", "hello");
   rpcframe::RPC_LOG(rpcframe::RPC_LOG_LEV::DEBUG, "%s", std::string(4097, 'c').c_str());
 }
+
+TEST(UtilTest, GetHost)
+{
+    std::string myip;
+    EXPECT_TRUE(rpcframe::getHostIp(myip));
+    EXPECT_EQ(myip, "127.0.1.1");
+    myip = "";
+    EXPECT_TRUE(rpcframe::getHostIpByName(myip, "localhost"));
+    EXPECT_EQ(myip, "127.0.0.1");
+
+}
