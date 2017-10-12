@@ -129,6 +129,7 @@ void RpcServerConnWorker::onAccept() {
     id += "_";
     id += std::to_string(++m_seqid);
     setSocketKeepAlive(new_client_socket);
+    setSocketNoDelay(new_client_socket);
     fcntl(new_client_socket, F_SETFL, fcntl(new_client_socket, F_GETFL) | O_NONBLOCK);
     RpcServerConn *pConn = nullptr;
     switch(m_conn_type) {

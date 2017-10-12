@@ -34,14 +34,13 @@ public:
         printf("test_method_async get %s\n", req_data.data);
         //make a async response
         m_t.push_back(new std::thread([resp_broker](){
-                //must delete broker after call resp_broker->response, we use std::unique_ptr do it for us
-                //std::unique_ptr<rpcframe::IRpcRespBroker> broker_ptr(resp_broker);
+                rpcframe::IRpcRespBrokerPtr keep_resp_broker = resp_broker;
                 std::this_thread::sleep_for(std::chrono::seconds(5));
                 printf("i'm async method\n");
                 std::string ss("my feedback async");
-                char *p_ss = resp_broker->allocRespBuf(ss.size() + 1);
+                char *p_ss = keep_resp_broker->allocRespBuf(ss.size() + 1);
                 strcpy(p_ss, ss.c_str());
-                resp_broker->response(rpcframe::RpcStatus::RPC_SERVER_OK);
+                keep_resp_broker->response(rpcframe::RpcStatus::RPC_SERVER_OK);
                 }));
         /*
            NOTICE:Don't delete resp_broker if you return rpcframe::RpcStatus::RPC_SERVER_OK, RcpServer will delete it for you.
